@@ -1,0 +1,37 @@
+/* Celebrations */
+.mw-fx { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.mw-cele { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(7,59,43,.5); }
+.mw-card { background: var(--paper); border-radius: 8px; padding: 2rem 2.25rem 1.6rem; text-align: center; max-width: min(22rem, 88vw); display: grid; gap: .4rem; justify-items: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.6); }
+.mw-medal { width: 6.5rem; height: 6.5rem; filter: drop-shadow(0 6px 10px rgba(201,167,99,.5)); }
+.mw-t { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; color: var(--deep); line-height: 1.15; }
+.mw-s { color: var(--moss); }
+.mw-x { margin-top: .8rem; font: inherit; font-weight: 600; background: var(--forest); color: var(--cream); border: 0; border-radius: 999px; padding: .6rem 1.6rem; cursor: pointer; }
+.mw-x:hover { background: var(--deep); }
+@media (prefers-reduced-motion: no-preference) {
+  .mw-card { animation: mw-in .5s cubic-bezier(.2,.9,.3,1.2) both; }
+  .mw-medal { animation: mw-pop .7s cubic-bezier(.2,1.4,.4,1) .15s both; }
+  @keyframes mw-in { from { transform: translateY(20px) scale(.94); opacity: 0; } }
+  @keyframes mw-pop { from { transform: scale(.3) rotate(-25deg); opacity: 0; } }
+}
+
+/* Flip book */
+.fb { position: relative; width: min(100%, 44rem); aspect-ratio: 16 / 10; margin-inline: auto; perspective: 2400px; background: var(--paper); border-radius: 4px; box-shadow: 0 24px 50px -22px rgba(0,0,0,.55); outline-offset: 6px; }
+.fb::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 3rem; margin-left: -1.5rem; background: linear-gradient(90deg, transparent, rgba(33,54,47,.16) 50%, transparent); pointer-events: none; z-index: 300; }
+.fb-sheet { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; transform-origin: left center; transform-style: preserve-3d; transition: transform .9s cubic-bezier(.45,.05,.25,1); }
+.fb-sheet.is-flipped { transform: rotateY(-180deg); }
+.fb-face { position: absolute; inset: 0; background: var(--paper); backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.fb-front { border-radius: 0 4px 4px 0; background: linear-gradient(90deg, rgba(33,54,47,.1), transparent 7%), var(--paper); }
+.fb-back { transform: rotateY(180deg); border-radius: 4px 0 0 4px; background: linear-gradient(270deg, rgba(33,54,47,.1), transparent 7%), var(--paper); }
+.fb-page { height: 100%; padding: 1.4rem 1.5rem; display: flex; flex-direction: column; gap: .7rem; }
+.fb-page h3 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; color: var(--deep); line-height: 1.15; }
+.fb-page p { font-family: var(--serif); font-size: .98rem; line-height: 1.55; }
+.fb-page .fb-ph { flex: 1; min-height: 0; background: #fff; padding: 5px; box-shadow: 0 4px 12px rgba(33,54,47,.2); }
+.fb-page .fb-ph svg { width: 100%; height: 100%; display: block; }
+.fb-page .fb-date { font-family: var(--serif); font-style: italic; color: var(--moss); font-size: .9rem; }
+
+.fb--single { aspect-ratio: 3 / 4; width: min(100%, 24rem); }
+.fb--single::after { display: none; }
+.fb--single .fb-sheet { left: 0; width: 100%; }
+.fb--single .fb-front { border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .fb-sheet { transition: none; } }

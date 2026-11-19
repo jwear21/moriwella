@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moriwella: remember your life, organize your days, and live well</title>
+<meta name="description" content="Moriwella is a journal, a family list keeper and a scrapbook maker in one calm place. Now in development, Android first.">
+<!-- Keep this page out of search engines until the name is cleared and the site is ready to launch. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1B4D3E">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<!-- Shared hills artwork, drawn once and reused as photos and movie frames -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9F6ED"/><stop offset="1" stop-color="#F1E3C6"/></linearGradient>
+    <linearGradient id="sunfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DE9C"/><stop offset="1" stop-color="#E8B756"/></linearGradient>
+    <symbol id="hills" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice">
+      <rect width="640" height="480" fill="url(#sky)"/>
+      <circle cx="450" cy="250" r="66" fill="url(#sunfill)"/>
+      <path fill="#CBD6B8" d="M0 300 C120 230 220 270 330 290 C430 308 520 250 640 270 V480 H0Z"/>
+      <path fill="#9DB5A0" d="M0 345 C110 300 230 340 340 350 C450 360 540 320 640 335 V480 H0Z"/>
+      <path fill="#6B8F77" d="M0 395 C140 365 240 395 360 400 C470 405 550 380 640 392 V480 H0Z"/>
+      <path fill="#1B4D3E" d="M0 440 C160 425 300 445 420 445 C520 445 590 432 640 438 V480 H0Z"/>
+    </symbol>
+    <linearGradient id="dusksky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E4A58"/><stop offset=".6" stop-color="#C98E5E"/><stop offset="1" stop-color="#E8B756"/></linearGradient>
+    <symbol id="dusk" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice">
+      <rect width="640" height="480" fill="url(#dusksky)"/>
+      <circle cx="200" cy="330" r="48" fill="#F6DE9C"/>
+      <path fill="#7C6A5A" d="M0 360 L60 330 L90 345 L130 300 L170 340 L230 310 L290 350 L350 320 L420 345 L480 305 L540 340 L640 315 V480 H0Z"/>
+      <path fill="#1B4D3E" d="M0 410 C120 385 240 420 360 410 C480 400 560 395 640 405 V480 H0Z"/>
+      <path fill="#073B2B" d="M0 450 C160 435 320 455 640 440 V480 H0Z"/>
+    </symbol>
+    <linearGradient id="seasky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCEBE6"/><stop offset="1" stop-color="#F9F6ED"/></linearGradient>
+    <symbol id="coast" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice">
+      <rect width="640" height="480" fill="url(#seasky)"/>
+      <path fill="#A9C5B3" d="M0 250 H640 V480 H0Z"/>
+      <path fill="#8FB3B0" d="M0 285 C120 275 240 295 360 285 C480 275 560 290 640 282 V480 H0Z"/>
+      <path fill="#E9D8B6" d="M0 360 C140 340 260 372 400 360 C500 350 580 365 640 358 V480 H0Z"/>
+      <path fill="#C9A763" d="M0 430 C160 415 320 440 640 420 V480 H0Z" opacity=".7"/>
+      <path d="M470 120 L470 245 M470 130 L535 240 L470 240Z" fill="#F9F6ED" stroke="#6B8F77" stroke-width="3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="desk">
+  <p class="announce">Moriwella is in development. Early access is coming soon.</p>
+  <div class="wrap">
+    <header class="top">
+      <a href="#" aria-label="Moriwella home"><img class="logo" src="assets/logo_horizontal_inverse.svg" alt="Moriwella"></a>
+      <nav aria-label="Main">
+        <a href="#inside">What's inside</a>
+        <a href="#keepsakes">Keepsakes</a>
+        <a href="#privacy">Privacy</a>
+        <a href="pricing.html">Pricing</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div class="spread">
+        <div class="page page--left">
+          <h1>Remember your life, organize your days, and live well.</h1>
+          <p class="lede">Life moves quickly. Between the everyday responsibilities and the moments you'll never forget, there's a lot worth keeping.</p>
+          <p class="lede lede--2">Moriwella brings your journals, family plans, and favorite memories together in one beautiful place.</p>
+          <div class="actions">
+            <a class="btn" href="#inside">Explore Moriwella</a>
+            <a class="link" href="pricing.html">Plans and pricing</a>
+          </div>
+        </div>
+
+        <div class="page page--right">
+          <article class="entry" aria-label="Sample journal entry">
+            <p class="entry-date">Thursday, November 19</p>
+            <h2>Coffee on the porch</h2>
+            <div class="photo"><svg role="img" aria-label="Sunrise over green hills"><use href="#hills" width="100%" height="100%"/></svg></div>
+            <p class="body">Cold enough for the good mug. Walked to the end of the lane and back, and decided the kitchen can wait until Saturday.</p>
+            <ul class="tags" aria-label="Tags"><li>Morning</li><li>Home</li></ul>
+            <p class="sample">A sample entry.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="main">
+
+<section id="inside" class="section first">
+  <div class="wrap">
+    <h2 class="section-title">One calm place for the whole of your life</h2>
+    <p class="section-intro">Write it down, sort it out, and keep it. These are the parts we're building first.</p>
+
+    <div class="rows">
+      <div class="row">
+        <div class="row-text">
+          <h3>A beautiful place for your everyday thoughts</h3>
+          <p>Some days deserve pages of stories. Others just need a sentence or a photograph. Moriwella lets you capture your days however you choose, then revisit those memories through a beautiful calendar or timeline.</p>
+          <p>Your entries are private unless you decide otherwise.</p>
+        </div>
+        <div class="mock" aria-hidden="true">
+          <div class="cal-head"><span id="cal-month">November</span><span id="cal-count"></span></div>
+          <div class="cal" id="cal"></div>
+        </div>
+      </div>
+
+      <div class="row row--flip">
+        <div class="row-text">
+          <h3>Less to keep track of. More time for what matters.</h3>
+          <p>Grocery lists, daily goals, household errands, and the little things that keep life moving. Keep your own lists private or share them with family, so everyone knows what needs doing.</p>
+          <p>You choose, list by list, what's shared. Joining a family never opens up anything you didn't.</p>
+        </div>
+        <div class="mock list-pair" aria-hidden="true">
+          <div class="list">
+            <h4>Groceries <small>Shared with family</small></h4>
+            <ul><li class="done">Oranges</li><li>Oat milk</li><li>Birthday candles</li></ul>
+          </div>
+          <div class="list">
+            <h4>Gift ideas <small>Only you</small></h4>
+            <ul><li>Field guide for Dad</li><li>Tea sampler</li></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row-text">
+          <h3>Big moments deserve more than a camera roll.</h3>
+          <p>Vacations, weddings, reunions, concerts, and unexpected adventures. Capture the stories behind the photos, organize each experience your way, and turn it all into something worth revisiting.</p>
+        </div>
+        <div class="xcards" aria-hidden="true">
+          <div class="xcard"><b>Vacations</b><span>Days, stops, photos and the stories between</span></div>
+          <div class="xcard"><b>Weddings</b><span>Every guest, toast and detail in one place</span></div>
+          <div class="xcard"><b>Reunions</b><span>Who came, who laughed, who brought the pie</span></div>
+          <div class="xcard"><b>Concerts</b><span>One night, kept for good</span></div>
+          <div class="xcard xcard--mine"><b>Your own kind of experience</b><span>Design the layout once, reuse it next time</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="keepsakes" class="section band-deep">
+  <div class="wrap">
+    <h2 class="section-title">Your memories deserve a beautiful ending.</h2>
+    <p class="section-intro">Turn the moments you've captured into stunning digital albums, printable scrapbooks, and animated memory movies, complete with your photos, videos, stories, and music. You review and rearrange everything before anything is made.</p>
+
+    <div class="formats">
+      <figure class="fmt">
+        <div class="frame frame--page" role="img" aria-label="Sample scrapbook page with two photos and a caption">
+          <div class="sb-title">Lisbon, October</div>
+          <div class="sb-photos">
+            <div class="ph ph--a"><svg><use href="#coast" width="100%" height="100%"/></svg></div>
+            <div class="ph ph--b"><svg><use href="#dusk" width="100%" height="100%"/></svg></div>
+          </div>
+          <p class="sb-cap">Day three. The tram up the hill, and the best pastry of the trip.</p>
+          <div class="sb-ln"></div><div class="sb-ln"></div>
+        </div>
+        <figcaption>Scrapbook page, ready to print</figcaption>
+      </figure>
+      <figure class="fmt">
+        <div class="frame frame--wide movie" role="img" aria-label="Sample widescreen memory movie title frame">
+          <svg><use href="#coast" width="100%" height="100%"/></svg>
+          <div class="movie-title"><b>Our week in Lisbon</b><span>October 2026</span></div>
+          <div class="movie-bar"><i></i></div>
+        </div>
+        <figcaption>Memory Movie, widescreen</figcaption>
+      </figure>
+      <figure class="fmt">
+        <div class="frame frame--tall movie" role="img" aria-label="Sample vertical memory movie frame with caption">
+          <svg><use href="#dusk" width="100%" height="100%"/></svg>
+          <div class="movie-cap">Day 3: the tram up the hill</div>
+          <div class="movie-bar"><i></i></div>
+        </div>
+        <figcaption>Vertical, for phones</figcaption>
+      </figure>
+      <figure class="fmt">
+        <div class="frame frame--sq album" role="img" aria-label="Sample shared album cover">
+          <svg><use href="#hills" width="100%" height="100%"/></svg>
+          <div class="album-t"><b>Summer at the lake</b><span>42 photos</span></div>
+        </div>
+        <figcaption>Shared album</figcaption>
+      </figure>
+    </div>
+    <p class="sample-note">Sample pages and frames, drawn for this preview.</p>
+
+    <div class="keeps">
+      <div><h3>Print-ready scrapbooks</h3><p>A PDF with covers, captions and dates. Moriwella warns you when a photo is too small to print well.</p></div>
+      <div><h3>Memory Movies</h3><p>A short recap with gentle motion, titles and your choice of music, or none at all.</p></div>
+      <div><h3>Albums you can share</h3><p>Send a private link, set when it expires, and turn it off any time.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="celebrate" class="section">
+  <div class="wrap row">
+    <div class="row-text">
+      <h2 class="section-title">A little celebration goes a long way.</h2>
+      <p class="section-intro">Finish your daily goals. Keep a journaling streak going. Complete a family project or finish your first vacation scrapbook. Moriwella celebrates your progress with thoughtful milestones and little moments of delight.</p>
+    </div>
+    <div class="mock cele" aria-hidden="true">
+      <div class="ring" id="ring">
+        <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="50"/><circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="50"/></svg>
+        <div class="ring-t"><b>6 of 7</b><span>days written</span></div>
+      </div>
+      <ul class="badges">
+        <li><i class="bdg"></i>Groceries done</li>
+        <li><i class="bdg"></i>First scrapbook</li>
+        <li><i class="bdg bdg--next"></i>7-day journal week</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2 class="section-title">From the first line to the finished keepsake</h2>
+    <ol class="steps">
+      <li><h3>Start</h3><p>Pick a template for the trip or event, or just open Today and write.</p></li>
+      <li><h3>Capture as you go</h3><p>Add notes, photos and short clips day by day, even on a slow connection.</p></li>
+      <li><h3>Make it</h3><p>Choose your dates, review the arrangement, and create a PDF, a movie or an album.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="privacy" class="section" style="padding-top:0">
+  <div class="wrap">
+    <h2 class="section-title">Yours to keep, yours to take</h2>
+    <div class="two">
+      <div>
+        <h3>Private by default</h3>
+        <p>Your journal belongs to you. Family sharing is opt-in, and it applies only to the lists and albums you choose.</p>
+        <p>Photos aren't posted anywhere public, and you decide who can see a shared album.</p>
+      </div>
+      <div>
+        <h3>Bring your journals, take them with you</h3>
+        <p>We're building import for popular journal apps so years of entries can come along with their dates and photos. We'll name each supported app once it has been tested.</p>
+        <p>You can export everything from Moriwella at any time, in a documented format that includes your photos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="plans" class="section band-sand">
+  <div class="wrap">
+    <h2 class="section-title">Something wonderful is taking shape.</h2>
+    <div class="plans-box">
+      <p>Moriwella is currently in development. We're creating a beautiful home for your everyday plans, personal journals, and favorite memories.</p>
+      <p>When we launch, you'll be able to explore Moriwella with a free 14-day trial. A card is required to start, and your plan begins automatically when the trial ends unless you cancel first.</p>
+      <p>It will come first to Android, work in any browser, and install on Windows.</p>
+      <p><a class="link" href="pricing.html">See the planned plans and prices</a></p>
+    </div>
+    <!-- PRICING PLACEHOLDER: no prices until Stripe billing and plan entitlements are final. Later: Personal Plus and Family Plus cards with checkout links. -->
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <img src="assets/logo_horizontal_inverse.svg" alt="Moriwella">
+    <p>Remember your life, organize your days, and live well.</p>
+    <p>&copy; 2026 Moriwella</p>
+  </div>
+</footer>
+
+<script>
+/* Draws the little calendar in the first feature. Decorative only. */
+(function () {
+  var el = document.getElementById('cal'); if (!el) return;
+  var now = new Date(), y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+  var names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month').textContent = names[m] + ' ' + y;
+  var html = ['S','M','T','W','T','F','S'].map(function (d) { return '<b>' + d + '</b>'; }).join('');
+  var first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+  for (var i = 0; i < first; i++) html += '<i></i>';
+  for (var d = 1; d <= days; d++) {
+    var cls = d === today ? 'today' : (d < today && d % 3 !== 0 ? 'has' : '');
+    html += '<i class="' + cls + '">' + d + '</i>';
+  }
+  el.innerHTML = html;
+  var n = el.querySelectorAll('.has, .today').length;
+  document.getElementById('cal-count').textContent = n + (n === 1 ? ' entry' : ' entries');
+})();
+</script>
+<script>
+/* Fills the progress ring once when it scrolls into view; shows the final state if motion is reduced. */
+(function () {
+  var fg = document.getElementById('ring-fg'); if (!fg) return;
+  var C = 2 * Math.PI * 50, target = C * (1 - 6 / 7);
+  fg.style.strokeDasharray = C;
+  var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
+  if (calm) { fg.style.strokeDashoffset = target; return; }
+  fg.style.strokeDashoffset = C;
+  new IntersectionObserver(function (es, o) {
+    if (es[0].isIntersecting) { fg.style.transition = 'stroke-dashoffset 1.6s cubic-bezier(.2,.7,.2,1)'; fg.style.strokeDashoffset = target; o.disconnect(); }
+  }, { threshold: .6 }).observe(document.getElementById('ring'));
+})();
+</script>
+</body>
+</html>
