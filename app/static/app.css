@@ -105,3 +105,8 @@ form .btn { margin-top: 1.4rem; }
 .member{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0}
 .check-row{display:flex;gap:.6rem;align-items:center;margin:.5rem 0}
 select{padding:.55rem;border-radius:8px;border:1px solid #A9C5B3;background:#FCFAF4}
+
+.progress{height:8px;border-radius:6px;background:#E9D8B6;overflow:hidden;margin:.5rem 0}
+.progress .bar{height:100%;width:0;background:#1B4D3E;transition:width .2s}
+#dictate-btn[aria-pressed="true"]{background:#1B4D3E;color:#F9F6ED}
+.btn[disabled]{opacity:.7;cursor:wait}

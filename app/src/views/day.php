@@ -31,12 +31,16 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <div class="photo-pick">
       <label class="btn btn--quiet" for="photos">Add photos</label>
       <input id="photos" type="file" name="photos[]" accept="image/*" multiple class="sr-only">
+      <label class="btn btn--quiet" for="camera" id="camera-btn">Take photo</label>
+      <input id="camera" type="file" name="photos[]" accept="image/*" capture="environment" class="sr-only">
+      <button type="button" class="btn btn--quiet" id="dictate-btn" hidden aria-pressed="false">Dictate</button>
       <span class="hint" id="photo-state"></span>
     </div>
     <div class="thumbs" id="photo-preview"></div>
+    <div class="progress" id="upload-progress" hidden><div class="bar" id="upload-bar"></div></div>
     <div class="write-foot">
       <span class="hint" id="draft-state" aria-live="polite"></span>
-      <button class="btn" type="submit">Save entry</button>
+      <button class="btn" type="submit" id="save-btn">Save entry</button>
     </div>
   </form>
 </section>

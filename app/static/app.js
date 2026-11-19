@@ -50,18 +50,65 @@
     else celebrate({ level: 'small', origin: c });
   }
 
-  /* Photo previews before saving */
-  var pin = document.getElementById('photos'), prev = document.getElementById('photo-preview'), ps = document.getElementById('photo-state');
-  if (pin && prev) pin.addEventListener('change', function () {
+  /* Photo previews before saving (gallery picker and camera) */
+  var pin = document.getElementById('photos'), cam = document.getElementById('camera'), prev = document.getElementById('photo-preview'), ps = document.getElementById('photo-state');
+  function showPreviews() {
+    if (!prev) return;
     prev.innerHTML = '';
-    var files = Array.prototype.slice.call(pin.files);
+    var files = [];
+    [pin, cam].forEach(function (i) { if (i && i.files) files = files.concat(Array.prototype.slice.call(i.files)); });
     if (ps) ps.textContent = files.length ? files.length + (files.length === 1 ? ' photo' : ' photos') + ' ready to save' : '';
     files.slice(0, 12).forEach(function (f) {
       var im = document.createElement('img'); im.alt = 'Selected photo'; im.src = URL.createObjectURL(f);
       im.onload = function () { URL.revokeObjectURL(im.src); };
       prev.appendChild(im);
     });
-  });
+  }
+  [pin, cam].forEach(function (i) { if (i) i.addEventListener('change', showPreviews); });
+
+  /* Save with a visible progress bar, so a big upload never looks frozen */
+  var ef = document.getElementById('entry-form'), sb = document.getElementById('save-btn');
+  if (ef && sb && window.XMLHttpRequest && window.FormData) {
+    ef.addEventListener('submit', function (e) {
+      var hasFiles = (pin && pin.files.length) || (cam && cam.files.length);
+      sb.disabled = true; sb.textContent = hasFiles ? 'Saving photos…' : 'Saving…';
+      if (!hasFiles) return;               /* plain save: let the browser do it */
+      e.preventDefault();
+      var bar = document.getElementById('upload-bar'), wrap = document.getElementById('upload-progress'), x = new XMLHttpRequest();
+      if (wrap) wrap.hidden = false;
+      x.open('POST', ef.action || location.href); x.setRequestHeader('X-Requested-With', 'fetch');
+      x.upload.onprogress = function (p) {
+        if (p.lengthComputable && bar) { var pct = Math.round(p.loaded / p.total * 100); bar.style.width = pct + '%'; sb.textContent = pct < 100 ? 'Uploading ' + pct + '%' : 'Processing photos…'; }
+      };
+      x.onload = function () { try { localStorage.removeItem('mw-draft-body'); } catch (er) {} var to = location.href; try { to = JSON.parse(x.responseText).redirect || to; } catch (er) {} window.location.href = to; };
+      x.onerror = function () { sb.disabled = false; sb.textContent = 'Save entry'; if (ps) ps.textContent = 'The upload didn\'t go through. Your text is still here, so try again.'; if (wrap) wrap.hidden = true; };
+      x.send(new FormData(ef));
+    });
+  }
+
+  /* Dictation (works in Chrome and Android where speech recognition exists) */
+  var dBtn = document.getElementById('dictate-btn'), bodyTa = document.getElementById('body');
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (dBtn && bodyTa && SR) {
+    dBtn.hidden = false;
+    var rec = null, on = false, base = '';
+    var stop = function () { on = false; dBtn.setAttribute('aria-pressed', 'false'); dBtn.textContent = 'Dictate'; if (rec) { try { rec.stop(); } catch (er) {} } };
+    dBtn.addEventListener('click', function () {
+      if (on) { stop(); return; }
+      rec = new SR(); rec.lang = navigator.language || 'en-US'; rec.continuous = true; rec.interimResults = true;
+      base = bodyTa.value && !/\s$/.test(bodyTa.value) ? bodyTa.value + ' ' : bodyTa.value;
+      var finalText = '';
+      rec.onresult = function (ev) {
+        var interim = '';
+        for (var i = ev.resultIndex; i < ev.results.length; i++) { var t = ev.results[i][0].transcript; if (ev.results[i].isFinal) finalText += t + ' '; else interim += t; }
+        bodyTa.value = base + finalText + interim;
+        bodyTa.dispatchEvent(new Event('input'));
+      };
+      rec.onerror = function (ev) { if (ev.error === 'not-allowed' && ps) ps.textContent = 'Allow the microphone to dictate.'; stop(); };
+      rec.onend = function () { if (on) { try { rec.start(); } catch (er) { stop(); } } };
+      try { rec.start(); on = true; dBtn.setAttribute('aria-pressed', 'true'); dBtn.textContent = 'Stop dictating'; } catch (er) { stop(); }
+    });
+  }
 
   /* Water tracker */
   var w = document.querySelector('.water');
@@ -72,7 +119,7 @@
     cups.forEach(function (b) {
       b.addEventListener('click', function () {
         var n = parseInt(b.getAttribute('data-cup'), 10) * 8;
-        var prevOz = oz; oz = (oz === n) ? n - 8 : n; paint();
+        var prevOz = oz; oz = (oz === n) ? n - 8 : n; paint(); if (oz > prevOz && oz < 64) celebrate({ level: 'small', origin: b });
         var body = new URLSearchParams({ day: w.getAttribute('data-day'), oz: oz, _csrf: w.getAttribute('data-csrf') });
         fetch(w.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: body, credentials: 'same-origin' })
           .then(function (r) { return r.json(); })

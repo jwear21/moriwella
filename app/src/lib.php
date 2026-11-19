@@ -138,7 +138,10 @@ function boot(): void {
     header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'");
 }
 
-function redirect(string $to): never { header('Location: ' . $to); exit; }
+function redirect(string $to): never {
+    if (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch') { header('Content-Type: application/json'); echo json_encode(['redirect' => $to]); exit; }
+    header('Location: ' . $to); exit;
+}
 function flash(string $type, string $msg): void { $_SESSION['flash'] = ['type' => $type, 'msg' => $msg]; }
 function take_flash(): ?array { $f = $_SESSION['flash'] ?? null; unset($_SESSION['flash']); return $f; }
 
