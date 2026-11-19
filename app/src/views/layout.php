@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/kit/kit.css">
 <link rel="stylesheet" href="/app/static/app.css">
+<link rel="stylesheet" href="/app/static/editor.css">
 </head>
 <body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>">
 <?php if (!$bare && $user): ?>
@@ -41,5 +42,6 @@
 <?php endif; ?>
 <script src="/kit/celebrate.js"></script>
 <script src="/app/static/app.js"></script>
+<?php if ($user): ?><script src="/app/static/editor.js" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>
 </html>

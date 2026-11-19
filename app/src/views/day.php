@@ -53,7 +53,10 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <?php if ($en['title'] !== ''): ?><h3><?= e($en['title']) ?></h3><?php endif; ?>
     <?php if ($en['body'] !== ''): ?><p class="entry-body"><?= nl2br(e($en['body'])) ?></p><?php endif; ?>
     <?php if ($en['photos']): ?><div class="thumbs"><?php foreach ($en['photos'] as $p): ?>
-      <a href="<?= url('/photo/' . $p['id'] . '/web') ?>" target="_blank" rel="noopener"><img src="<?= url('/photo/' . $p['id'] . '/thumb') ?>" alt="Photo from <?= e($day) ?>" loading="lazy"></a>
+      <div class="thumb" data-photo="<?= (int)$p['id'] ?>">
+        <a href="<?= url('/photo/' . $p['id'] . '/web') . '?v=' . (int)$p['edited_at'] ?>" target="_blank" rel="noopener"><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="Photo from <?= e($day) ?>" loading="lazy"></a>
+        <button type="button" class="thumb-edit" data-edit-photo="<?= (int)$p['id'] ?>" aria-label="Edit this photo">Edit</button>
+      </div>
     <?php endforeach; ?></div><?php endif; ?>
     <p><a class="link" href="<?= url('/entries/' . $en['id']) ?>">Edit</a></p>
   </article>

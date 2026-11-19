@@ -104,7 +104,7 @@ function save_uploaded_photos(int $entryId, int $uid): array {
 }
 function delete_photo_files(array $p): void {
     $base = photo_dir((int)$p['user_id']) . '/' . $p['id'];
-    foreach ([$base . '_t.jpg', $base . '_w.jpg', $base . '_o.' . $p['ext']] as $f) { if (is_file($f)) @unlink($f); }
+    foreach ([$base . '_t.jpg', $base . '_w.jpg', $base . '_e.jpg', $base . '_o.' . $p['ext']] as $f) { if (is_file($f)) @unlink($f); }
 }
 function delete_entry_photos(int $entryId, int $uid): void {
     $s = db()->prepare('SELECT * FROM entry_photos WHERE entry_id = ? AND user_id = ?');
@@ -117,4 +117,34 @@ function photos_for_entries(array $ids): array {
     $out = [];
     foreach (db()->query("SELECT * FROM entry_photos WHERE entry_id IN ($in) ORDER BY id")->fetchAll() as $p) { $out[$p['entry_id']][] = $p; }
     return $out;
+}
+
+
+/* Save an edited version made in the photo studio. The untouched original stays on disk. */
+function save_photo_edit(array $p, array $f): ?string {
+    if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return 'The edited photo did not arrive. Please try again.';
+    if ($f['size'] > 25 * 1024 * 1024) return 'The edited photo is too large.';
+    $info = @getimagesize($f['tmp_name']);
+    if (!$info || $info[2] !== IMAGETYPE_JPEG) return 'The edited photo was not a valid image.';
+    if ($info[0] * $info[1] > PHOTO_MAX_PIXELS) return 'The edited photo has too many pixels.';
+    $base = photo_dir((int)$p['user_id']) . '/' . $p['id'];
+    $edited = $base . '_e.jpg';
+    if (!move_uploaded_file($f['tmp_name'], $edited)) return 'The edited photo could not be saved.';
+    @chmod($edited, 0600);
+    $web = make_derivative($edited, IMAGETYPE_JPEG, 2000, $base . '_w.jpg', 85);
+    $thumb = $web ? make_derivative($edited, IMAGETYPE_JPEG, 520, $base . '_t.jpg', 80) : null;
+    if (!$web) { @unlink($edited); return 'The edited photo could not be processed.'; }
+    db()->prepare('UPDATE entry_photos SET width = ?, height = ?, has_derived = 1, edited_at = ? WHERE id = ?')->execute([$web[0], $web[1], time(), $p['id']]);
+    return null;
+}
+function revert_photo_edit(array $p): void {
+    $base = photo_dir((int)$p['user_id']) . '/' . $p['id'];
+    $src = $base . '_o.' . $p['ext'];
+    $type = ['jpg' => IMAGETYPE_JPEG, 'png' => IMAGETYPE_PNG, 'gif' => IMAGETYPE_GIF, 'webp' => IMAGETYPE_WEBP][$p['ext']] ?? IMAGETYPE_JPEG;
+    if (is_file($src)) {
+        $web = make_derivative($src, $type, 2000, $base . '_w.jpg', 85);
+        if ($web) { make_derivative($src, $type, 520, $base . '_t.jpg', 80); db()->prepare('UPDATE entry_photos SET width = ?, height = ? WHERE id = ?')->execute([$web[0], $web[1], $p['id']]); }
+    }
+    if (is_file($base . '_e.jpg')) @unlink($base . '_e.jpg');
+    db()->prepare('UPDATE entry_photos SET edited_at = 0 WHERE id = ?')->execute([$p['id']]);
 }

@@ -140,6 +140,16 @@ if (preg_match('#^/photo/(\d+)/(thumb|web|orig)$#', $path, $m)) {
     header('Content-Length: ' . filesize($file));
     readfile($file); exit;
 }
+if (preg_match('#^/photos/(\d+)/(edit|revert)$#', $path, $m) && $post) {
+    $s = db()->prepare('SELECT * FROM entry_photos WHERE id = ? AND user_id = ?');
+    $s->execute([(int)$m[1], $uid]);
+    $p = $s->fetch();
+    if (!$p) json_out(['ok' => false, 'error' => 'Photo not found.'], 404);
+    if ($m[2] === 'revert') { revert_photo_edit($p); json_out(['ok' => true, 'v' => time()]); }
+    $err = save_photo_edit($p, $_FILES['edited'] ?? ['error' => UPLOAD_ERR_NO_FILE]);
+    if ($err) json_out(['ok' => false, 'error' => $err], 400);
+    json_out(['ok' => true, 'v' => time()]);
+}
 if (preg_match('#^/photos/(\d+)/delete$#', $path, $m) && $post) {
     $s = db()->prepare('SELECT * FROM entry_photos WHERE id = ? AND user_id = ?');
     $s->execute([(int)$m[1], $uid]);

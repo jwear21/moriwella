@@ -26,8 +26,11 @@
     <?php foreach ($entry['photos'] as $p): ?>
       <form method="post" action="<?= url('/photos/' . $p['id'] . '/delete') ?>" class="thumb-del" data-confirm="Remove this photo?">
         <?= csrf_field() ?>
-        <img src="<?= url('/photo/' . $p['id'] . '/thumb') ?>" alt="Entry photo" loading="lazy">
-        <button class="btn btn--quiet" type="submit">Remove</button>
+        <img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="Entry photo" loading="lazy" data-photo-img="<?= (int)$p['id'] ?>">
+        <span class="thumb-actions">
+          <button type="button" class="btn btn--quiet" data-edit-photo="<?= (int)$p['id'] ?>">Edit</button>
+          <button class="btn btn--quiet" type="submit">Remove</button>
+        </span>
       </form>
     <?php endforeach; ?>
   </div>

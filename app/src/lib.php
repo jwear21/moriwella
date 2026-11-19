@@ -115,6 +115,9 @@ function migrate(PDO $p): void {
         );
         PRAGMA user_version = 2;");
     }
+    if ($v < 3) {
+        $p->exec("ALTER TABLE entry_photos ADD COLUMN edited_at INTEGER NOT NULL DEFAULT 0; PRAGMA user_version = 3;");
+    }
 }
 
 /* ---------- request setup ---------- */

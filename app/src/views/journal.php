@@ -10,6 +10,6 @@
     <span class="entry-date"><?= e(date('D, M j', strtotime($en['entry_date']))) ?></span>
     <b><?= e($en['title'] !== '' ? $en['title'] : ($en['body'] !== '' ? mb_substr($en['body'], 0, 60) : 'Photos')) ?></b>
     <?php if ($en['title'] !== '' && $en['body'] !== ''): ?><span class="snippet"><?= e(mb_substr($en['body'], 0, 120)) ?></span><?php endif; ?>
-    <?php if ($en['photos']): ?><span class="thumbs thumbs--sm"><?php foreach (array_slice($en['photos'], 0, 4) as $p): ?><img src="<?= url('/photo/' . $p['id'] . '/thumb') ?>" alt="" loading="lazy"><?php endforeach; ?><?php if (count($en['photos']) > 4): ?><span class="more">+<?= count($en['photos']) - 4 ?></span><?php endif; ?></span><?php endif; ?>
+    <?php if ($en['photos']): ?><span class="thumbs thumbs--sm"><?php foreach (array_slice($en['photos'], 0, 4) as $p): ?><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="" loading="lazy"><?php endforeach; ?><?php if (count($en['photos']) > 4): ?><span class="more">+<?= count($en['photos']) - 4 ?></span><?php endif; ?></span><?php endif; ?>
   </a>
 <?php endforeach; endif; ?>
