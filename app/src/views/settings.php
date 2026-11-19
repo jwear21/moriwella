@@ -19,3 +19,10 @@
   </form>
 </section>
 <section class="card"><p class="subtle">Signed in as <?= e($user['email']) ?>. Plan: <?= e($user['plan']) ?>.</p></section>
+<section class="card write">
+  <h2 class="section-h">Account</h2>
+  <div class="acct-actions">
+    <?php if ($user['role'] === 'admin'): ?><a class="btn btn--quiet" href="<?= url('/admin') ?>">Admin</a><?php endif; ?>
+    <form method="post" action="<?= url('/logout') ?>" class="inline"><?= csrf_field() ?><button type="submit" class="btn btn--quiet">Sign out</button></form>
+  </div>
+</section>

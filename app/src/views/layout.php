@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title><?= e($title) ?> | Moriwella</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#1B4D3E">
@@ -29,6 +29,13 @@
     </nav>
   </div>
 </header>
+<nav class="tabbar" aria-label="Main">
+  <?php $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); $tabs = [['/', 'Today', 'today'], ['/journal', 'Journal', 'journal'], ['/calendar', 'Calendar', 'calendar'], ['/lists', 'Lists', 'lists'], ['/settings', 'Me', 'settings']];
+  foreach ($tabs as $t): $href = url($t[0]); $on = $t[0] === '/' ? ($cur === MW_BASE || $cur === MW_BASE . '/' || strpos($cur, MW_BASE . '/day/') === 0) : strpos($cur, $href) === 0; ?>
+    <a href="<?= $href ?>"<?= $on ? ' aria-current="page"' : '' ?>><?php
+      echo ['today' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>', 'journal' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v13c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v13"/></svg>', 'calendar' => '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>', 'lists' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>', 'settings' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>'][$t[2]]; ?><span><?= $t[1] ?></span></a>
+  <?php endforeach; ?>
+</nav>
 <?php endif; ?>
 <main class="<?= $bare ? 'bare-main' : 'wrap app-main' ?>" id="main">
 <?php if ($bare): ?><a href="<?= url('/') ?>" class="bare-logo" aria-label="Moriwella"><img src="/assets/logo_horizontal.svg" alt="Moriwella"></a><?php endif; ?>

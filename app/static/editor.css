@@ -47,7 +47,9 @@
 .ps button:focus-visible,.ps input:focus-visible,.ps-h:focus-visible{outline:3px solid #DDA12F;outline-offset:2px}
 .ps-load{padding:3rem;text-align:center;color:#49664F;font-family:Georgia,serif}
 @media (max-width:760px){
-  .ps-back{padding:0}.ps{border-radius:0;height:100%;max-height:100%;width:100%}
+  .ps-back{padding:0}.ps{border-radius:0;height:100dvh;max-height:100dvh;width:100%}
+  .ps-foot{padding:.7rem 1rem calc(.7rem + env(safe-area-inset-bottom))}.ps-foot .grp{width:100%;justify-content:space-between}.ps-btn{flex:1}
+  .ps-title{font-size:1.15rem}.ps-chip{padding:.5rem .8rem}
   .ps-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
   .ps-side{border-left:0;border-top:1px solid #E9D8B6;max-height:46vh}
   .ps-stage{padding:.6rem}
