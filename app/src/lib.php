@@ -168,6 +168,11 @@ function migrate(PDO $p): void {
           CREATE INDEX entries_event ON entries(event_id);
           PRAGMA user_version = 5;");
     }
+    if ($v < 6) {
+        $p->exec("ALTER TABLE list_items ADD COLUMN assigned_to INTEGER;
+          ALTER TABLE list_items ADD COLUMN repeat TEXT;
+          PRAGMA user_version = 6;");
+    }
 }
 
 /* ---------- request setup ---------- */

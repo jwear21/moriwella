@@ -115,7 +115,7 @@ function water_oz(int $uid, string $day): int {
     return (int)($s->fetchColumn() ?: 0);
 }
 function upcoming_items(int $uid, string $today): array {
-    $s = db()->prepare('SELECT i.id, i.text, i.due_date, l.id list_id, l.name list_name FROM list_items i JOIN lists l ON l.id = i.list_id
+    $s = db()->prepare('SELECT i.id, i.text, i.due_date, i.assigned_to, a.name assigned_name, l.id list_id, l.name list_name FROM list_items i JOIN lists l ON l.id = i.list_id LEFT JOIN users a ON a.id = i.assigned_to
         WHERE i.done_at IS NULL AND i.due_date IS NOT NULL AND i.due_date <= ?
         AND (l.owner_id = ? OR EXISTS (SELECT 1 FROM list_members m WHERE m.list_id = l.id AND m.user_id = ?))
         ORDER BY i.due_date, i.id LIMIT 8');
@@ -330,6 +330,25 @@ if (preg_match('#^/goals/(\d+)/(toggle|delete)$#', $path, $mm) && $post) {
 }
 
 /* ----- lists ----- */
+function list_people(array $list): array {
+    $q = db()->prepare('SELECT id, name FROM users WHERE id = ? UNION SELECT u.id, u.name FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ?');
+    $q->execute([$list['owner_id'], $list['id']]);
+    return $q->fetchAll();
+}
+function clean_item_fields(array $people): array {
+    $due = (string)($_POST['due_date'] ?? ''); if ($due !== '' && !valid_date($due)) $due = '';
+    $rep = in_array($_POST['repeat'] ?? '', ['daily', 'weekly', 'monthly'], true) ? $_POST['repeat'] : null;
+    if ($rep && $due === '') $due = date('Y-m-d');
+    $who = (int)($_POST['assigned_to'] ?? 0); $ok = false;
+    foreach ($people as $pp) if ((int)$pp['id'] === $who) $ok = true;
+    return [$due ?: null, $rep, $ok ? $who : null];
+}
+function next_due(string $due, string $repeat): string {
+    $step = ['daily' => '+1 day', 'weekly' => '+1 week', 'monthly' => '+1 month'][$repeat];
+    $n = date('Y-m-d', strtotime($due . ' ' . $step));
+    for ($i = 0; $i < 400 && $n <= date('Y-m-d'); $i++) $n = date('Y-m-d', strtotime($n . ' ' . $step));
+    return $n;
+}
 function list_access(int $listId, int $uid): ?array {
     $s = db()->prepare('SELECT l.*, (l.owner_id = ?) AS is_owner FROM lists l WHERE l.id = ? AND (l.owner_id = ? OR EXISTS (SELECT 1 FROM list_members m WHERE m.list_id = l.id AND m.user_id = ?))');
     $s->execute([$uid, $listId, $uid, $uid]);
@@ -367,18 +386,31 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
     if ($post) {
         if ($sub === 'items') {
             $text = mb_substr(trim((string)($_POST['text'] ?? '')), 0, 300);
-            $due = (string)($_POST['due_date'] ?? ''); if ($due !== '' && !valid_date($due)) $due = '';
-            if ($text !== '') db()->prepare('INSERT INTO list_items (list_id, text, due_date, created_by, created_at) VALUES (?, ?, ?, ?, ?)')->execute([$listId, $text, $due ?: null, $uid, time()]);
+            [$due, $rep, $who] = clean_item_fields(list_people($list));
+            if ($text !== '') db()->prepare('INSERT INTO list_items (list_id, text, due_date, created_by, created_at, assigned_to, repeat) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$listId, $text, $due, $uid, time(), $who, $rep]);
+            redirect(url('/lists/' . $listId));
+        }
+        if (preg_match('#^items/(\d+)/edit$#', $sub, $mm)) {
+            $text = mb_substr(trim((string)($_POST['text'] ?? '')), 0, 300);
+            [$due, $rep, $who] = clean_item_fields(list_people($list));
+            if ($text !== '') db()->prepare('UPDATE list_items SET text = ?, due_date = ?, repeat = ?, assigned_to = ? WHERE id = ? AND list_id = ?')->execute([$text, $due, $rep, $who, (int)$mm[1], $listId]);
+            else flash('err', 'An item needs some text.');
             redirect(url('/lists/' . $listId));
         }
         if (preg_match('#^items/(\d+)/toggle$#', $sub, $mm)) {
-            $it = db()->prepare('SELECT * FROM list_items WHERE id = ? AND list_id = ?'); $it->execute([(int)$mm[1], $listId]); $item = $it->fetch();
+            $nextDue = null; $it = db()->prepare('SELECT * FROM list_items WHERE id = ? AND list_id = ?'); $it->execute([(int)$mm[1], $listId]); $item = $it->fetch();
             if ($item) {
                 $nowDone = $item['done_at'] === null;
                 db()->prepare('UPDATE list_items SET done_at = ?, done_by = ? WHERE id = ?')->execute([$nowDone ? time() : null, $nowDone ? $uid : null, $item['id']]);
+                if ($nowDone && $item['repeat'] && $item['due_date']) {
+                    $nd = next_due($item['due_date'], $item['repeat']);
+                    $dup = db()->prepare('SELECT 1 FROM list_items WHERE list_id = ? AND text = ? AND repeat = ? AND due_date = ? AND done_at IS NULL'); $dup->execute([$listId, $item['text'], $item['repeat'], $nd]);
+                    if (!$dup->fetch()) db()->prepare('INSERT INTO list_items (list_id, text, due_date, created_by, created_at, assigned_to, repeat) VALUES (?, ?, ?, ?, ?, ?, ?)')->execute([$listId, $item['text'], $nd, $item['created_by'], time(), $item['assigned_to'], $item['repeat']]);
+                    $nextDue = $nd;
+                }
             }
             $c = list_counts($listId);
-            if (wants_json()) json_out(['ok' => true, 'done' => $item ? $nowDone : false, 'open' => $c['open'], 'total' => $c['total'], 'allDone' => $c['total'] > 0 && $c['open'] === 0, 'list' => $list['name']]);
+            if (wants_json()) json_out(['ok' => true, 'done' => $item ? $nowDone : false, 'open' => $c['open'], 'total' => $c['total'], 'allDone' => $c['total'] > 0 && $c['open'] === 0 && empty($nextDue), 'list' => $list['name'], 'next' => $nextDue ?? null]);
             redirect(url('/lists/' . $listId));
         }
         if (preg_match('#^items/(\d+)/delete$#', $sub, $mm)) {
@@ -405,12 +437,13 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
         if ($sub === 'delete' && $isOwner) { db()->prepare('DELETE FROM lists WHERE id = ?')->execute([$listId]); flash('ok', 'List deleted.'); redirect(url('/lists')); }
         redirect(url('/lists/' . $listId));
     }
-    $items = db()->prepare('SELECT i.*, u.name done_name FROM list_items i LEFT JOIN users u ON u.id = i.done_by WHERE i.list_id = ? ORDER BY (i.done_at IS NOT NULL), COALESCE(i.due_date, "9999"), i.id');
+    $mine = ($_GET['who'] ?? '') === 'me';
+    $items = db()->prepare('SELECT i.*, u.name done_name, a.name assigned_name FROM list_items i LEFT JOIN users u ON u.id = i.done_by LEFT JOIN users a ON a.id = i.assigned_to WHERE i.list_id = ?' . ($mine ? ' AND i.assigned_to = ' . (int)$uid : '') . ' ORDER BY (i.done_at IS NOT NULL), COALESCE(i.due_date, "9999"), i.id');
     $items->execute([$listId]);
     $mem = db()->prepare('SELECT u.id, u.name, u.email FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY u.name');
     $mem->execute([$listId]);
     $ow = db()->prepare('SELECT name FROM users WHERE id = ?'); $ow->execute([$list['owner_id']]);
-    render('list', ['list' => $list, 'items' => $items->fetchAll(), 'members' => $mem->fetchAll(), 'ownerName' => $ow->fetchColumn(), 'isOwner' => $isOwner], $list['name']);
+    render('list', ['list' => $list, 'items' => $items->fetchAll(), 'members' => $mem->fetchAll(), 'ownerName' => $ow->fetchColumn(), 'isOwner' => $isOwner, 'people' => list_people($list), 'mine' => $mine], $list['name']);
     exit;
 }
 

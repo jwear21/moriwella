@@ -168,6 +168,7 @@
         .then(function (j) {
           if (!j.ok) return;
           li.classList.toggle('done', j.done); btn.setAttribute('aria-checked', j.done ? 'true' : 'false');
+          if (j.done && j.next) { celebrate({ level: 'burst', origin: btn }); setTimeout(function () { location.reload(); }, 1100); return; }
           if (j.done) { celebrate({ level: 'burst', origin: btn }); if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'List complete', sub: 'Everything on "' + j.list + '" is done.' }); }, 500); }
         }).catch(function () { f.submit(); });
     });

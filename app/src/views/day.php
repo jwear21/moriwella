@@ -15,7 +15,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <div class="water-head"><b>Coming up</b> <span class="water-count">next 7 days</span></div>
   <ul class="coming-list">
   <?php foreach ($upcoming as $u): $late = $u['due_date'] < $t; $when = $u['due_date'] === $t ? 'Today' : ($u['due_date'] === date('Y-m-d', strtotime('+1 day')) ? 'Tomorrow' : ($late ? 'Overdue' : date('D, M j', strtotime($u['due_date'])))); ?>
-    <li><a href="<?= url('/lists/' . $u['list_id']) ?>"><span class="coming-text"><?= e($u['text']) ?><small class="due"><?= e($u['list_name']) ?></small></span><span class="when<?= $late ? ' late' : '' ?>"><?= e($when) ?></span></a></li>
+    <li><a href="<?= url('/lists/' . $u['list_id']) ?>"><span class="coming-text"><?= e($u['text']) ?><small class="due"><?= e($u['list_name']) ?><?= !empty($u['assigned_name']) ? ' · for ' . e((int)$u['assigned_to'] === (int)$user['id'] ? 'you' : $u['assigned_name']) : '' ?></small></span><span class="when<?= $late ? ' late' : '' ?>"><?= e($when) ?></span></a></li>
   <?php endforeach; ?>
   </ul>
 </section>
