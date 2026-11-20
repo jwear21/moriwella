@@ -20,7 +20,7 @@
 </section>
 
 <h2 class="section-h" id="access">People</h2>
-<p class="subtle"><?= (int)$total ?> <?= $total === 1 ? 'account' : 'accounts' ?><?= $q !== '' ? ' matching "' . e($q) . '"' : '' ?>. Click a person to manage their plan, role and sign-in. <a class="link" href="<?= url('/admin/demo') ?>">Demo accounts for testing</a></p>
+<p class="subtle"><?= (int)$total ?> <?= $total === 1 ? 'account' : 'accounts' ?><?= $q !== '' ? ' matching "' . e($q) . '"' : '' ?>. Click a person to manage their plan, role and sign-in.</p>
 <form method="get" action="<?= url('/admin') ?>" class="people-search" role="search">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Search by name or email" aria-label="Search people" autocomplete="off">
   <button class="btn" type="submit">Search</button>
@@ -62,7 +62,7 @@
       <div class="access-btns person-acts">
         <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/role') ?>"><?= $hidden ?><input type="hidden" name="role" value="<?= $isAdmin ? 'member' : 'admin' ?>">
           <?php if (!($isAdmin && $isMe)): ?><button class="btn btn-quiet" type="submit"><?= $isAdmin ? 'Remove administrator' : 'Make administrator' ?></button><?php endif; ?></form>
-        <?php if (!$isAdmin && $u['status'] === 'active'): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit">Act as</button></form><?php endif; ?>
+        <?php if (!$isMe && $u['status'] === 'active'): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit">Act as <?= e(strtok((string)$u['name'], ' ')) ?></button></form><?php endif; ?>
         <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/link') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button></form>
         <?php if (!$isMe): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/toggle') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'disabled' ? 'Let them sign in' : 'Stop sign-in' ?></button></form><?php endif; ?>
       </div>
