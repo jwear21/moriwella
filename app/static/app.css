@@ -506,3 +506,15 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .pager{display:flex;align-items:center;justify-content:center;gap:1rem;margin:1rem 0}
 .pager .btn{padding:.4rem 1rem;min-height:0}
 @media (max-width:640px){.person>summary{grid-template-columns:1fr}}
+
+.person-acts{align-items:center}
+.person-acts form{display:contents}
+.person-acts .btn{white-space:nowrap}
+.person-acts{gap:.4rem}
+.person-acts .btn{padding:.4rem .85rem!important;font-size:.88rem!important;line-height:1.2!important;min-height:0!important;height:auto}
+.person-acts>form{display:flex!important;margin:0}
+.person-acts{align-items:stretch}
+.person-acts{align-items:center!important}
+.person-acts>form{align-items:center}
+
+.person-body>form[id]:not(.access-form){display:none}
