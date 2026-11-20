@@ -12,9 +12,9 @@ function transfer_sources(): array {
         'moriwella' => ['name' => 'Moriwella archive', 'ready' => true, 'accept' => '.zip',
             'help' => 'The ZIP you get from Export on this page. Good for restoring a backup or moving between accounts.'],
         'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods go to Track.'],
-        'journey'   => ['name' => 'Journey', 'ready' => false, 'accept' => '.zip', 'help' => 'Journey can archive your entries to a ZIP file.'],
+        'journey'   => ['name' => 'Journey', 'ready' => true, 'accept' => '.zip', 'help' => 'In Journey, use Settings, Data and Cloud Services, Export/Backup to make a ZIP. Entries, photos, tags and dates come along.'],
         'diaro'     => ['name' => 'Diaro', 'ready' => false, 'accept' => '.zip', 'help' => 'In Diaro, make a backup and use the ZIP.'],
-        'evernote'  => ['name' => 'Evernote', 'ready' => false, 'accept' => '.enex', 'help' => 'In the Evernote desktop app, export a notebook as ENEX.'],
+        'evernote'  => ['name' => 'Evernote', 'ready' => true, 'accept' => '.enex,.xml', 'help' => 'In the Evernote desktop app, select a notebook or notes, then File, Export, and choose ENEX. Titles, dates, tags and images come along.'],
         'dayone'    => ['name' => 'Day One', 'ready' => false, 'accept' => '.zip', 'help' => 'In Day One, export your journal as JSON with photos.'],
         'apple'     => ['name' => 'Apple Journal', 'ready' => false, 'accept' => '.zip', 'help' => 'In Settings, Apps, Journal, choose Export All Journal Entries.'],
     ];
@@ -150,10 +150,118 @@ function transfer_read_daylio(string $file, string $work): array {
     foreach ($moodSum as $d => $vals) $moods[$d] = (int)round(array_sum($vals) / count($vals));
     return ['source' => 'daylio', 'entries' => $entries, 'moods' => $moods, 'noteless' => $noteless];
 }
+function transfer_html_to_text(string $html): string {
+    $t = preg_replace('#<img\b[^>]*>#i', '', $html);
+    $t = preg_replace('#<\s*br\s*/?>#i', "\n", $t);
+    $t = preg_replace('#</(p|div|h[1-6]|blockquote)>#i', "\n\n", $t);
+    $t = preg_replace('#<li\b[^>]*>#i', "\n- ", $t);
+    $t = preg_replace('#</(ul|ol)>#i', "\n", $t);
+    $t = html_entity_decode(strip_tags($t), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $t = str_replace(["\r\n", "\r", "\xC2\xA0"], ["\n", "\n", ' '], $t);
+    return trim(preg_replace("/\n{3,}/", "\n\n", $t));
+}
+function transfer_read_journey(string $file, string $work): array {
+    $zip = transfer_open_zip($file);
+    if ($zip->numFiles > 60000) throw new RuntimeException('That archive has more files than we can read at once.');
+    $byBase = []; $jsons = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $st = $zip->statIndex($i); $n = $st['name'] ?? ''; if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
+        $b = strtolower(basename($n));
+        if (substr($b, -5) === '.json') { if (($st['size'] ?? 0) < 4 * 1024 * 1024) $jsons[] = $i; }
+        else $byBase[$b] = $i;
+    }
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0;
+    foreach ($jsons as $i) {
+        $j = json_decode((string)$zip->getFromIndex($i), true);
+        if (!is_array($j) || !isset($j['date_journal']) || !array_key_exists('text', $j)) { $skipped++; continue; }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That archive has more entries than we can import at once.'); }
+        $ms = (float)$j['date_journal']; if ($ms <= 0) { $skipped++; continue; }
+        $ts = (int)floor($ms / 1000);
+        $tzName = (string)($j['timezone'] ?? ''); $date = '';
+        try { $date = (new DateTimeImmutable('@' . $ts))->setTimezone(new DateTimeZone($tzName !== '' ? $tzName : date_default_timezone_get()))->format('Y-m-d'); }
+        catch (Throwable $e) { $date = date('Y-m-d', $ts); }
+        $text = (string)$j['text'];
+        if (($j['type'] ?? 'html') === 'markdown') $text = trim(preg_replace('/!\[[^\]]*\]\([^)]*\)/', '', str_replace(["\r\n", "\r"], "\n", $text)));
+        else $text = transfer_html_to_text($text);
+        $paras = [];
+        foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
+        $tags = array_values(array_filter(array_map(fn($t) => trim((string)$t), is_array($j['tags'] ?? null) ? $j['tags'] : [])));
+        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+        $photos = [];
+        foreach ((is_array($j['photos'] ?? null) ? $j['photos'] : []) as $ph) {
+            $name = is_string($ph) ? $ph : (string)($ph['filename'] ?? $ph['name'] ?? ''); $b = strtolower(basename($name));
+            if ($b === '' || !isset($byBase[$b]) || $nPhotos >= TRANSFER_MAX_PHOTOS) continue;
+            $data = $zip->getFromIndex($byBase[$b]); if ($data === false) continue;
+            $nPhotos++; $local = 'p' . $nPhotos . '_' . transfer_safe_name($b);
+            file_put_contents($work . '/' . $local, $data); unset($data);
+            $photos[] = ['file' => $local, 'name' => basename($name)];
+        }
+        if (!$paras && !$photos) { $skipped++; continue; }
+        $entries[] = ['date' => $date, 'ts' => $ts, 'title' => '', 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'jn:' . sha1((string)($j['id'] ?? '') . '|' . $ms)];
+    }
+    $zip->close();
+    if (!$entries) throw new RuntimeException('We did not find any Journey entries in that ZIP. It should hold one .json file per entry.');
+    usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    return ['source' => 'journey', 'entries' => $entries, 'skipped' => $skipped];
+}
+function transfer_enex_time(string $t): int {
+    $d = DateTimeImmutable::createFromFormat('Ymd\THis\Z', trim($t), new DateTimeZone('UTC'));
+    return $d ? $d->getTimestamp() : 0;
+}
+function transfer_read_evernote(string $file, string $work): array {
+    $r = new XMLReader();
+    if (!@$r->open($file, null, LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE)) throw new RuntimeException('That file could not be opened.');
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $otherFiles = 0; $sawExport = false;
+    libxml_use_internal_errors(true);
+    while (@$r->read()) {
+        if ($r->nodeType !== XMLReader::ELEMENT) continue;
+        if ($r->name === 'en-export') { $sawExport = true; continue; }
+        if ($r->name !== 'note') continue;
+        $node = @$r->expand(); if (!$node) { $skipped++; continue; }
+        $doc = new DOMDocument(); $doc->appendChild($doc->importNode($node, true));
+        $x = simplexml_import_dom($doc); if (!$x) { $skipped++; continue; }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $r->close(); throw new RuntimeException('That file has more notes than we can import at once.'); }
+        $title = mb_substr(trim((string)$x->title), 0, 200);
+        $ts = transfer_enex_time((string)$x->created) ?: transfer_enex_time((string)$x->updated);
+        if (!$ts) { $skipped++; continue; }
+        $enml = (string)$x->content;
+        $enml = preg_replace('#<en-todo\s+checked="true"\s*/?>#i', '[x] ', $enml);
+        $enml = preg_replace('#<en-todo\b[^>]*/?>#i', '[ ] ', $enml);
+        $enml = preg_replace('#<en-media\b[^>]*/?>#i', '', $enml);
+        $enml = preg_replace('#<\?xml[^>]*\?>|<!DOCTYPE[^>]*>#i', '', $enml);
+        $text = transfer_html_to_text($enml);
+        $paras = [];
+        foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
+        $tags = []; foreach ($x->tag as $tg) { $tg = trim((string)$tg); if ($tg !== '') $tags[] = $tg; }
+        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+        $photos = [];
+        foreach ($x->resource as $res) {
+            $mime = strtolower(trim((string)$res->mime));
+            if (strpos($mime, 'image/') !== 0) { $otherFiles++; continue; }
+            if ($nPhotos >= TRANSFER_MAX_PHOTOS) continue;
+            $bin = base64_decode(preg_replace('/\s+/', '', (string)$res->data), true); if ($bin === false || $bin === '') continue;
+            $fname = trim((string)$res->{'resource-attributes'}->{'file-name'});
+            $nPhotos++; $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'][$mime] ?? 'jpg';
+            $local = 'p' . $nPhotos . '_' . transfer_safe_name($fname !== '' ? $fname : ('image.' . $ext));
+            file_put_contents($work . '/' . $local, $bin); unset($bin);
+            $photos[] = ['file' => $local, 'name' => $fname !== '' ? $fname : 'image.' . $ext];
+        }
+        if (!$paras && !$photos && $title === '') { $skipped++; continue; }
+        $date = date('Y-m-d', $ts);
+        $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'en:' . sha1($title . '|' . $ts . '|' . $text)];
+    }
+    $r->close(); libxml_clear_errors();
+    if (!$sawExport && !$entries) throw new RuntimeException('This does not look like an Evernote export. In Evernote, choose File, Export, and pick ENEX.');
+    if (!$entries) throw new RuntimeException('We did not find any notes in that file.');
+    usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    return ['source' => 'evernote', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $otherFiles];
+}
 function transfer_read(string $source, string $file, string $work): array {
     switch ($source) {
         case 'moriwella': return transfer_read_moriwella($file, $work);
         case 'daylio': return transfer_read_daylio($file, $work);
+        case 'journey': return transfer_read_journey($file, $work);
+        case 'evernote': return transfer_read_evernote($file, $work);
     }
     throw new RuntimeException('That app is not supported yet.');
 }
@@ -247,7 +355,7 @@ if (preg_match('#^/transfer/(preview|import|cancel)/([a-f0-9]{16})$#', $path, $m
     $dupes = 0; $photos = 0; $dates = [];
     foreach ($manifest['entries'] as $e) { $has->execute([$uid, $e['key']]); if ($has->fetch()) $dupes++; $photos += count($e['photos']); $dates[] = $e['date']; }
     sort($dates);
-    render('transfer_preview', ['token' => $mm[2], 'source' => transfer_sources()[$manifest['source']]['name'] ?? $manifest['source'], 'entries' => $manifest['entries'], 'photos' => $photos, 'moods' => count($manifest['moods'] ?? []), 'noteless' => (int)($manifest['noteless'] ?? 0), 'dupes' => $dupes, 'from' => $dates[0] ?? '', 'to' => end($dates) ?: ''], 'Check before importing');
+    render('transfer_preview', ['token' => $mm[2], 'source' => transfer_sources()[$manifest['source']]['name'] ?? $manifest['source'], 'entries' => $manifest['entries'], 'photos' => $photos, 'moods' => count($manifest['moods'] ?? []), 'noteless' => (int)($manifest['noteless'] ?? 0), 'otherFiles' => (int)($manifest['otherFiles'] ?? 0), 'dupes' => $dupes, 'from' => $dates[0] ?? '', 'to' => end($dates) ?: ''], 'Check before importing');
     exit;
 }
 if (preg_match('#^/transfer/undo/([a-f0-9]{12})$#', $path, $mm) && $post) {

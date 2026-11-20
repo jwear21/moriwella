@@ -10,6 +10,7 @@
   </div>
   <?php if ($moods): ?><p class="hint">Moods go into Track as a daily 1 to 5 rating (rad is 5, awful is 1). If a day already has a mood, yours is kept.</p><?php endif; ?>
   <?php if ($noteless): ?><p class="hint"><?= (int)$noteless ?> <?= $noteless === 1 ? 'check-in' : 'check-ins' ?> had no note, so <?= $noteless === 1 ? 'it is' : 'they are' ?> not turned into entries.</p><?php endif; ?>
+  <?php if (!empty($otherFiles)): ?><p class="hint"><?= (int)$otherFiles ?> attached <?= $otherFiles === 1 ? 'file' : 'files' ?> (like PDFs) can't be brought in yet. Images are included.</p><?php endif; ?>
   <?php if ($dupes): ?><p class="hint"><?= (int)$dupes ?> of these <?= $dupes === 1 ? 'is' : 'are' ?> already in your journal and will be skipped.</p><?php endif; ?>
   <?php if ($entries): ?><h2 class="section-h">A look at the first few</h2><?php endif; ?>
   <ul class="pv-list">
