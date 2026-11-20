@@ -118,6 +118,25 @@ function migrate(PDO $p): void {
     if ($v < 3) {
         $p->exec("ALTER TABLE entry_photos ADD COLUMN edited_at INTEGER NOT NULL DEFAULT 0; PRAGMA user_version = 3;");
     }
+    if ($v < 4) {
+        $p->exec("ALTER TABLE user_settings ADD COLUMN water_on INTEGER NOT NULL DEFAULT 0;
+          ALTER TABLE user_settings ADD COLUMN celebrate_size TEXT NOT NULL DEFAULT 'big';
+          INSERT OR IGNORE INTO user_settings (user_id, celebrations) SELECT id, 1 FROM users;
+          UPDATE user_settings SET water_on = 1;
+          CREATE TABLE goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+          );
+          CREATE TABLE goal_log (
+            goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+            day TEXT NOT NULL,
+            done_at INTEGER NOT NULL,
+            PRIMARY KEY (goal_id, day)
+          );
+          PRAGMA user_version = 4;");
+    }
 }
 
 /* ---------- request setup ---------- */
@@ -235,6 +254,19 @@ function celebrations_on(int $uid): bool {
 function set_celebrations(int $uid, bool $on): void {
     db()->prepare('INSERT INTO user_settings (user_id, celebrations) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET celebrations = excluded.celebrations')
         ->execute([$uid, $on ? 1 : 0]);
+}
+function water_on(int $uid): bool {
+    $s = db()->prepare('SELECT water_on FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
+    return (int)$s->fetchColumn() === 1;
+}
+function celebrate_size(int $uid): string {
+    $s = db()->prepare('SELECT celebrate_size FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
+    return $s->fetchColumn() === 'gentle' ? 'gentle' : 'big';
+}
+function save_prefs(int $uid, bool $celebrations, bool $water, string $size): void {
+    db()->prepare('INSERT INTO user_settings (user_id, celebrations, water_on, celebrate_size) VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET celebrations = excluded.celebrations, water_on = excluded.water_on, celebrate_size = excluded.celebrate_size')
+        ->execute([$uid, $celebrations ? 1 : 0, $water ? 1 : 0, $size === 'gentle' ? 'gentle' : 'big']);
 }
 function json_out(array $d, int $code = 200): never {
     http_response_code($code);

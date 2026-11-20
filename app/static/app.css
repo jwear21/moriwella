@@ -158,3 +158,13 @@ html,body{overflow-x:hidden}
 .coming-text{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
 .when{flex:none;font-size:.85rem;font-weight:600;color:#1B4D3E;background:#EAF1E6;border-radius:999px;padding:.2rem .65rem}
 .when.late{color:#a4452c;background:#F8E6DF}
+
+.goal-list{margin:.4rem 0 0}.goal-list .item:last-child{border-bottom:0}
+.goal-list .check{flex:none;width:32px;height:32px}
+.goal-nudge{margin:.25rem 0 1rem}
+.size-pick{border:0;padding:0;margin:.75rem 0 .25rem}.size-pick legend{font-weight:600;padding:0;margin-bottom:.25rem}
+.check-row{justify-content:flex-start;font-weight:500;line-height:1.35}
+.check-row input[type=checkbox],.check-row input[type=radio]{flex:none;width:22px;height:22px;margin:0;padding:0;accent-color:#1B4D3E}
+.member span{min-width:0;overflow-wrap:anywhere}
+.member .btn{flex:none}
+@media (max-width:720px){.member{flex-wrap:nowrap;gap:.75rem}}

@@ -124,6 +124,7 @@ function upcoming_items(int $uid, string $today): array {
 function render_day(array $user, string $day): void {
     $uid = (int)$user['id'];
     render('day', [
+        'goals' => goals_for_day($uid, $day), 'waterOn' => water_on($uid),
         'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
         'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day),
@@ -278,7 +279,39 @@ if ($path === '/water' && $post) {
     $oz = max(0, min(64, (int)($_POST['oz'] ?? 0)));
     $before = water_oz($uid, $day);
     db()->prepare('INSERT INTO water_log (user_id, day, oz) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET oz = excluded.oz')->execute([$uid, $day, $oz]);
-    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64]);
+    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day)]);
+}
+
+/* ----- daily goals ----- */
+function goals_for_day(int $uid, string $day): array {
+    $s = db()->prepare('SELECT g.id, g.name, (l.goal_id IS NOT NULL) AS done FROM goals g LEFT JOIN goal_log l ON l.goal_id = g.id AND l.day = ? WHERE g.user_id = ? ORDER BY g.id');
+    $s->execute([$day, $uid]);
+    return $s->fetchAll();
+}
+function all_goals_done(int $uid, string $day): bool {
+    $gs = goals_for_day($uid, $day);
+    $waterDone = !water_on($uid) || water_oz($uid, $day) >= 64;
+    if (!$gs && !water_on($uid)) return false;
+    foreach ($gs as $g) if (!$g['done']) return false;
+    return $waterDone;
+}
+if ($path === '/goals' && $post) {
+    $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
+    $c = db()->prepare('SELECT COUNT(*) FROM goals WHERE user_id = ?'); $c->execute([$uid]);
+    if ($name === '') flash('err', 'Give the goal a name.');
+    elseif ((int)$c->fetchColumn() >= 12) flash('err', 'That\'s plenty of goals. Remove one before adding another.');
+    else { db()->prepare('INSERT INTO goals (user_id, name, created_at) VALUES (?, ?, ?)')->execute([$uid, $name, time()]); flash('ok', 'Goal added.'); }
+    redirect(url('/settings') . '#goals');
+}
+if (preg_match('#^/goals/(\d+)/(toggle|delete)$#', $path, $mm) && $post) {
+    $g = db()->prepare('SELECT id FROM goals WHERE id = ? AND user_id = ?'); $g->execute([(int)$mm[1], $uid]);
+    if (!$g->fetch()) { if (wants_json()) json_out(['ok' => false], 404); redirect(url('/settings') . '#goals'); }
+    if ($mm[2] === 'delete') { db()->prepare('DELETE FROM goals WHERE id = ? AND user_id = ?')->execute([(int)$mm[1], $uid]); redirect(url('/settings') . '#goals'); }
+    $day = (string)($_POST['day'] ?? ''); if (!valid_date($day)) json_out(['ok' => false], 400);
+    $q = db()->prepare('SELECT 1 FROM goal_log WHERE goal_id = ? AND day = ?'); $q->execute([(int)$mm[1], $day]);
+    if ($q->fetch()) { db()->prepare('DELETE FROM goal_log WHERE goal_id = ? AND day = ?')->execute([(int)$mm[1], $day]); $done = false; }
+    else { db()->prepare('INSERT INTO goal_log (goal_id, day, done_at) VALUES (?, ?, ?)')->execute([(int)$mm[1], $day, time()]); $done = true; }
+    json_out(['ok' => true, 'done' => $done, 'allDone' => $done && all_goals_done($uid, $day)]);
 }
 
 /* ----- lists ----- */
@@ -370,7 +403,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
 if ($path === '/settings') {
     if ($post) {
         if (isset($_POST['save_prefs'])) {
-            set_celebrations($uid, !empty($_POST['celebrations']));
+            save_prefs($uid, !empty($_POST['celebrations']), !empty($_POST['water_on']), (string)($_POST['celebrate_size'] ?? 'big'));
             flash('ok', 'Preferences saved.'); redirect(url('/settings'));
         }
         if (isset($_POST['change_password'])) {
@@ -381,7 +414,7 @@ if ($path === '/settings') {
             redirect(url('/settings'));
         }
     }
-    render('settings', ['celebrations' => celebrations_on($uid)], 'Settings');
+    render('settings', ['celebrations' => celebrations_on($uid), 'waterOn' => water_on($uid), 'size' => celebrate_size($uid), 'goals' => goals_for_day($uid, date('Y-m-d'))], 'Settings');
     exit;
 }
 

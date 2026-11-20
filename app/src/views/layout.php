@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/app/static/app.css">
 <link rel="stylesheet" href="/app/static/editor.css">
 </head>
-<body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>">
+<body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>">
 <?php if (!$bare && $user): ?>
 <header class="appbar">
   <div class="wrap appbar-in">

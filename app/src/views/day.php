@@ -21,6 +21,24 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
 </section>
 <?php endif; ?>
 
+<?php if ($goals): ?>
+<section class="card goals" id="goals-card" data-day="<?= e($day) ?>" data-csrf="<?= e(csrf_token()) ?>">
+  <div class="water-head"><b>Daily goals</b> <span class="water-count"><span id="goals-done"><?= count(array_filter($goals, fn($g) => $g['done'])) ?></span> of <?= count($goals) ?></span></div>
+  <ul class="items goal-list">
+  <?php foreach ($goals as $g): ?>
+    <li class="item<?= $g['done'] ? ' done' : '' ?>">
+      <button type="button" class="check" role="checkbox" aria-checked="<?= $g['done'] ? 'true' : 'false' ?>" aria-label="<?= e($g['name']) ?>" data-goal-url="<?= url('/goals/' . $g['id'] . '/toggle') ?>"></button>
+      <div class="item-text"><span><?= e($g['name']) ?></span></div>
+    </li>
+  <?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+<?php if (!$goals && !$waterOn && $isToday): ?>
+<p class="subtle goal-nudge"><a class="link" href="<?= url('/settings') ?>#goals">Set daily goals</a> to check off each day, like water, a walk, or homework.</p>
+<?php endif; ?>
+
+<?php if ($waterOn): ?>
 <section class="card water" data-day="<?= e($day) ?>" data-oz="<?= (int)$water ?>" data-url="<?= url('/water') ?>" data-csrf="<?= e(csrf_token()) ?>">
   <div class="water-head"><b>Water</b> <span class="water-count"><span id="water-oz"><?= (int)$water ?></span> of 64 oz</span></div>
   <div class="water-cups" role="group" aria-label="Water cups, 8 oz each">
@@ -30,6 +48,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   </div>
   <p class="hint">Tap a cup for each 8 oz. Tap the last filled cup again to undo.</p>
 </section>
+<?php endif; ?>
 
 <?php $hasDay = count($entries) > 0; ?>
 <section class="card write">
