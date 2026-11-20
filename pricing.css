@@ -1,0 +1,37 @@
+.desk--short { padding-bottom: 5rem; }
+.price-hero { padding-top: clamp(2rem, 6vw, 4rem); max-width: 46rem; }
+.price-hero h1 { text-wrap: balance; }
+.price-hero h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.1; letter-spacing: -.012em; }
+.price-hero p { margin-top: 1rem; font-size: 1.2rem; color: #EEF3EF; }
+.top nav a[aria-current="page"] { border-bottom-color: var(--sun); }
+
+.price-main { padding-top: 0; margin-top: -3rem; position: relative; z-index: 2; }
+.toggle { display: inline-flex; background: var(--paper); border-radius: 999px; padding: .3rem; box-shadow: 0 10px 24px -12px rgba(33,54,47,.45); margin-bottom: 2rem; }
+.tg { font: inherit; font-size: 1rem; font-weight: 600; border: 0; background: transparent; color: var(--forest); padding: .6rem 1.2rem; border-radius: 999px; cursor: pointer; }
+.tg small { font-weight: 400; font-size: .85rem; color: var(--moss); margin-left: .3rem; }
+.tg.is-on { background: var(--forest); color: var(--cream); }
+.tg.is-on small { color: #E4ECE7; }
+
+.plans { display: grid; grid-template-columns: repeat(2, minmax(0, 24rem)); gap: clamp(1.25rem, 3vw, 2rem); }
+.plan { background: var(--paper); border-radius: 6px; padding: 2rem 1.9rem; box-shadow: 0 1px 0 rgba(33,54,47,.08), 0 18px 34px -16px rgba(33,54,47,.4); display: flex; flex-direction: column; }
+.plan--feature { border-top: 5px solid var(--sun); }
+.plan h2 { font-family: var(--serif); font-weight: 400; font-size: 1.75rem; color: var(--deep); }
+.who { color: var(--moss); margin-top: .3rem; min-height: 3.4em; }
+.amount { margin-top: 1.25rem; display: flex; align-items: baseline; gap: .6rem; }
+.num { font-family: var(--serif); font-size: 3.2rem; line-height: 1; color: var(--deep); }
+.per { color: var(--moss); }
+.alt { font-size: .95rem; color: var(--moss); margin-top: .35rem; }
+.inc { list-style: none; padding: 0; margin: 1.5rem 0 2rem; display: grid; gap: .65rem; }
+.inc li { padding-left: 1.7rem; position: relative; }
+.inc li::before { content: ""; position: absolute; left: 0; top: .5em; width: .8rem; height: .45rem; border-left: 3px solid var(--sage); border-bottom: 3px solid var(--sage); transform: rotate(-45deg); }
+.buy { margin-top: auto; text-align: center; }
+.buy[aria-disabled="true"] { background: var(--ivory); color: var(--moss); border-color: var(--ivory); cursor: not-allowed; }
+.buy-note { margin-top: 1.75rem; max-width: 40rem; color: var(--moss); font-size: .975rem; }
+
+@media (max-width: 52rem) {
+  .plans { grid-template-columns: 1fr; }
+  .who { min-height: 0; }
+  .tg small { display: none; }
+}
+
+.terms { margin-top: 1.75rem; max-width: 44rem; font-size: 1rem; color: var(--ink); border-left: 4px solid var(--sage); padding-left: 1rem; }

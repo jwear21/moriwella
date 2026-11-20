@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plans and pricing | Moriwella</title>
+<meta name="description" content="Planned Moriwella plans. Try free for 14 days.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1B4D3E">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="pricing.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="desk desk--short">
+  <p class="announce">Moriwella is in development. Early access is coming soon.</p>
+  <div class="wrap">
+    <header class="top">
+      <a href="index.html" aria-label="Moriwella home"><img class="logo" src="assets/logo_horizontal_inverse.svg" alt="Moriwella"></a>
+      <nav aria-label="Main">
+        <a href="index.html#inside">What's inside</a>
+        <a href="index.html#keepsakes">Keepsakes</a>
+        <a href="index.html#privacy">Privacy</a>
+        <a href="pricing.html" aria-current="page">Pricing</a>
+      </nav>
+    </header>
+    <div class="price-hero">
+      <h1>Try Moriwella free for 14 days.</h1>
+      <p>Two weeks of writing, listing and saving is plenty of time to decide if it fits your life. Add a card to start. You won't be charged until the trial ends.</p>
+    </div>
+  </div>
+</div>
+
+<main id="main" class="section price-main">
+  <div class="wrap">
+    <div class="toggle" role="group" aria-label="Billing period">
+      <button type="button" class="tg is-on" data-period="year" aria-pressed="true">Yearly <small>save about a third</small></button>
+      <button type="button" class="tg" data-period="month" aria-pressed="false">Monthly</button>
+    </div>
+
+    <div class="plans">
+      <article class="plan" data-plan="personal">
+        <h2>Personal Plus</h2>
+        <p class="who">For your own journal, lists and keepsakes.</p>
+        <p class="amount"><span class="num" data-month="$4.99" data-year="$39.99">$39.99</span><span class="per" data-month="per month" data-year="per year">per year</span></p>
+        <p class="alt" data-month="or $39.99 a year" data-year="or $4.99 a month">or $4.99 a month</p>
+        <ul class="inc">
+          <li>Journal with photos, calendar and timeline</li>
+          <li>Private lists and goals</li>
+          <li>Event pages and templates</li>
+          <li>Scrapbook PDFs and Memory Movies</li>
+          <li>Import and full export</li>
+        </ul>
+        <a class="btn buy" href="#" data-stripe="personal" aria-disabled="true">Start your 14-day free trial</a>
+      </article>
+
+      <article class="plan plan--feature" data-plan="family">
+        <h2>Family Plus</h2>
+        <p class="who">Everything in Personal Plus, shared with your household.</p>
+        <p class="amount"><span class="num" data-month="$8.99" data-year="$69.99">$69.99</span><span class="per" data-month="per month" data-year="per year">per year</span></p>
+        <p class="alt" data-month="or $69.99 a year" data-year="or $8.99 a month">or $8.99 a month</p>
+        <ul class="inc">
+          <li>Everything in Personal Plus</li>
+          <li>Shared family lists and assignments</li>
+          <li>Shared albums for your household</li>
+          <li>Each person keeps a private journal</li>
+        </ul>
+        <a class="btn buy" href="#" data-stripe="family" aria-disabled="true">Start your 14-day free trial</a>
+      </article>
+    </div>
+
+    <p class="terms">How the trial works: add a card to begin your 14 days. If you don't cancel before day 14 ends, your card is charged automatically for the plan you chose, then again each month or year until you cancel. You can cancel any time in your account settings, and we'll email you before the trial ends.</p>
+    <p class="buy-note" id="buy-note">Checkout opens when Moriwella launches. These are planned prices in US dollars and may change before then.</p>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <img src="assets/logo_horizontal_inverse.svg" alt="Moriwella">
+    <p>Remember your life, organize your days, and live well.</p>
+    <p>&copy; 2026 Moriwella</p>
+  </div>
+</footer>
+
+<script>
+/* Stripe Payment Links. Paste each link from the Stripe dashboard (Payment Links, with a 14-day trial set on the price).
+   Only public links go here. No secret keys ever belong in this file. */
+var STRIPE_LINKS = {
+  personal: { month: "", year: "" },
+  family:   { month: "", year: "" }
+};
+
+(function () {
+  var period = "year";
+  var nums = document.querySelectorAll("[data-month]");
+  var btns = document.querySelectorAll(".tg");
+  var buys = document.querySelectorAll(".buy");
+  var note = document.getElementById("buy-note");
+  var live = false;
+
+  function paint() {
+    nums.forEach(function (el) { el.textContent = el.getAttribute("data-" + period); });
+    btns.forEach(function (b) {
+      var on = b.getAttribute("data-period") === period;
+      b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on);
+    });
+    live = false;
+    buys.forEach(function (a) {
+      var url = (STRIPE_LINKS[a.getAttribute("data-stripe")] || {})[period];
+      if (url) { a.href = url; a.removeAttribute("aria-disabled"); live = true; }
+      else { a.href = "#"; a.setAttribute("aria-disabled", "true"); }
+    });
+    note.hidden = live;
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { period = b.getAttribute("data-period"); paint(); }); });
+  buys.forEach(function (a) { a.addEventListener("click", function (e) { if (a.getAttribute("aria-disabled")) e.preventDefault(); }); });
+  paint();
+})();
+</script>
+</body>
+</html>

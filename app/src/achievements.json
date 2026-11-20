@@ -1,0 +1,150 @@
+{
+ "_note": "Achievement definitions. Adding a milestone means adding an entry here. Rhythm, not punishment: unlocked badges are permanent and missing a day never removes anything.",
+ "achievements": [
+  {
+   "id": "daily-checklist",
+   "category": "daily-living",
+   "title": "All done for today",
+   "description": "Finish every task you planned for the day.",
+   "trigger": {
+    "event": "task.completed",
+    "rule": "all-tasks-for-day-done"
+   },
+   "repeatable": "daily",
+   "celebrate": "milestone"
+  },
+  {
+   "id": "hydration-goal",
+   "category": "daily-living",
+   "title": "Hydration hero",
+   "description": "Reach your daily water goal.",
+   "trigger": {
+    "event": "goal.progress",
+    "rule": "goal-reached",
+    "goal": "hydration"
+   },
+   "repeatable": "daily",
+   "celebrate": "milestone"
+  },
+  {
+   "id": "first-entry",
+   "category": "journaling",
+   "title": "Your first entry",
+   "description": "The first page of your story is in.",
+   "trigger": {
+    "event": "entry.saved",
+    "rule": "count",
+    "min": 1
+   },
+   "repeatable": false,
+   "celebrate": "none"
+  },
+  {
+   "id": "journal-week",
+   "category": "journaling",
+   "title": "A full week of journaling",
+   "description": "Write on seven days in a row.",
+   "trigger": {
+    "event": "entry.saved",
+    "rule": "consecutive-days",
+    "min": 7
+   },
+   "repeatable": false,
+   "celebrate": "milestone"
+  },
+  {
+   "id": "journal-month",
+   "category": "journaling",
+   "title": "Thirty days of pages",
+   "description": "Write on thirty days in a row.",
+   "trigger": {
+    "event": "entry.saved",
+    "rule": "consecutive-days",
+    "min": 30
+   },
+   "repeatable": false,
+   "celebrate": "milestone"
+  },
+  {
+   "id": "hundred-entries",
+   "category": "journaling",
+   "title": "One hundred entries",
+   "description": "A hundred moments, kept.",
+   "trigger": {
+    "event": "entry.saved",
+    "rule": "count",
+    "min": 100
+   },
+   "repeatable": false,
+   "celebrate": "milestone"
+  },
+  {
+   "id": "first-vacation",
+   "category": "memories",
+   "title": "Vacation journaled",
+   "description": "Complete your first vacation journal.",
+   "trigger": {
+    "event": "event.completed",
+    "rule": "count",
+    "template": "vacation",
+    "min": 1
+   },
+   "repeatable": false,
+   "celebrate": "milestone"
+  },
+  {
+   "id": "ten-events",
+   "category": "memories",
+   "title": "Ten experiences kept",
+   "description": "Complete ten event collections.",
+   "trigger": {
+    "event": "event.completed",
+    "rule": "count",
+    "min": 10
+   },
+   "repeatable": false,
+   "celebrate": "milestone"
+  },
+  {
+   "id": "first-shared-list",
+   "category": "family",
+   "title": "Better together",
+   "description": "Create your first shared list.",
+   "trigger": {
+    "event": "list.shared",
+    "rule": "count",
+    "min": 1
+   },
+   "repeatable": false,
+   "celebrate": "small"
+  },
+  {
+   "id": "family-shopping",
+   "category": "family",
+   "title": "Shopping done",
+   "description": "Check off a whole family shopping list.",
+   "trigger": {
+    "event": "list.completed",
+    "rule": "list-type",
+    "type": "shopping",
+    "shared": true
+   },
+   "repeatable": true,
+   "celebrate": "small"
+  },
+  {
+   "id": "shared-project",
+   "category": "family",
+   "title": "Project complete",
+   "description": "Finish a shared family project.",
+   "trigger": {
+    "event": "list.completed",
+    "rule": "list-type",
+    "type": "project",
+    "shared": true
+   },
+   "repeatable": true,
+   "celebrate": "milestone"
+  }
+ ]
+}

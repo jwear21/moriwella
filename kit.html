@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moriwella interaction kit (demo)</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="kit/kit.css">
+<style>
+  .kit-head { background: var(--forest); color: var(--cream); padding-block: 2rem 3rem; }
+  .kit-head h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(2rem, 4vw, 2.8rem); }
+  .kit-head p { margin-top: .6rem; color: #EEF3EF; max-width: 40rem; }
+  .demo { padding-block: 3.5rem; }
+  .demo h2 { font-family: var(--serif); font-weight: 400; font-size: 1.9rem; color: var(--deep); }
+  .demo > .wrap > p { margin-top: .5rem; max-width: 40rem; }
+  .water { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+  .cup { width: 3.4rem; height: 4.4rem; border: 3px solid var(--sage); border-radius: 6px 6px 14px 14px; background: var(--paper); cursor: pointer; position: relative; overflow: hidden; padding: 0; }
+  .cup::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #8FB3B0; transition: height .35s ease; }
+  .cup[aria-pressed="true"]::after { height: 82%; }
+  .count { margin-top: 1rem; font-family: var(--serif); font-size: 1.3rem; color: var(--deep); }
+  .row-btns { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+  .book-controls { margin-top: 1.25rem; display: flex; gap: .75rem; align-items: center; justify-content: center; }
+  .book-controls span { min-width: 10rem; text-align: center; color: var(--moss); }
+  .alt { background: var(--ivory); }
+  @media (prefers-reduced-motion: reduce) { .cup::after { transition: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F9F6ED"/><stop offset="1" stop-color="#F1E3C6"/></linearGradient>
+    <linearGradient id="sunfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F6DE9C"/><stop offset="1" stop-color="#E8B756"/></linearGradient>
+    <symbol id="hills" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice"><rect width="640" height="480" fill="url(#sky)"/><circle cx="450" cy="250" r="66" fill="url(#sunfill)"/><path fill="#CBD6B8" d="M0 300 C120 230 220 270 330 290 C430 308 520 250 640 270 V480 H0Z"/><path fill="#9DB5A0" d="M0 345 C110 300 230 340 340 350 C450 360 540 320 640 335 V480 H0Z"/><path fill="#6B8F77" d="M0 395 C140 365 240 395 360 400 C470 405 550 380 640 392 V480 H0Z"/><path fill="#1B4D3E" d="M0 440 C160 425 300 445 420 445 C520 445 590 432 640 438 V480 H0Z"/></symbol>
+    <linearGradient id="dusksky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E4A58"/><stop offset=".6" stop-color="#C98E5E"/><stop offset="1" stop-color="#E8B756"/></linearGradient>
+    <symbol id="dusk" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice"><rect width="640" height="480" fill="url(#dusksky)"/><circle cx="200" cy="330" r="48" fill="#F6DE9C"/><path fill="#7C6A5A" d="M0 360 L60 330 L90 345 L130 300 L170 340 L230 310 L290 350 L350 320 L420 345 L480 305 L540 340 L640 315 V480 H0Z"/><path fill="#1B4D3E" d="M0 410 C120 385 240 420 360 410 C480 400 560 395 640 405 V480 H0Z"/><path fill="#073B2B" d="M0 450 C160 435 320 455 640 440 V480 H0Z"/></symbol>
+    <linearGradient id="seasky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DCEBE6"/><stop offset="1" stop-color="#F9F6ED"/></linearGradient>
+    <symbol id="coast" viewBox="0 0 640 480" preserveAspectRatio="xMidYMax slice"><rect width="640" height="480" fill="url(#seasky)"/><path fill="#A9C5B3" d="M0 250 H640 V480 H0Z"/><path fill="#8FB3B0" d="M0 285 C120 275 240 295 360 285 C480 275 560 290 640 282 V480 H0Z"/><path fill="#E9D8B6" d="M0 360 C140 340 260 372 400 360 C500 350 580 365 640 358 V480 H0Z"/><path fill="#C9A763" d="M0 430 C160 415 320 440 640 420 V480 H0Z" opacity=".7"/></symbol>
+  </defs>
+</svg>
+
+<header class="kit-head"><div class="wrap">
+  <h1>Interaction kit</h1>
+  <p>Working demos of the milestone celebrations and the page-turning book that the Moriwella app will use. Prototype only.</p>
+</div></header>
+
+<main>
+<section class="demo"><div class="wrap">
+  <h2>Milestone celebrations</h2>
+  <p>Tap a cup to log 8 oz. Everyday check-offs get a small sparkle. Reach 64 oz and you get fireworks and a badge.</p>
+  <div class="water" id="water" role="group" aria-label="Water today, eight cups of 8 ounces"></div>
+  <p class="count" id="count" aria-live="polite">0 of 64 oz</p>
+  <div class="row-btns">
+    <button class="btn btn--quiet" type="button" id="reset">Empty the cups</button>
+    <button class="btn" type="button" data-demo="streak">Preview: journaling streak</button>
+    <button class="btn btn--quiet" type="button" data-demo="scrapbook">Preview: first scrapbook</button>
+  </div>
+</div></section>
+
+<section class="demo alt"><div class="wrap">
+  <h2>Page turning</h2>
+  <p>Swipe, use the arrow keys, or press the buttons. On a phone it shows one page at a time.</p>
+  <div style="margin-top:1.75rem" id="book"></div>
+  <div class="book-controls">
+    <button class="btn btn--quiet" type="button" id="prev">Back</button>
+    <span id="pos" aria-live="polite"></span>
+    <button class="btn" type="button" id="next">Next page</button>
+  </div>
+</div></section>
+</main>
+
+<script src="kit/celebrate.js"></script>
+<script src="kit/flipbook.js"></script>
+<script>
+(function () {
+  var cups = [], filled = 0, host = document.getElementById("water"), count = document.getElementById("count");
+  for (var i = 1; i <= 8; i++) (function (n) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "cup"; b.setAttribute("aria-pressed", "false"); b.setAttribute("aria-label", "Cup " + n + " of 8");
+    b.addEventListener("click", function () { set(filled === n ? n - 1 : n, b); });
+    host.appendChild(b); cups.push(b);
+  })(i);
+  function set(n, origin) {
+    var was = filled; filled = n;
+    cups.forEach(function (c, i) { c.setAttribute("aria-pressed", i < n); });
+    count.textContent = (n * 8) + " of 64 oz";
+    if (n > was && n < 8) Moriwella.celebrate({ level: "small", origin: origin });
+    if (n === 8 && was < 8) Moriwella.celebrate({ level: "milestone", title: "Hydration hero", sub: "64 oz today. Well done." });
+  }
+  document.getElementById("reset").addEventListener("click", function () { set(0); });
+  document.querySelector('[data-demo="streak"]').addEventListener("click", function () { Moriwella.celebrate({ level: "milestone", title: "A full week of journaling", sub: "Seven days in a row." }); });
+  document.querySelector('[data-demo="scrapbook"]').addEventListener("click", function () { Moriwella.celebrate({ level: "milestone", title: "Your first scrapbook", sub: "Lisbon, October is ready to print." }); });
+
+  function ph(sym) { return '<div class="fb-ph"><svg><use href="#' + sym + '" width="100%" height="100%"/></svg></div>'; }
+  var pages = [
+    '<h3>Lisbon, October</h3><p class="fb-date">A week by the water</p>' + ph("coast") + '<p>Seven days, one suitcase, and far too many pastries.</p>',
+    '<p class="fb-date">Monday</p><h3>Arrival</h3><p>The plane landed early and the city was still waking up. We dropped our bags and walked straight to the river.</p>' + ph("hills"),
+    '<p class="fb-date">Wednesday</p><h3>The tram up the hill</h3>' + ph("dusk") + '<p>Crowded, creaky, and worth every minute for the view at the top.</p>',
+    '<p class="fb-date">Thursday</p><h3>Nothing on the list</h3><p>No plans at all. Coffee, a bookshop, a long lunch, and a walk back as the lights came on.</p>' + ph("coast"),
+    '<h3>Little things we want to remember</h3><p>The tiles on every wall. The man who sang while he grilled sardines. How quiet the street was at night.</p>',
+    '<h3>Home again</h3><p>Already planning the next trip.</p>' + ph("dusk"),
+    '<p class="fb-date">Friday</p><h3>Last morning</h3>' + ph("hills") + '<p>One more coffee, one more look at the river.</p>',
+    '<h3>The end</h3><p>Made with Moriwella.</p>'
+  ];
+  var pos = document.getElementById("pos");
+  var book = Moriwella.FlipBook(document.getElementById("book"), pages, { onChange: function (t) { pos.textContent = t; } });
+  document.getElementById("next").addEventListener("click", book.next);
+  document.getElementById("prev").addEventListener("click", book.prev);
+})();
+</script>
+</body>
+</html>

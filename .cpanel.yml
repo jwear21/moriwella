@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/coyotejo/moriwella.com/
+    - /bin/rsync -rv --exclude='.git' --exclude='.cpanel.yml' --exclude='.gitignore' --exclude='app/src/config.php' --exclude='*.zip' ./ $DEPLOYPATH
