@@ -96,8 +96,13 @@
       <label for="mv-close"><?= t('experience.closing_note_optional') ?></label>
       <input id="mv-close" name="closing" maxlength="160" placeholder="<?= t('experience.thank_you_for_the') ?>">
       <?php $cb = credits_balance((int)$user['id']); ?>
-      <p class="hint"><?= $cb['available'] > 0 ? t('billing.uses_one', ['n' => $cb['available']]) : t('billing.none_left') ?> <a class="link" href="<?= url('/billing') ?>#credits"><?= t('billing.title') ?></a></p>
+      <?php if ($cb['available'] > 0): ?>
+      <p class="hint"><?= t('billing.uses_one', ['n' => $cb['available']]) ?> <a class="link" href="<?= url('/billing') ?>#credits"><?= t('menu.buy_credits') ?></a></p>
       <button class="btn" type="submit"><?= t('experience.make_my_movie') ?></button>
+      <?php else: ?>
+      <p class="hint"><?= t('billing.none_left') ?></p>
+      <a class="btn" href="<?= url('/billing') ?>#credits"><?= t('menu.get_credit') ?></a>
+      <?php endif; ?>
     </form>
   </details>
   <?php endif; ?>

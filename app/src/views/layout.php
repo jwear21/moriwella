@@ -32,7 +32,38 @@
       <?php if ($user['role'] === 'admin'): ?><a href="<?= url('/admin') ?>"><?= t('common.admin') ?></a><?php endif; ?>
       <form method="post" action="<?= url('/logout') ?>" class="inline"><?= csrf_field() ?><button type="submit" class="navbtn"><?= t('common.sign_out') ?></button></form>
     </nav>
-    <a class="acct-chip" href="<?= url('/settings') ?>" aria-label="<?= t('common.account_2') ?>"><?= avatar_html((int)$user['id'], $user['name'], 'avatar--chip') ?></a>
+    <?php
+      /* Everything a member needs about their plan and movie credits lives in this one menu. A hiccup here must never break a page. */
+      $am = null;
+      try { $amb = billing_for((int)$user['id']); $amc = credits_balance((int)$user['id']); $am = ['state' => $amb['state'], 'plan' => $amb['plan'], 'sub' => $amb['sub'], 'owner' => $amb['is_owner'], 'n' => (int)$amc['available']]; } catch (Throwable $e) { $am = null; }
+    ?>
+    <div class="acct" data-acct>
+      <button class="acct-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="acct-panel" aria-label="<?= $am ? t('menu.open_n', ['n' => $am['n']]) : t('menu.open') ?>">
+        <span class="acct-chip"><?= avatar_html((int)$user['id'], $user['name'], 'avatar--chip') ?><?php if ($am): ?><span class="acct-count<?= $am['n'] < 1 ? ' acct-count--zero' : '' ?>" aria-hidden="true"><?= $am['n'] ?></span><?php endif; ?></span>
+        <svg class="acct-bars" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="acct-panel" id="acct-panel" role="menu" hidden>
+        <div class="acct-who"><b><?= e($user['name']) ?></b><small><?= e($user['email']) ?></small></div>
+        <?php if ($am): $st = $am['state']; ?>
+        <div class="acct-credits">
+          <div><span><?= t('menu.movies_left') ?></span><strong><?= $am['n'] > 0 ? t('menu.n_left', ['n' => $am['n']]) : t('menu.none_left') ?></strong></div>
+          <a class="btn acct-buy" role="menuitem" href="<?= url('/billing') ?>#credits"><?= $am['n'] > 0 ? t('menu.buy_credits') : t('menu.get_credit') ?></a>
+        </div>
+        <div class="acct-plan"><span><?= t('menu.plan') ?></span>
+          <strong><?php
+            if ($st === 'comped') echo t('menu.plan_beta');
+            elseif ($st === 'trial') echo t('menu.plan_trial', ['date' => ldate('F j', (int)$am['sub']['trial_end'])]);
+            elseif ($st === 'active') echo e($am['plan']['name']);
+            else echo t('menu.plan_none'); ?></strong></div>
+        <a role="menuitem" href="<?= url('/pricing') ?>"><?= $st === 'active' ? t('menu.change') : ($st === 'limited' ? t('menu.choose') : t('menu.upgrade')) ?></a>
+        <a role="menuitem" href="<?= url('/billing') ?>"><?= t('menu.plan_and_credits') ?></a>
+        <?php if ($am['owner']): ?><a role="menuitem" href="<?= url('/billing') ?>#members"><?= t('menu.people') ?></a><?php endif; ?>
+        <?php endif; ?>
+        <a role="menuitem" href="<?= url('/settings') ?>"><?= t('menu.settings') ?></a>
+        <?php if ($user['role'] === 'admin'): ?><a role="menuitem" href="<?= url('/admin') ?>"><?= t('common.admin') ?></a><?php endif; ?>
+        <form method="post" action="<?= url('/logout') ?>"><?= csrf_field() ?><button type="submit" role="menuitem" class="acct-out"><?= t('common.sign_out') ?></button></form>
+      </div>
+    </div>
   </div>
 </header>
 <nav class="tabbar" aria-label="<?= t('layout.main') ?>">

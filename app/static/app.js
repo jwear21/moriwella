@@ -306,3 +306,16 @@ document.querySelectorAll('[data-demo]').forEach(function (b) {
     document.querySelector('.mw-loader').onclick = function () { clearTimeout(t); window.mwLoader.hide(); };
   });
 });
+
+/* Account menu: open and close, Escape and outside tap close it, focus returns to the button. Copyright (c) JSW Software Designs */
+document.addEventListener('DOMContentLoaded', function () {
+  var box = document.querySelector('[data-acct]'); if (!box) return;
+  var btn = box.querySelector('.acct-btn'), panel = box.querySelector('.acct-panel');
+  function setOpen(on, refocus) {
+    panel.hidden = !on; btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) { var f = panel.querySelector('a,button'); if (f) f.focus(); } else if (refocus) btn.focus();
+  }
+  btn.addEventListener('click', function (e) { e.stopPropagation(); setOpen(panel.hidden); });
+  document.addEventListener('click', function (e) { if (!panel.hidden && !box.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) setOpen(false, true); });
+});
