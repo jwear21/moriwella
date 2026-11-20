@@ -4,6 +4,7 @@ require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/credits.php';
 require __DIR__ . '/src/i18n.php';
 require __DIR__ . '/src/photos.php';
+require __DIR__ . '/src/avatar.php';
 require __DIR__ . '/src/templates.php';
 require __DIR__ . '/src/achievements.php';
 require __DIR__ . '/src/trackers.php';
@@ -173,6 +174,15 @@ if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})/combine$#', $path, $m) && $post) {
 if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})$#', $path, $m)) {
     if (!valid_date($m[1])) redirect(url('/'));
     render_day($user, $m[1]); exit;
+}
+
+/* ----- profile pictures ----- */
+if (preg_match('#^/avatar/(\d+)$#', $path, $m)) {
+    $f = avatar_file((int)$m[1]);
+    if (!avatar_viewable($uid, (int)$m[1]) || !is_file($f)) { http_response_code(404); exit; }
+    header('Content-Type: image/jpeg'); header('Content-Length: ' . filesize($f));
+    header('Cache-Control: private, max-age=86400'); header('X-Content-Type-Options: nosniff');
+    readfile($f); exit;
 }
 
 /* ----- photos ----- */
@@ -500,6 +510,11 @@ if ($path === '/settings') {
             save_prefs($uid, !empty($_POST['celebrations']), water_on($uid), (string)($_POST['celebrate_size'] ?? 'big'));
             flash('ok', tt('msg.preferences_saved')); redirect(url('/settings'));
         }
+        if (isset($_POST['save_avatar'])) {
+            $err = avatar_save($uid, $_FILES['avatar'] ?? ['error' => UPLOAD_ERR_NO_FILE]);
+            flash($err ? 'err' : 'ok', $err ?: tt('profile.saved')); redirect(url('/settings'));
+        }
+        if (isset($_POST['remove_avatar'])) { avatar_delete($uid); flash('ok', tt('profile.removed')); redirect(url('/settings')); }
         if (isset($_POST['change_password'])) {
             $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
             if (!$err && !password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) $err = tt('msg.your_current_password_isn');

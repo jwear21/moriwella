@@ -1,5 +1,19 @@
 <h1 class="page-title"><?= t('common.account_2') ?></h1>
-<p class="subtle"><?= e($user['name']) ?> · <?= e($user['email']) ?></p>
+<section class="card write profile">
+  <div class="profile-head">
+    <?= avatar_html((int)$user['id'], $user['name'], 'avatar--xl') ?>
+    <div class="profile-who"><b><?= e($user['name']) ?></b><small><?= e($user['email']) ?></small></div>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="profile-form">
+    <?= csrf_field() ?><input type="hidden" name="save_avatar" value="1">
+    <label class="filebtn"><span class="btn btn--quiet"><?= t(avatar_has((int)$user['id']) ? 'profile.change' : 'profile.add') ?></span>
+      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required data-autosubmit></label>
+  </form>
+  <?php if (avatar_has((int)$user['id'])): ?>
+  <form method="post" class="profile-form"><?= csrf_field() ?><input type="hidden" name="remove_avatar" value="1"><button type="submit" class="linkbtn"><?= t('profile.remove') ?></button></form>
+  <?php endif; ?>
+  <p class="hint"><?= t('profile.hint') ?></p>
+</section>
 <nav class="menu-rows" aria-label="<?= t('settings.more') ?>">
   <a class="row" href="<?= url('/achievements') ?>"><span><b><?= t('common.achievements') ?></b><small><?= t('settings.milestones_you_have_earned') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>
   <a class="row" href="<?= url('/billing') ?>"><span><b><?= t('billing.title') ?></b><small><?= t('billing.settings_hint') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>

@@ -431,3 +431,19 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .balances{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 8px}.balances div{background:rgba(0,0,0,.04);border-radius:10px;padding:10px}.balances dt{font-size:.85rem}.balances dd{margin:0;font-size:1.6rem;font-weight:700}
 .packs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
 .activity,.members{list-style:none;padding:0;margin:0}.activity li,.members li{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid rgba(0,0,0,.08);flex-wrap:wrap}.members small{display:block}
+
+/* profile pictures */
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:2.6rem;height:2.6rem;border-radius:50%;overflow:hidden;flex:none;background:var(--sage,#6b8f71);color:#F9F6ED;font:600 1.1rem Inter,system-ui,sans-serif;vertical-align:middle}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar--chip{width:34px;height:34px;font-size:.95rem;background:rgba(249,246,237,.16)}
+.avatar--sm{width:2.2rem;height:2.2rem;font-size:.95rem;margin-right:.7rem}
+.avatar--xl{width:5.5rem;height:5.5rem;font-size:2.2rem}
+.acct-chip .avatar--chip{width:100%;height:100%}
+.profile-head{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;min-width:0}
+.profile-who{display:flex;flex-direction:column;min-width:0}
+.profile-who b{font-size:1.15rem;overflow-wrap:anywhere}
+.profile-who small{color:var(--muted,#5c6b63);overflow-wrap:anywhere}
+.profile-form{display:inline-block;margin:0 .8rem .4rem 0}
+.filebtn{position:relative;display:inline-block;cursor:pointer}
+.filebtn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.members li>span{flex:1;min-width:0;overflow-wrap:anywhere}

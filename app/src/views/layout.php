@@ -32,7 +32,7 @@
       <?php if ($user['role'] === 'admin'): ?><a href="<?= url('/admin') ?>"><?= t('common.admin') ?></a><?php endif; ?>
       <form method="post" action="<?= url('/logout') ?>" class="inline"><?= csrf_field() ?><button type="submit" class="navbtn"><?= t('common.sign_out') ?></button></form>
     </nav>
-    <a class="acct-chip" href="<?= url('/settings') ?>" aria-label="<?= t('common.account_2') ?>"><?= e(mb_strtoupper(mb_substr(trim($user['name']) ?: '?', 0, 1))) ?></a>
+    <a class="acct-chip" href="<?= url('/settings') ?>" aria-label="<?= t('common.account_2') ?>"><?= avatar_html((int)$user['id'], $user['name'], 'avatar--chip') ?></a>
   </div>
 </header>
 <nav class="tabbar" aria-label="<?= t('layout.main') ?>">
