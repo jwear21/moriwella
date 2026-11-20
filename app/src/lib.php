@@ -479,6 +479,23 @@ function make_invite(int $userId): string {
         ->execute([hash('sha256', $token), time() + 7 * 86400, $userId]);
     return rtrim((string)cfg('app_url'), '/') . url('/join/' . $token);
 }
+/** Plain-text email through the server's mail system. Returns true when the server accepted it for delivery (not proof it arrived). */
+function send_mail(string $to, string $subject, string $body, string $replyTo = ''): bool {
+    $clean = fn(string $v) => trim(preg_replace('/[\r\n]+/', ' ', $v));
+    $to = $clean($to); if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+    $from = $clean((string)cfg('mail_from', 'noreply@moriwella.com'));
+    $h = ['From: Moriwella <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: Moriwella'];
+    if ($replyTo !== '' && filter_var($clean($replyTo), FILTER_VALIDATE_EMAIL)) $h[] = 'Reply-To: ' . $clean($replyTo);
+    $ok = @mail($to, '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=', str_replace("\n", "\r\n", $body), implode("\r\n", $h), '-f' . $from);
+    @file_put_contents(data_dir() . '/mail.log', date('c') . ' to=' . $to . ' subject=' . $clean($subject) . ' accepted=' . ($ok ? 'yes' : 'no') . "\n", FILE_APPEND);
+    return $ok;
+}
+/** The invitation email a household owner's guest receives, with the link to choose a password. */
+function invite_email(array $guest, string $link): bool {
+    $me = current_user(); $who = $me ? trim((string)$me['name']) : 'Someone';
+    return send_mail((string)$guest['email'], $who . ' invited you to Moriwella',
+        "Hi " . $guest['name'] . ",\n\n$who invited you to share their Moriwella household, a private place to remember your life, organize your days, and live well.\n\nChoose your password and get started here (the link works for 7 days):\n$link\n\nIf you weren't expecting this, you can ignore this email.\n\nMoriwella\n", $me ? (string)$me['email'] : '');
+}
 function find_by_invite(string $token): ?array {
     if (!preg_match('/^[a-f0-9]{48}$/', $token)) return null;
     $s = db()->prepare('SELECT * FROM users WHERE invite_hash = ? AND invite_expires > ?');

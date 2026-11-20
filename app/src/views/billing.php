@@ -43,10 +43,11 @@
 <section class="card" id="members">
   <h2 class="section-h"><?= t('billing.members_h') ?></h2>
   <p class="hint"><?= t('billing.seats_used', ['used' => $active, 'total' => (int)$sub['seat_limit']]) ?></p>
-  <?php if ($newLink): ?><p class="notice"><?= t('billing.invite_link', ['name' => $newLink['name']]) ?> <input type="text" readonly value="<?= e($newLink['link']) ?>" onclick="this.select()"></p><?php endif; ?>
+  <?php if ($newLink): ?><p class="notice"><?= t(!empty($newLink['emailed']) ? 'billing.invite_emailed' : 'billing.invite_link', ['name' => $newLink['name'], 'email' => $newLink['email'] ?? '']) ?> <input type="text" readonly value="<?= e($newLink['link']) ?>" onclick="this.select()"></p><?php endif; ?>
   <ul class="members">
   <?php foreach ($members as $m): if ($m['status'] === 'removed' || $m['status'] === 'suspended') continue; ?>
     <li><?= avatar_html((int)$m['user_id'], $m['name'], 'avatar--sm') ?><span><b><?= e($m['name']) ?></b><small><?= e($m['email']) ?><?= $m['role'] === 'owner' ? ' · ' . t('billing.owner') : '' ?></small></span>
+      <?php if ($b['is_owner'] && $m['role'] !== 'owner' && ($m['user_status'] ?? '') === 'invited'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/resend') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= t('billing.resend') ?></button></form><?php endif; ?>
       <?php if ($b['is_owner'] && $m['role'] !== 'owner'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/remove') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit" data-confirm="<?= e(t('billing.confirm_remove')) ?>"><?= t('billing.remove') ?></button></form><?php endif; ?></li>
   <?php endforeach; ?>
   </ul>
