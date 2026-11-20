@@ -381,6 +381,9 @@ function migrate(PDO $p): void {
     }
 }
 
+/** File's last-change time, so browsers fetch a fresh copy after every deploy. */
+function asset_v(string $rel): string { $f = __DIR__ . '/../' . $rel; return is_file($f) ? (string)filemtime($f) : '0'; }
+
 /* ---------- request setup ---------- */
 function boot(): void {
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');

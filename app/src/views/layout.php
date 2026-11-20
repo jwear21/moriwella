@@ -10,8 +10,8 @@
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/kit/kit.css">
-<link rel="stylesheet" href="/app/static/app.css">
-<link rel="stylesheet" href="/app/static/editor.css">
+<link rel="stylesheet" href="/app/static/app.css?v=<?= asset_v('static/app.css') ?>">
+<link rel="stylesheet" href="/app/static/editor.css?v=<?= asset_v('static/editor.css') ?>">
 </head>
 <body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>
 <?php if (!$bare && $user && !empty($_SESSION['acting_admin'])): ?>
@@ -85,9 +85,9 @@
   <p class="note note--ok" role="status" id="saved-note" data-celebrate="<?= e($flash['type']) ?>"><?= e($flash['msg']) ?></p>
 <?php endif; ?>
 <script type="application/json" id="mw-i18n"><?= json_encode(js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
-<script src="/app/static/i18n.js"></script>
+<script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
 <script src="/kit/celebrate.js"></script>
-<script src="/app/static/app.js"></script>
-<?php if ($user): ?><script src="/app/static/editor.js" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
+<script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
+<?php if ($user): ?><script src="/app/static/editor.js?v=<?= asset_v('static/editor.js') ?>" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>
 </html>
