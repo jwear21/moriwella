@@ -144,7 +144,10 @@ function mv_run(array $cmd, string $what): void {
     $p = @proc_open($full, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     if (!is_resource($p)) throw new RuntimeException('Could not start FFmpeg for ' . $what);
     $out = stream_get_contents($pipes[1]); $err = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]);
-    if (proc_close($p) !== 0) throw new RuntimeException($what . ' failed: ' . substr($err ?: $out, -600));
+    if (proc_close($p) !== 0) {
+        @file_put_contents(data_dir() . '/error.log', date('c') . ' ffmpeg ' . $what . ' stderr: ' . substr($err ?: $out, 0, 3000) . "\n", FILE_APPEND);
+        throw new RuntimeException($what . ' failed: ' . substr($err ?: $out, 0, 500));
+    }
 }
 function mv_still_clip(string $png, string $out, float $dur): void {
     mv_run(['-loop', '1', '-t', (string)$dur, '-i', $png, '-vf', 'fade=in:0:15,fade=out:st=' . ($dur - 0.7) . ':d=0.7,format=yuv420p,fps=' . MV_FPS,
