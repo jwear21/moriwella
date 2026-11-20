@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/templates.php';
+require __DIR__ . '/src/achievements.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -213,6 +214,7 @@ if ($path === '/entries' && $post) {
             ->execute([$uid, $date, $title, $body, $now, $now, $ev['id'], $secId]);
         $errs = save_uploaded_photos((int)db()->lastInsertId(), $uid);
         flash($errs ? 'err' : 'ok', $errs ? 'Saved. ' . implode(' ', $errs) : 'Added to ' . $ev['title'] . '.');
+        queue_unlocked(achievements_eval($uid, ['day' => $date]));
         redirect(url('/experiences/' . $ev['id']));
     }
     $mainQ = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? AND event_id IS NULL ORDER BY id LIMIT 1'); $mainQ->execute([$uid, $date]);
@@ -231,6 +233,7 @@ if ($path === '/entries' && $post) {
     $n = db()->prepare('SELECT COUNT(*) FROM entries WHERE user_id = ?'); $n->execute([$uid]);
     if ($errs) { flash('err', 'Entry saved. ' . implode(' ', $errs)); }
     else { flash((int)$n->fetchColumn() === 1 ? 'first' : 'saved', 'Saved.'); }
+    queue_unlocked(achievements_eval($uid, ['day' => $date]));
     redirect(url('/day/' . $date));
 }
 
@@ -292,7 +295,7 @@ if ($path === '/water' && $post) {
     $oz = max(0, min(64, (int)($_POST['oz'] ?? 0)));
     $before = water_oz($uid, $day);
     db()->prepare('INSERT INTO water_log (user_id, day, oz) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET oz = excluded.oz')->execute([$uid, $day, $oz]);
-    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day)]);
+    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day), 'unlocked' => $oz >= 64 ? achievements_eval($uid, ['day' => $day]) : []]);
 }
 
 require __DIR__ . '/src/experiences.php';
@@ -326,7 +329,7 @@ if (preg_match('#^/goals/(\d+)/(toggle|delete)$#', $path, $mm) && $post) {
     $q = db()->prepare('SELECT 1 FROM goal_log WHERE goal_id = ? AND day = ?'); $q->execute([(int)$mm[1], $day]);
     if ($q->fetch()) { db()->prepare('DELETE FROM goal_log WHERE goal_id = ? AND day = ?')->execute([(int)$mm[1], $day]); $done = false; }
     else { db()->prepare('INSERT INTO goal_log (goal_id, day, done_at) VALUES (?, ?, ?)')->execute([(int)$mm[1], $day, time()]); $done = true; }
-    json_out(['ok' => true, 'done' => $done, 'allDone' => $done && all_goals_done($uid, $day)]);
+    json_out(['ok' => true, 'done' => $done, 'allDone' => $done && all_goals_done($uid, $day), 'unlocked' => $done ? achievements_eval($uid, ['day' => $day]) : []]);
 }
 
 /* ----- lists ----- */
@@ -410,7 +413,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
                 }
             }
             $c = list_counts($listId);
-            if (wants_json()) json_out(['ok' => true, 'done' => $item ? $nowDone : false, 'open' => $c['open'], 'total' => $c['total'], 'allDone' => $c['total'] > 0 && $c['open'] === 0 && empty($nextDue), 'list' => $list['name'], 'next' => $nextDue ?? null]);
+            if (wants_json()) json_out(['ok' => true, 'done' => $item ? $nowDone : false, 'open' => $c['open'], 'total' => $c['total'], 'allDone' => $c['total'] > 0 && $c['open'] === 0 && empty($nextDue), 'list' => $list['name'], 'next' => $nextDue ?? null, 'unlocked' => ($nowDone && $c['total'] > 0 && $c['open'] === 0) ? achievements_eval($uid, ['list_id' => $listId, 'list_done' => true]) : []]);
             redirect(url('/lists/' . $listId));
         }
         if (preg_match('#^items/(\d+)/delete$#', $sub, $mm)) {
@@ -425,7 +428,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
             elseif ((int)$target['id'] === $uid) flash('err', 'That\'s you. You already own this list.');
             else {
                 db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, added_at) VALUES (?, ?, ?)')->execute([$listId, $target['id'], time()]);
-                flash('ok', 'Shared with ' . $target['name'] . '.');
+                flash('ok', 'Shared with ' . $target['name'] . '.'); queue_unlocked(achievements_eval($uid));
             }
             redirect(url('/lists/' . $listId));
         }
@@ -444,6 +447,12 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
     $mem->execute([$listId]);
     $ow = db()->prepare('SELECT name FROM users WHERE id = ?'); $ow->execute([$list['owner_id']]);
     render('list', ['list' => $list, 'items' => $items->fetchAll(), 'members' => $mem->fetchAll(), 'ownerName' => $ow->fetchColumn(), 'isOwner' => $isOwner, 'people' => list_people($list), 'mine' => $mine], $list['name']);
+    exit;
+}
+
+/* ----- achievements ----- */
+if ($path === '/achievements') {
+    render('achievements', ['groups' => achievements_for_user($uid)], 'Achievements');
     exit;
 }
 

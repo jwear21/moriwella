@@ -1,6 +1,10 @@
 (function () {
   var celebOn = document.body.getAttribute('data-celebrate-on') !== '0';
   function celebrate(o) { if (celebOn && window.Moriwella) Moriwella.celebrate(o); }
+  function showUnlocked(list, delay) {
+    list.forEach(function (u, i) { setTimeout(function () { celebrate(u.level === 'small' ? { level: 'small' } : { level: 'milestone', title: u.title, sub: u.sub }); }, (delay || 0) + i * 6700); });
+  }
+  try { var pend = document.body.getAttribute('data-unlocked'); if (pend) showUnlocked(JSON.parse(pend), 900); } catch (e) {}
   try {
     var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (tz && document.cookie.indexOf('mw_tz=' + encodeURIComponent(tz)) === -1) document.cookie = 'mw_tz=' + encodeURIComponent(tz) + '; path=/; max-age=31536000; SameSite=Lax';
@@ -127,7 +131,7 @@
         var body = new URLSearchParams({ day: w.getAttribute('data-day'), oz: oz, _csrf: w.getAttribute('data-csrf') });
         fetch(w.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: body, credentials: 'same-origin' })
           .then(function (r) { return r.json(); })
-          .then(function (j) { if (j.goal) celebrate(j.allDone ? { level: 'milestone', title: 'All your goals are done', sub: 'Water, and everything else. Great day.' } : { level: 'milestone', title: '64 ounces', sub: 'You hit your water goal for the day.' }); })
+          .then(function (j) { if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 150); else if (j.goal) celebrate(j.allDone ? { level: 'milestone', title: 'All your goals are done', sub: 'Water, and everything else. Great day.' } : { level: 'milestone', title: '64 ounces', sub: 'You hit your water goal for the day.' }); })
           .catch(function () { oz = prevOz; paint(); });
       });
     });
@@ -152,7 +156,7 @@
             if (!j.ok) return;
             li.classList.toggle('done', j.done); b.setAttribute('aria-checked', j.done ? 'true' : 'false');
             document.getElementById('goals-done').textContent = gc.querySelectorAll('.item.done').length;
-            if (j.done) { celebrate({ level: 'burst', origin: b }); if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'All your goals are done', sub: 'Every goal checked off today. Great day.' }); }, 700); }
+            if (j.done) { celebrate({ level: 'burst', origin: b }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 700); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'All your goals are done', sub: 'Every goal checked off today. Great day.' }); }, 700); }
           }).catch(function () {});
       });
     });
@@ -169,7 +173,7 @@
           if (!j.ok) return;
           li.classList.toggle('done', j.done); btn.setAttribute('aria-checked', j.done ? 'true' : 'false');
           if (j.done && j.next) { celebrate({ level: 'burst', origin: btn }); setTimeout(function () { location.reload(); }, 1100); return; }
-          if (j.done) { celebrate({ level: 'burst', origin: btn }); if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'List complete', sub: 'Everything on "' + j.list + '" is done.' }); }, 500); }
+          if (j.done) { celebrate({ level: 'burst', origin: btn }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 600); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'List complete', sub: 'Everything on "' + j.list + '" is done.' }); }, 500); }
         }).catch(function () { f.submit(); });
     });
   });

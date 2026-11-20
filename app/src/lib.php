@@ -173,6 +173,16 @@ function migrate(PDO $p): void {
           ALTER TABLE list_items ADD COLUMN repeat TEXT;
           PRAGMA user_version = 6;");
     }
+    if ($v < 7) {
+        $p->exec("CREATE TABLE achievements_unlocked (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            achievement_id TEXT NOT NULL,
+            period TEXT NOT NULL DEFAULT '',
+            unlocked_at INTEGER NOT NULL,
+            PRIMARY KEY (user_id, achievement_id, period)
+          );
+          PRAGMA user_version = 7;");
+    }
 }
 
 /* ---------- request setup ---------- */
