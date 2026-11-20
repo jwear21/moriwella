@@ -102,6 +102,8 @@ function billing_sync_subscription(array $sub, ?array $household = null): ?array
               period_end = excluded.period_end, cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = excluded.interval_key, updated_at = excluded.updated_at,
               pending_plan_key = CASE WHEN ? THEN '' ELSE pending_plan_key END, pending_keep = CASE WHEN ? THEN '' ELSE pending_keep END")
             ->execute([$hid, $sub['id'], $planKey, (string)$sub['status'], $ps, $pe, !empty($sub['cancel_at_period_end']) ? 1 : 0, $limit, $iv ?: 'month', (int)$cur['trial_start'], (int)$cur['trial_end'], time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
+        // A real paid plan replaces any free (comped) status; admins can re-comp the account later.
+        if (in_array((string)$sub['status'], ['active', 'trialing', 'past_due'], true)) db()->prepare('UPDATE subscriptions SET comped = 0 WHERE household_id = ?')->execute([$hid]);
     });
     return $h;
 }
