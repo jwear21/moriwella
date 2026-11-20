@@ -29,11 +29,11 @@
   <div class="packs">
     <?php foreach ($packs as $k => $c): ?>
     <form method="post" action="<?= url('/billing/credits') ?>"><?= csrf_field() ?><input type="hidden" name="pack" value="<?= e($k) ?>">
-      <button class="btn<?= $k === 'ten' ? '' : ' btn--ghost' ?>" type="submit"<?= $ready && $b['is_owner'] ? '' : ' disabled' ?>><?= $c['credits'] === 1 ? t('billing.buy_one', ['price' => money($c['cents'])]) : t('billing.buy_ten', ['price' => money($c['cents'])]) ?></button>
+      <button class="btn<?= $k === 'ten' ? '' : ' btn--ghost' ?>" type="submit"<?= $ready ? '' : ' disabled' ?>><?= $c['credits'] === 1 ? t('billing.buy_one', ['price' => money($c['cents'])]) : t('billing.buy_ten', ['price' => money($c['cents'])]) ?></button>
     </form>
     <?php endforeach; ?>
   </div>
-  <?php if (!$b['is_owner']): ?><p class="hint"><?= t('billing.ask_owner_credits') ?></p><?php endif; ?>
+  <?php if (!$b['is_owner']): ?><p class="hint"><?= t('billing.credits_yours') ?></p><?php endif; ?>
   <?php endif; ?>
   <?php if ($activity): ?><h3 class="section-h"><?= t('billing.recent') ?></h3>
   <ul class="activity"><?php foreach ($activity as $a): ?><li><span><?= e($a['note'] ?: t('billing.movie_credit')) ?></span><b><?= ((int)$a['delta'] > 0 ? '+' : '') . (int)$a['delta'] ?></b><small><?= e(ldate('M j', (int)$a['created_at'])) ?></small></li><?php endforeach; ?></ul><?php endif; ?>

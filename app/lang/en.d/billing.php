@@ -70,4 +70,5 @@ return [
  'billing.settings_hint' => 'Your plan, movie credits and household',
  'billing.uses_one' => 'Making a movie uses 1 of your {n} credits.',
  'billing.none_left' => 'You have no movie credits left.',
+ 'billing.credits_yours' => 'Credits you buy are yours alone and never expire.',
 ];
