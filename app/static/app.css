@@ -446,7 +446,7 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .profile-form{display:inline-block;margin:0 .8rem .4rem 0}
 .filebtn{position:relative;display:inline-block;cursor:pointer}
 .filebtn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-.members li>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.members li>span:not(.avatar){flex:1;min-width:0;overflow-wrap:anywhere}
 
 /* Account menu: avatar button with a movie-credit count, opens plan, credits, upgrade, settings and sign out. Copyright (c) JSW Software Designs */
 .acct{position:relative;margin-left:.5rem;flex:none}

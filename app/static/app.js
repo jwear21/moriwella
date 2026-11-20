@@ -22,7 +22,25 @@
 
   /* Choosing a profile picture sends it straight away */
   document.querySelectorAll('input[data-autosubmit]').forEach(function (i) {
-    i.addEventListener('change', function () { if (i.files && i.files.length && i.form) i.form.submit(); });
+    i.addEventListener('change', function () {
+      var f = i.files && i.files[0]; if (!f || !i.form) return;
+      var go = function () { i.form.submit(); };
+      var label = i.parentNode.querySelector('.btn'); if (label && i.getAttribute('data-busy')) label.textContent = i.getAttribute('data-busy');
+      var av = document.querySelector('.avatar--xl');
+      /* Shrink big phone photos here first, so the upload is fast on slow connections, and show the picture straight away */
+      if (!window.createImageBitmap || !f.type || f.type.indexOf('image/') !== 0) return go();
+      createImageBitmap(f, { imageOrientation: 'from-image' }).then(function (bm) {
+        var max = 800, k = Math.min(1, max / Math.max(bm.width, bm.height));
+        var c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+        c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height);
+        c.toBlob(function (b) {
+          if (!b) return go();
+          if (av) { var im = document.createElement('img'); im.alt = ''; im.src = URL.createObjectURL(b); av.textContent = ''; av.appendChild(im); }
+          try { var dt = new DataTransfer(); dt.items.add(new File([b], 'profile.jpg', { type: 'image/jpeg' })); i.files = dt.files; } catch (e) {}
+          go();
+        }, 'image/jpeg', 0.86);
+      }, go);
+    });
   });
 
   /* Confirm before delete */
