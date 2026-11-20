@@ -208,3 +208,48 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
     var inp = e.target; if (inp.type !== 'number') return; save(inp.closest('.lt-row'), inp.value);
   });
 })();
+/* ===== Moriwella loader: the logo floats in the middle with a shadow gliding across it ===== */
+(function () {
+  var el = null;
+  function build() {
+    el = document.createElement('div'); el.className = 'mw-loader'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    el.innerHTML = '<div class="mw-loader-logo"><img src="/assets/logo_loader.svg" alt="Moriwella"><span class="sweep" aria-hidden="true"></span></div><p class="mw-loader-msg"></p><p class="mw-loader-detail"></p>';
+    document.body.appendChild(el);
+  }
+  window.mwLoader = {
+    show: function (msg, detail) {
+      if (!el) build();
+      el.querySelector('.mw-loader-msg').textContent = msg || 'One moment';
+      el.querySelector('.mw-loader-detail').textContent = detail || '';
+      void el.offsetWidth; el.classList.add('on');
+    },
+    hide: function () { if (el) el.classList.remove('on'); }
+  };
+  document.addEventListener('submit', function (e) {
+    var f = e.target; if (!f || e.defaultPrevented) return;
+    var dl = f.getAttribute && f.getAttribute('data-download');
+    if (dl) {
+      e.preventDefault(); window.mwLoader.show(dl + '…', f.getAttribute('data-detail'));
+      fetch(f.action, { method: 'POST', body: new FormData(f), credentials: 'same-origin' }).then(function (r) {
+        if (!r.ok || (r.headers.get('content-type') || '').indexOf('zip') === -1) throw new Error('bad');
+        var name = (/filename="([^"]+)"/.exec(r.headers.get('content-disposition') || '') || [])[1] || 'moriwella-journal.zip';
+        return r.blob().then(function (b) {
+          var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        });
+      }).then(function () { window.mwLoader.hide(); }).catch(function () { window.mwLoader.hide(); alert('Sorry, the export could not be made. Please try again.'); });
+      return;
+    }
+    var m = f.getAttribute && f.getAttribute('data-loader');
+    if (m) setTimeout(function () { if (!e.defaultPrevented) window.mwLoader.show(m + '…', f.getAttribute('data-detail')); }, 0);
+  });
+  window.addEventListener('pageshow', function (ev) { if (ev.persisted && el) el.classList.remove('on'); });
+  var fi = document.getElementById('xfer-file');
+  if (fi) {
+    fi.addEventListener('change', function () { document.getElementById('filepick-n').textContent = fi.files[0] ? fi.files[0].name : 'No file chosen'; });
+    document.querySelectorAll('.src input[type=radio]').forEach(function (r) {
+      function set() { if (r.checked) fi.setAttribute('accept', r.getAttribute('data-accept') || ''); }
+      r.addEventListener('change', set); set();
+    });
+  }
+})();

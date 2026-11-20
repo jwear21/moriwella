@@ -219,6 +219,21 @@ function migrate(PDO $p): void {
           CREATE INDEX tracker_notes_day ON tracker_notes (user_id, day);
           PRAGMA user_version = 9;");
     }
+    if ($v < 10) {
+        $p->exec("ALTER TABLE entries ADD COLUMN import_batch TEXT;
+          ALTER TABLE entries ADD COLUMN source_key TEXT;
+          CREATE INDEX entries_source_key ON entries (user_id, source_key);
+          CREATE TABLE imports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            batch TEXT NOT NULL UNIQUE,
+            source TEXT NOT NULL,
+            entries INTEGER NOT NULL DEFAULT 0,
+            photos INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+          );
+          PRAGMA user_version = 10;");
+    }
 }
 
 /* ---------- request setup ---------- */

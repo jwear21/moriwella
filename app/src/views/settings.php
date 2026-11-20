@@ -2,6 +2,7 @@
 <p class="subtle"><?= e($user['name']) ?> · <?= e($user['email']) ?></p>
 <nav class="menu-rows" aria-label="More">
   <a class="row" href="<?= url('/achievements') ?>"><span><b>Achievements</b><small>Milestones you have earned</small></span><i aria-hidden="true">&rsaquo;</i></a>
+  <a class="row" href="<?= url('/transfer') ?>"><span><b>Import and export</b><small>Take your journal with you, or bring one in</small></span><i aria-hidden="true">&rsaquo;</i></a>
   <a class="row" href="<?= url('/feedback') ?>"><span><b>Send feedback</b><small>Something confusing or missing? Tell Jeff.</small></span><i aria-hidden="true">&rsaquo;</i></a>
 </nav>
 <section class="card write">

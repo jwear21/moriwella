@@ -305,6 +305,7 @@ if ($path === '/water' && $post) {
 
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
+require __DIR__ . '/src/transfer.php';
 
 /* ----- daily goals ----- */
 function goals_for_day(int $uid, string $day): array {

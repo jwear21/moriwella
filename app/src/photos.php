@@ -79,7 +79,8 @@ function save_photo(int $entryId, int $uid, array $f): ?string {
         ->execute([$entryId, $uid, mb_substr(basename($f['name']), 0, 200), $ext, image_type_to_mime_type($type), $info[0], $info[1], $f['size'], time()]);
     $id = (int)$pdo->lastInsertId();
     $base = photo_dir($uid) . '/' . $id;
-    if (!move_uploaded_file($f['tmp_name'], $base . '_o.' . $ext)) {
+    $placed = !empty($f['_copy']) ? @copy($f['tmp_name'], $base . '_o.' . $ext) : move_uploaded_file($f['tmp_name'], $base . '_o.' . $ext);
+    if (!$placed) {
         $pdo->prepare('DELETE FROM entry_photos WHERE id = ?')->execute([$id]);
         return $f['name'] . ' could not be saved.';
     }
