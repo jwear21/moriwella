@@ -55,10 +55,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <form method="post" action="<?= url('/entries') ?>" id="entry-form" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="entry_date" id="entry-date" value="<?= e($day) ?>">
-    <?php if ($hasDay): ?>
-      <label class="check-row"><input type="checkbox" name="separate" value="1" id="separate"> Make this its own entry</label>
-      <div id="title-wrap" hidden><label class="sr-only" for="title">Title</label><input id="title" name="title" maxlength="200" placeholder="Title for this entry" class="title-in"></div>
-    <?php else: ?>
+    <?php if (!$hasDay): ?>
       <label class="sr-only" for="title">Title (optional)</label>
       <input id="title" name="title" maxlength="200" placeholder="Title (optional)" class="title-in">
     <?php endif; ?>
