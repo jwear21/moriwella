@@ -99,6 +99,15 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
         } catch (Throwable $t) { billing_log('checkout error: ' . $t->getMessage()); flash('err', tt('billing.err_stripe')); billing_back(); }
     }
 
+    if ($post && preg_match('#^/household/(\d+)/resend$#', $path, $m)) {
+        if (!$isOwner) { flash('err', tt('billing.err_owner_only')); billing_back(); }
+        $hid = (int)$b['household']['id'];
+        $q = db()->prepare("SELECT u.* FROM users u JOIN household_members hm ON hm.user_id = u.id WHERE u.id = ? AND hm.household_id = ? AND hm.status = 'active' AND u.status = 'invited'"); $q->execute([(int)$m[1], $hid]); $t = $q->fetch();
+        if (!$t) { flash('err', tt('billing.err_not_member')); billing_back('#members'); }
+        $link = make_invite((int)$t['id']); $emailed = invite_email($t, $link);
+        flash('ok', tt($emailed ? 'billing.resent' : 'billing.resend_failed')); $_SESSION['new_link'] = ['name' => $t['name'], 'link' => $link, 'emailed' => $emailed, 'email' => $t['email']];
+        billing_back('#members');
+    }
     if ($post && $path === '/household/add') {
         if (!$isOwner) { flash('err', tt('billing.err_owner_only')); billing_back(); }
         $email = strtolower(trim((string)($_POST['email'] ?? ''))); $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
@@ -119,7 +128,8 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
                 $link = make_invite($nid); return null;
             });
         }
-        if ($err) flash('err', tt($err)); else { flash('ok', tt('billing.member_added')); if ($link) $_SESSION['new_link'] = ['name' => $name, 'link' => $link]; }
+        $emailed = (!$err && $link) ? invite_email(['name' => $name, 'email' => $email], $link) : false;
+        if ($err) flash('err', tt($err)); else { flash('ok', tt('billing.member_added')); if ($link) $_SESSION['new_link'] = ['name' => $name, 'link' => $link, 'emailed' => $emailed, 'email' => $email]; }
         billing_back('#members');
     }
     if ($post && preg_match('#^/household/(\d+)/remove$#', $path, $m)) {
