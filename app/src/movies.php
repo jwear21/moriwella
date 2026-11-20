@@ -3,6 +3,9 @@
    Copyright (c) JSW Software Designs */
 require_once __DIR__ . '/movie_render.php';
 
+function movie_event(int $id, int $uid): ?array {
+    $q = db()->prepare('SELECT * FROM events WHERE id = ? AND user_id = ?'); $q->execute([$id, $uid]); return $q->fetch() ?: null;
+}
 function movies_for_event(int $eventId, int $uid): array {
     $q = db()->prepare('SELECT * FROM movies WHERE event_id = ? AND user_id = ? ORDER BY id DESC LIMIT 3'); $q->execute([$eventId, $uid]);
     return $q->fetchAll();
@@ -13,7 +16,7 @@ function movies_purge_event(int $eventId, int $uid): void {
 }
 
 if ($post && preg_match('#^/experiences/(\d+)/movie$#', $path, $mm)) {
-    $ev = event_for_user((int)$mm[1], $uid); if (!$ev) redirect(url('/experiences'));
+    $ev = movie_event((int)$mm[1], $uid); if (!$ev) redirect(url('/experiences'));
     $back = url('/experiences/' . $ev['id']) . '#movie';
     $n = db()->prepare('SELECT COUNT(*) FROM entry_photos p JOIN entries e ON e.id = p.entry_id WHERE e.event_id = ? AND e.user_id = ?'); $n->execute([$ev['id'], $uid]);
     $act = db()->prepare("SELECT COUNT(*) FROM movies WHERE user_id = ? AND status IN ('queued','rendering')"); $act->execute([$uid]);
@@ -43,7 +46,7 @@ if (preg_match('#^/movies/(\d+)/(status|file|delete)$#', $path, $mm)) {
     if ($mm[2] === 'file') {
         if ($m['status'] !== 'done' || !is_file($m['file'])) { http_response_code(404); exit; }
         $size = filesize($m['file']); $start = 0; $end = $size - 1;
-        $ev = event_for_user((int)$m['event_id'], $uid); $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($ev['title'] ?? 'movie')), '-') ?: 'movie';
+        $ev = movie_event((int)$m['event_id'], $uid); $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($ev['title'] ?? 'movie')), '-') ?: 'movie';
         header('Content-Type: video/mp4'); header('Accept-Ranges: bytes'); header('Cache-Control: private, max-age=3600');
         if (!empty($_GET['dl'])) header('Content-Disposition: attachment; filename="moriwella-' . $slug . '.mp4"');
         if (preg_match('/bytes=(\d*)-(\d*)/', $_SERVER['HTTP_RANGE'] ?? '', $r)) {
