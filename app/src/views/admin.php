@@ -46,25 +46,29 @@
     <div class="person-body">
       <p class="person-meta"><?= e($type) ?> · Last sign-in <?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'never' ?><?= isset($a['used']) ? ' · ' . (int)$a['used'] . ' in household' : '' ?></p>
       <?php if (!isset($a['member_of'])): ?>
-      <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form">
+      <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form" id="acc-<?= (int)$u['id'] ?>">
         <?= csrf_field() ?>
         <label>Plan <select name="plan">
           <?php foreach (plans() as $k => $p): ?><option value="<?= e($k) ?>"<?= ($comped ? $sub['plan_key'] : 'individual') === $k ? ' selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
         </select></label>
         <label>Seats <input type="number" name="seats" min="1" max="500" value="<?= $comped ? (int)$sub['seat_limit'] : 1 ?>"></label>
         <label>Credits a month each <input type="number" name="credits" min="0" max="100" value="<?= $comped ? (int)($sub['comp_credits'] ?? 0) : 0 ?>"></label>
-        <div class="access-btns">
-          <button class="btn" type="submit" name="mode" value="comped">Give free plan</button>
-          <?php if ($comped): ?><button class="btn btn-quiet" type="submit" name="mode" value="standard">Back to normal billing</button><?php endif; ?>
-        </div>
       </form>
       <?php endif; ?>
+      <?php $id = (int)$u['id'];
+        echo '<form method="post" id="role-' . $id . '" action="' . url('/admin/users/' . $id . '/role') . '">' . $hidden . '<input type="hidden" name="role" value="' . ($isAdmin ? 'member' : 'admin') . '"></form>';
+        echo '<form method="post" id="act-' . $id . '" action="' . url('/admin/users/' . $id . '/act') . '">' . csrf_field() . '</form>';
+        echo '<form method="post" id="lnk-' . $id . '" action="' . url('/admin/users/' . $id . '/link') . '">' . csrf_field() . '</form>';
+        echo '<form method="post" id="tog-' . $id . '" action="' . url('/admin/users/' . $id . '/toggle') . '">' . csrf_field() . '</form>'; ?>
       <div class="access-btns person-acts">
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/role') ?>"><?= $hidden ?><input type="hidden" name="role" value="<?= $isAdmin ? 'member' : 'admin' ?>">
-          <?php if (!($isAdmin && $isMe)): ?><button class="btn btn-quiet" type="submit"><?= $isAdmin ? 'Remove administrator' : 'Make administrator' ?></button><?php endif; ?></form>
-        <?php if (!$isMe && $u['status'] === 'active'): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit">Act as <?= e(strtok((string)$u['name'], ' ')) ?></button></form><?php endif; ?>
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/link') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button></form>
-        <?php if (!$isMe): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/toggle') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'disabled' ? 'Let them sign in' : 'Stop sign-in' ?></button></form><?php endif; ?>
+        <?php if (!isset($a['member_of'])): ?>
+        <button class="btn" type="submit" form="acc-<?= $id ?>" name="mode" value="comped"><?= $comped ? 'Save changes' : 'Give free plan' ?></button>
+        <?php if ($comped): ?><button class="btn btn-quiet" type="submit" form="acc-<?= $id ?>" name="mode" value="standard">Normal billing</button><?php endif; ?>
+        <?php endif; ?>
+        <?php if (!($isAdmin && $isMe)): ?><button class="btn btn-quiet" type="submit" form="role-<?= $id ?>"><?= $isAdmin ? 'Remove admin' : 'Make admin' ?></button><?php endif; ?>
+        <?php if (!$isMe && $u['status'] === 'active'): ?><button class="btn btn-quiet" type="submit" form="act-<?= $id ?>">Act as <?= e(strtok((string)$u['name'], ' ')) ?></button><?php endif; ?>
+        <button class="btn btn-quiet" type="submit" form="lnk-<?= $id ?>"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button>
+        <?php if (!$isMe): ?><button class="btn btn-quiet" type="submit" form="tog-<?= $id ?>"><?= $u['status'] === 'disabled' ? 'Let them sign in' : 'Stop sign-in' ?></button><?php endif; ?>
       </div>
     </div>
   </details>
