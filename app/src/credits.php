@@ -114,7 +114,7 @@ function household_add_member(int $hid, int $uid): ?string {
             if ($ex->fetch()) db()->prepare("UPDATE household_members SET household_id = ?, status = 'active', removed_at = 0, role = 'member' WHERE user_id = ?")->execute([$hid, $uid]);
             else db()->prepare("INSERT INTO household_members (household_id, user_id, role, status, joined_at) VALUES (?, ?, 'member', 'active', ?)")->execute([$hid, $uid, time()]);
             /* joined mid-period: the monthly credits for what is left of this period. The idempotency key makes remove-and-re-add give nothing extra. */
-            if (($pk = billing_period_key($sub)) !== '' && in_array($state, ['active', 'comped'], true)) credits_grant_included($hid, $uid, $pk, (int)(plan_for($sub['plan_key'])['credits_per_member'] ?? 2));
+            if (($pk = billing_period_key($sub)) !== '' && in_array($state, ['active', 'comped'], true)) credits_grant_included($hid, $uid, $pk, comp_credits_per_member($sub));
         }
         return null;
     });
@@ -163,7 +163,35 @@ function credits_grant_period(int $hid, string $periodKey, int $perMember): int 
 /** Comped accounts get their monthly credits when first used each calendar month. */
 function credits_ensure_comped(int $uid): void {
     $b = household_ensure($uid); $sub = subscription_of((int)$b['id']);
-    if (!empty($sub['comped'])) credits_grant_included((int)$b['id'], $uid, billing_period_key($sub), 2);
+    if (!empty($sub['comped'])) credits_grant_included((int)$b['id'], $uid, billing_period_key($sub), comp_credits_per_member($sub));
+}
+/** Monthly credits per member: the administrator's number for a comped account, otherwise the plan's. */
+function comp_credits_per_member(array $sub): int {
+    if (!empty($sub['comped']) && (int)($sub['comp_credits'] ?? 0) > 0) return (int)$sub['comp_credits'];
+    return (int)(plan_for($sub['plan_key'])['credits_per_member'] ?? 2);
+}
+/** Administrator control of one household's access. Mode 'comped' gives a free plan with a set number of seats; 'standard' returns it to normal (trial, then paid). Returns null or a message. */
+function admin_set_access(int $adminId, int $uid, string $mode, string $planKey, int $seats, int $credits): ?string {
+    $h = household_ensure($uid);
+    if ((int)$h['owner_user_id'] !== $uid) return 'That person is a member of another household. Change the household owner instead.';
+    $hid = (int)$h['id'];
+    if ($mode === 'standard') {
+        db()->prepare("UPDATE subscriptions SET comped = 0, comp_credits = 0, updated_at = ? WHERE household_id = ?")->execute([time(), $hid]);
+        if (($u = db()->prepare("UPDATE users SET plan = 'free' WHERE id = ? AND plan = 'beta_free'")) && $u->execute([$uid])) {}
+        billing_log("admin $adminId set household $hid to standard billing");
+        return null;
+    }
+    if (!plan_for($planKey)) return 'Choose a plan.';
+    if ($seats < 1 || $seats > 500) return 'Seats must be from 1 to 500.';
+    if ($credits < 0 || $credits > 100) return 'Monthly credits must be from 0 to 100 (0 uses the plan\'s number).';
+    if ($seats < household_active_count($hid)) return 'There are already ' . household_active_count($hid) . ' people in this household. Remove some first or give more seats.';
+    $has = db()->prepare('SELECT 1 FROM subscriptions WHERE household_id = ?'); $has->execute([$hid]);
+    if ($has->fetch()) db()->prepare("UPDATE subscriptions SET comped = 1, plan_key = ?, seat_limit = ?, comp_credits = ?, pending_plan_key = '', pending_keep = '', updated_at = ? WHERE household_id = ?")->execute([$planKey, $seats, $credits, time(), $hid]);
+    else db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, comped, seat_limit, comp_credits, updated_at) VALUES (?, ?, 'comped', 1, ?, ?, ?)")->execute([$hid, $planKey, $seats, $credits, time()]);
+    $sub = subscription_of($hid);
+    foreach (household_members($hid) as $m) if ($m['status'] === 'active') credits_grant_included($hid, (int)$m['user_id'], billing_period_key($sub), comp_credits_per_member($sub));
+    billing_log("admin $adminId comped household $hid: $planKey, $seats seats, $credits credits");
+    return null;
 }
 
 function credits_balance(int $uid): array {

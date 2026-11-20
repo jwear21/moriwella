@@ -568,6 +568,14 @@ if (strpos($path, '/admin') === 0) {
         }
         redirect(url('/admin'));
     }
+    if (preg_match('#^/admin/users/(\d+)/access$#', $path, $m) && $post) {
+        $s = db()->prepare('SELECT id, name FROM users WHERE id = ?'); $s->execute([(int)$m[1]]); $t = $s->fetch();
+        if (!$t) { flash('err', 'Choose a person.'); redirect(url('/admin')); }
+        $mode = ($_POST['mode'] ?? '') === 'standard' ? 'standard' : 'comped';
+        $err = admin_set_access((int)$admin['id'], (int)$t['id'], $mode, (string)($_POST['plan'] ?? ''), (int)($_POST['seats'] ?? 1), (int)($_POST['credits'] ?? 0));
+        if ($err) flash('err', $err); else flash('ok', $t['name'] . ($mode === 'standard' ? ' is back on standard billing.' : ' now has a free ' . plan_for((string)$_POST['plan'])['name'] . ' plan with ' . (int)$_POST['seats'] . ' seat' . ((int)$_POST['seats'] === 1 ? '' : 's') . '.'));
+        redirect(url('/admin#access'));
+    }
     if ($path === '/admin/credits' && $post) {
         $uid = (int)($_POST['user_id'] ?? 0);
         $ok = db()->prepare('SELECT id, name FROM users WHERE id = ?'); $ok->execute([$uid]); $t = $ok->fetch();
@@ -581,7 +589,14 @@ if (strpos($path, '/admin') === 0) {
         $grants = db()->query("SELECT l.*, u.name FROM credit_ledger l JOIN users u ON u.id = l.user_id WHERE l.stripe_ref LIKE 'admin:%' ORDER BY l.id DESC LIMIT 15")->fetchAll();
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
         $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
-        render('admin', ['grants' => $grants, 'users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
+        $access = [];
+        foreach (db()->query("SELECT * FROM users WHERE status <> 'disabled' ORDER BY role DESC, name")->fetchAll() as $u) {
+            $h = household_of((int)$u['id']);
+            if ($h && (int)$h['owner_user_id'] !== (int)$u['id']) { $o = db()->prepare('SELECT name FROM users WHERE id = ?'); $o->execute([$h['owner_user_id']]); $access[] = ['u' => $u, 'member_of' => (string)$o->fetchColumn()]; continue; }
+            $sub = $h ? subscription_of((int)$h['id']) : null;
+            $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
+        }
+        render('admin', ['access' => $access, 'grants' => $grants, 'users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
         exit;
     }
 }

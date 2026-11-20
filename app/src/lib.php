@@ -376,6 +376,9 @@ function migrate(PDO $p): void {
           ALTER TABLE movies ADD COLUMN cost INTEGER NOT NULL DEFAULT 1;
           PRAGMA user_version = 16;");
     }
+    if ($v < 17) {
+        $p->exec("ALTER TABLE subscriptions ADD COLUMN comp_credits INTEGER NOT NULL DEFAULT 0; PRAGMA user_version = 17;");
+    }
 }
 
 /* ---------- request setup ---------- */
