@@ -14,6 +14,10 @@
 <link rel="stylesheet" href="/app/static/editor.css">
 </head>
 <body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>
+<?php if (!$bare && $user && !empty($_SESSION['acting_admin'])): ?>
+<div class="acting-bar" role="status"><span>Acting as <b><?= e($user['name']) ?></b></span>
+  <form method="post" action="<?= url('/acting/stop') ?>"><?= csrf_field() ?><button type="submit">Return to admin</button></form></div>
+<?php endif; ?>
 <?php if (!$bare && $user): ?>
 <header class="appbar">
   <div class="wrap appbar-in">

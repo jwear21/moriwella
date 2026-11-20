@@ -1,12 +1,15 @@
 <?php
 declare(strict_types=1);
 
-/* Photo storage. Originals are kept untouched in a private folder (needed for print quality).
+/* Photo storage. A high-quality master (up to 3000 px) is kept in a private folder for print and video; smaller copies serve screens.
    Smaller copies are made for screens. Nothing here is reachable from the web except through /photo/ with a sign-in check. */
 
 const PHOTO_MAX_BYTES = 40 * 1024 * 1024;
 const PHOTO_MAX_PIXELS = 50000000;
 const PHOTO_MAX_PER_UPLOAD = 12;
+const PHOTO_MASTER_DIM = 3000;      /* long edge of the stored master: sharp for screens, video and 10-inch prints */
+const PHOTO_MASTER_QUALITY = 88;
+const PHOTO_MASTER_SKIP_BYTES = 1200000; /* small files are already efficient; leave them alone */
 
 function photo_dir(int $uid): string {
     $d = data_dir() . '/photos/' . $uid;
@@ -86,6 +89,16 @@ function save_photo(int $entryId, int $uid, array $f): ?string {
     }
     @chmod($base . '_o.' . $ext, 0600);
     $src = $base . '_o.' . $ext;
+    /* Keep a high-quality master rather than the raw upload: phone photos of 4 to 8 MB shrink to about 1 MB with no visible loss. */
+    if ($type !== IMAGETYPE_GIF && ($f['size'] > PHOTO_MASTER_SKIP_BYTES || max($info[0], $info[1]) > PHOTO_MASTER_DIM)) {
+        $tmpMaster = $base . '_m.tmp';
+        $m = make_derivative($src, $type, PHOTO_MASTER_DIM, $tmpMaster, PHOTO_MASTER_QUALITY);
+        if ($m && filesize($tmpMaster) < $f['size']) {
+            @unlink($src); $ext = 'jpg'; $type = IMAGETYPE_JPEG; $src = $base . '_o.jpg';
+            rename($tmpMaster, $src); @chmod($src, 0600);
+            $pdo->prepare('UPDATE entry_photos SET ext = ?, mime = ?, width = ?, height = ?, bytes = ? WHERE id = ?')->execute(['jpg', 'image/jpeg', $m[0], $m[1], filesize($src), $id]);
+        } else { @unlink($tmpMaster); }
+    }
     $web = make_derivative($src, $type, 2000, $base . '_w.jpg', 85);
     $thumb = $web ? make_derivative($src, $type, 520, $base . '_t.jpg', 80) : null;
     if ($web) {

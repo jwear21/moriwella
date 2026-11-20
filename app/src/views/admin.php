@@ -20,6 +20,7 @@
 </section>
 
 <h2 class="section-h">Accounts</h2>
+<p class="subtle"><a class="link" href="<?= url('/admin/demo') ?>">Demo accounts for testing</a></p>
 <div class="tablewrap">
 <table class="users">
   <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Last sign-in</th><th><span class="sr-only">Actions</span></th></tr></thead>
@@ -28,10 +29,13 @@
     <tr>
       <td data-l="Name"><?= e($u['name']) ?></td>
       <td data-l="Email"><?= e($u['email']) ?></td>
-      <td data-l="Type"><?= $u['role'] === 'admin' ? 'Administrator' : 'Free beta' ?></td>
+      <td data-l="Type"><?= $u['role'] === 'admin' ? 'Administrator' : ($u['plan'] === 'demo' ? 'Demo' : 'Free beta') ?></td>
       <td data-l="Status"><?= e(ucfirst($u['status'] === 'invited' ? 'waiting for password' : $u['status'])) ?></td>
       <td data-l="Last sign-in"><?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'Never' ?></td>
       <td class="acts"><div>
+        <?php if ($u['role'] !== 'admin' && $u['status'] === 'active'): ?>
+        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit">Act as</button></form>
+        <?php endif; ?>
         <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/link') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= $u['status'] === 'invited' ? 'New link' : 'Reset password' ?></button></form>
         <?php if ((int)$u['id'] !== (int)$user['id']): ?>
         <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/toggle') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button></form>

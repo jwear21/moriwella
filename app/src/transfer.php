@@ -204,6 +204,30 @@ function transfer_read_moriwella(string $file, string $work): array {
     $feel = []; foreach (($j['feelings'] ?? []) as $f) { $d = (string)($f['date'] ?? ''); $k = (string)($f['feeling'] ?? ''); if (valid_date($d) && $k !== '') $feel[] = ['day' => $d, 'feeling' => $k]; }
     return ['source' => 'moriwella', 'entries' => $entries, 'moods' => $moods, 'feelings' => $feel];
 }
+/* Mood names people use (Daylio's own, common custom ones, a few languages) -> the five faces. */
+function transfer_mood_map(): array {
+    return ['rad' => 5, 'great' => 5, 'amazing' => 5, 'awesome' => 5, 'excellent' => 5, 'happy' => 5, 'fantastic' => 5, 'sehr gut' => 5, 'genial' => 5, 'super' => 5, 'très bien' => 5, 'muy bien' => 5,
+                'good' => 4, 'fine' => 4, 'nice' => 4, 'gut' => 4, 'bien' => 4, 'bueno' => 4, 'bien' => 4, 'content' => 4,
+                'meh' => 3, 'ok' => 3, 'okay' => 3, 'average' => 3, 'neutral' => 3, 'so-so' => 3, 'so so' => 3, 'normal' => 3, 'mittel' => 3, 'mäßig' => 3, 'regular' => 3, 'moyen' => 3,
+                'bad' => 2, 'sad' => 2, 'down' => 2, 'low' => 2, 'schlecht' => 2, 'mal' => 2, 'mauvais' => 2, 'triste' => 2, 'stressed' => 2,
+                'excited' => 5, 'joyful' => 5, 'loved' => 5, 'grateful' => 4, 'calm' => 4, 'relaxed' => 4, 'peaceful' => 4, 'hopeful' => 4, 'proud' => 4, 'tired' => 2, 'anxious' => 2, 'angry' => 2, 'lonely' => 2, 'worried' => 2, 'upset' => 2, 'depressed' => 1, 'miserable' => 1, 'devastated' => 1,
+                'awful' => 1, 'terrible' => 1, 'horrible' => 1, 'worst' => 1, 'sehr schlecht' => 1, 'muy mal' => 1, 'horrible' => 1];
+}
+/* Feeling words other apps use -> our own named feelings. */
+function transfer_feeling_for(string $w): ?string {
+    $w = mb_strtolower(trim($w));
+    $syn = ['joyful' => 'happy', 'amused' => 'playful', 'annoyed' => 'frustrated', 'irritated' => 'frustrated', 'discouraged' => 'sad', 'disappointed' => 'sad', 'hopeless' => 'sad',
+            'scared' => 'anxious', 'afraid' => 'anxious', 'nervous' => 'anxious', 'satisfied' => 'content', 'relieved' => 'calm', 'drained' => 'tired', 'exhausted' => 'tired',
+            'brave' => 'confident', 'passionate' => 'inspired', 'amazed' => 'surprised', 'ashamed' => 'hurt', 'guilty' => 'hurt', 'embarrassed' => 'hurt', 'indifferent' => 'numb',
+            'jealous' => 'uncertain', 'disgusted' => 'frustrated', 'thankful' => 'grateful', 'cheerful' => 'happy', 'depressed' => 'sad', 'mad' => 'angry', 'upset' => 'sad'];
+    $w = $syn[$w] ?? $w; return feelings_valid($w) ? $w : null;
+}
+/* A face from a set of named feelings: mostly bright is Good, mostly heavy is Low, mixed is Okay. */
+function transfer_face_for(array $feelings): int {
+    $cat = feelings_catalog(); $score = 0; $n = 0;
+    foreach ($feelings as $f) { if (in_array($f, $cat['Light and lively'], true) || in_array($f, $cat['Calm and steady'], true)) { $score++; $n++; } elseif (in_array($f, $cat['Heavy or hard'], true)) { $score--; $n++; } }
+    if (!$n) return 0; $avg = $score / $n; return $avg > 0.4 ? 4 : ($avg < -0.4 ? 2 : 3);
+}
 function transfer_read_daylio(string $file, string $work): array {
     $h = @fopen($file, 'r'); if (!$h) throw new RuntimeException('That file could not be opened.');
     $first = fgets($h); if ($first === false) throw new RuntimeException('That file is empty.');
@@ -214,12 +238,7 @@ function transfer_read_daylio(string $file, string $work): array {
     $hasDate = isset($idx['full_date']) || (isset($idx['year']) && isset($idx['date']));
     if (!$hasDate || !isset($idx['mood'])) { fclose($h); throw new RuntimeException('This does not look like a Daylio CSV. Export with More, Export Entries, CSV (table).'); }
     rewind($h); fgets($h);
-    /* Daylio's own moods, plus the names people commonly give their moods, in a few languages. */
-    $moodMap = ['rad' => 5, 'great' => 5, 'amazing' => 5, 'awesome' => 5, 'excellent' => 5, 'happy' => 5, 'fantastic' => 5, 'sehr gut' => 5, 'genial' => 5, 'super' => 5, 'très bien' => 5, 'muy bien' => 5,
-                'good' => 4, 'fine' => 4, 'nice' => 4, 'gut' => 4, 'bien' => 4, 'bueno' => 4, 'bien' => 4, 'content' => 4,
-                'meh' => 3, 'ok' => 3, 'okay' => 3, 'average' => 3, 'neutral' => 3, 'so-so' => 3, 'so so' => 3, 'normal' => 3, 'mittel' => 3, 'mäßig' => 3, 'regular' => 3, 'moyen' => 3,
-                'bad' => 2, 'sad' => 2, 'down' => 2, 'low' => 2, 'schlecht' => 2, 'mal' => 2, 'mauvais' => 2, 'triste' => 2, 'stressed' => 2,
-                'awful' => 1, 'terrible' => 1, 'horrible' => 1, 'worst' => 1, 'sehr schlecht' => 1, 'muy mal' => 1, 'horrible' => 1];
+    $moodMap = transfer_mood_map();
     $entries = []; $moodLog = []; $noteless = 0; $rows = 0; $timed = isset($idx['time']);
     $get = function (array $r, string $k) use ($idx): string { return isset($idx[$k], $r[$idx[$k]]) ? trim((string)$r[$idx[$k]]) : ''; };
     while (($r = fgetcsv($h, 0, $delim)) !== false) {
@@ -370,6 +389,8 @@ function transfer_read_diaro(string $file, string $work): array {
     $tables = [];
     foreach ($xml->table as $t) { $tables[(string)$t['name']] = $t; }
     $tags = []; if (isset($tables['diaro_tags'])) foreach ($tables['diaro_tags']->children() as $r) $tags[transfer_xml_text($r, 'uid')] = transfer_xml_text($r, 'title');
+    $moodTitles = []; if (isset($tables['diaro_moods'])) foreach ($tables['diaro_moods']->children() as $r) $moodTitles[transfer_xml_text($r, 'uid')] = transfer_xml_text($r, 'title');
+    $moodMap = transfer_mood_map(); $moodLog = []; $feelLog = [];
     $atts = []; if (isset($tables['diaro_attachments'])) foreach ($tables['diaro_attachments']->children() as $r) {
         $fn = transfer_xml_text($r, 'filename'); $ty = transfer_xml_text($r, 'type') ?: 'photo'; if ($fn === '' || $ty !== 'photo') continue;
         $atts[transfer_xml_text($r, 'entry_uid')][] = ['type' => $ty, 'filename' => $fn];
@@ -390,6 +411,8 @@ function transfer_read_diaro(string $file, string $work): array {
         foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
         $tl = []; foreach (explode(',', transfer_xml_text($r, 'tags')) as $tid) { $tid = trim($tid); if ($tid !== '' && !empty($tags[$tid])) $tl[] = $tags[$tid]; }
         if ($tl && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tl)];
+        $mt = $moodTitles[transfer_xml_text($r, 'mood')] ?? ''; $mk = mb_strtolower(trim($mt));
+        if ($mk !== '') { if (isset($moodMap[$mk])) $moodLog[] = ['day' => $date, 'ts' => $ts, 'v' => $moodMap[$mk]]; if (($fk = transfer_feeling_for($mk)) !== null) $feelLog[] = ['day' => $date, 'feeling' => $fk]; }
         $uid = transfer_xml_text($r, 'uid'); $photos = [];
         foreach ($atts[$uid] ?? [] as $a) {
             $key = strtolower('media/' . $a['type'] . '/' . $a['filename']);
@@ -405,7 +428,7 @@ function transfer_read_diaro(string $file, string $work): array {
     $zip->close(); libxml_clear_errors();
     if (!$entries) throw new RuntimeException('We did not find any entries in that Diaro backup.');
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
-    return ['source' => 'diaro', 'entries' => $entries, 'skipped' => $skipped];
+    return ['source' => 'diaro', 'entries' => $entries, 'skipped' => $skipped, 'moods' => $moodLog, 'feelings' => $feelLog];
 }
 /* Photos our photo system can read. HEIC (iPhone) is converted when this server can do it. */
 function transfer_photo_ok(string $name): bool { return (bool)preg_match('/\.(jpe?g|png|gif|webp)$/i', $name); }
@@ -485,7 +508,7 @@ function transfer_read_apple(string $file, string $work): array {
     }
     if (!$htmls) throw new RuntimeException('We did not find any Apple Journal entries. The ZIP should have an Entries folder of .html files.');
     libxml_use_internal_errors(true);
-    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0;
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0; $moodLog = []; $feelLog = [];
     foreach ($htmls as $i) {
         if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That export has more entries than we can import at once.'); }
         $name = (string)$zip->statIndex($i)['name']; $html = (string)$zip->getFromIndex($i);
@@ -502,7 +525,11 @@ function transfer_read_apple(string $file, string $work): array {
         if ($prompt !== '') $paras[] = ['ts' => 0, 'text' => 'Prompt: ' . $prompt];
         foreach ($xp->query("//p[contains(@class,'p2') or contains(@class,'p3')]") as $p) { $t = trim(preg_replace('/[ \t]+/', ' ', str_replace("\xC2\xA0", ' ', (string)$p->textContent))); if ($t !== '') $paras[] = ['ts' => 0, 'text' => $t]; }
         $extras = [];
-        foreach ($xp->query("//div[contains(@class,'assetType_stateOfMind')]//div[contains(@class,'gridItemOverlayHeader')]") as $d) $extras['Feeling'][] = trim($d->textContent);
+        $feels = []; $unmapped = [];
+        foreach ($xp->query("//div[contains(@class,'assetType_stateOfMind')]//div[contains(@class,'gridItemOverlayHeader')]") as $d) foreach (preg_split('/\s*,\s*/', trim($d->textContent)) as $w) { if ($w === '') continue; if (($fk = transfer_feeling_for($w)) !== null) $feels[] = $fk; else $unmapped[] = $w; }
+        $feels = array_values(array_unique($feels)); if ($unmapped) $extras['Feeling'] = $unmapped;
+        foreach ($feels as $fk) $feelLog[] = ['day' => $date, 'feeling' => $fk];
+        if (($face = transfer_face_for($feels)) > 0) $moodLog[] = ['day' => $date, 'ts' => 0, 'v' => $face];
         foreach ($xp->query("//div[contains(@class,'assetType_contact')]//div[contains(@class,'gridItemOverlayHeader')]") as $d) $extras['With'][] = trim($d->textContent);
         foreach ($xp->query("//div[contains(@class,'assetType_multiPinMap') or contains(@class,'assetType_genericMap')]//div[contains(@class,'gridItemOverlayFooter')]") as $d) $extras['Places'][] = trim($d->textContent);
         foreach ($extras as $k => $v) { $v = array_values(array_filter($v)); if ($v && $paras) $paras[] = ['ts' => 0, 'text' => $k . ': ' . implode(', ', $v)]; }
@@ -521,7 +548,7 @@ function transfer_read_apple(string $file, string $work): array {
     $zip->close(); libxml_clear_errors();
     if (!$entries) throw new RuntimeException('We did not find any readable entries in that Apple Journal export.');
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
-    return ['source' => 'apple', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other];
+    return ['source' => 'apple', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other, 'moods' => $moodLog, 'feelings' => $feelLog];
 }
 function transfer_read(string $source, string $file, string $work): array {
     switch ($source) {

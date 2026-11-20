@@ -307,6 +307,7 @@ if ($path === '/water' && $post) {
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
 require __DIR__ . '/src/transfer.php';
+require __DIR__ . '/src/demo.php';
 
 /* ----- daily goals ----- */
 function goals_for_day(int $uid, string $day): array {
@@ -496,6 +497,14 @@ if ($path === '/settings') {
     exit;
 }
 
+/* ---------- stop acting as another person ---------- */
+if ($path === '/acting/stop' && $post) {
+    $aid = (int)($_SESSION['acting_admin'] ?? 0); unset($_SESSION['acting_admin']);
+    $s = db()->prepare("SELECT id FROM users WHERE id = ? AND role = 'admin' AND status = 'active'"); $s->execute([$aid]);
+    if ($s->fetch()) { $_SESSION['uid'] = $aid; flash('ok', 'You are back in your own account.'); redirect(url('/admin')); }
+    unset($_SESSION['uid']); redirect(url('/login'));
+}
+
 /* ---------- administration ---------- */
 if (strpos($path, '/admin') === 0) {
     $admin = require_admin();
@@ -509,6 +518,11 @@ if (strpos($path, '/admin') === 0) {
             ->execute([$email, $name, time()]);
         $_SESSION['new_link'] = ['name' => $name, 'link' => make_invite((int)db()->lastInsertId())];
         redirect(url('/admin'));
+    }
+    if (preg_match('#^/admin/users/(\d+)/act$#', $path, $m) && $post) {
+        $s = db()->prepare("SELECT * FROM users WHERE id = ? AND status = 'active' AND role <> 'admin'"); $s->execute([(int)$m[1]]);
+        if ($t = $s->fetch()) { $_SESSION['acting_admin'] = (int)$admin['id']; $_SESSION['uid'] = (int)$t['id']; flash('ok', 'You are now acting as ' . $t['name'] . '.'); redirect(url('/')); }
+        flash('err', 'You can act as active members only.'); redirect(url('/admin'));
     }
     if (preg_match('#^/admin/users/(\d+)/(link|toggle)$#', $path, $m) && $post) {
         $s = db()->prepare('SELECT * FROM users WHERE id = ?'); $s->execute([(int)$m[1]]);
