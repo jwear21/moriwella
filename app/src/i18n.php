@@ -30,6 +30,8 @@ function lang_load(string $code): array {
     if (!isset($cache[$code])) {
         $f = lang_dir() . '/' . $code . '.php';
         $cache[$code] = is_file($f) ? (array)(require $f) : [];
+        /* feature areas add their phrases in lang/<code>.d/*.php so the main file stays stable */
+        foreach (glob(lang_dir() . '/' . $code . '.d/*.php') ?: [] as $part) $cache[$code] = array_merge($cache[$code], (array)(require $part));
     }
     return $cache[$code];
 }

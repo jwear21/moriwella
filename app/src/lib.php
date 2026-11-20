@@ -289,6 +289,93 @@ function migrate(PDO $p): void {
     if ($v < 15) {
         $p->exec("ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT ''; PRAGMA user_version = 15;");
     }
+    if ($v < 16) {
+        /* Billing: households, subscriptions, the credit ledger and Stripe bookkeeping. Stripe collects money; this database is the record of credits. */
+        $p->exec("
+          CREATE TABLE households (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT NOT NULL DEFAULT '',
+            stripe_customer_id TEXT UNIQUE,
+            created_at INTEGER NOT NULL
+          );
+          CREATE TABLE household_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            household_id INTEGER NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+            role TEXT NOT NULL DEFAULT 'member',
+            status TEXT NOT NULL DEFAULT 'active',
+            joined_at INTEGER NOT NULL,
+            removed_at INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE INDEX hm_household ON household_members (household_id, status);
+          CREATE TABLE subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            household_id INTEGER NOT NULL UNIQUE REFERENCES households(id) ON DELETE CASCADE,
+            stripe_subscription_id TEXT UNIQUE,
+            plan_key TEXT NOT NULL DEFAULT 'individual',
+            status TEXT NOT NULL DEFAULT 'none',
+            comped INTEGER NOT NULL DEFAULT 0,
+            trial_start INTEGER NOT NULL DEFAULT 0,
+            trial_end INTEGER NOT NULL DEFAULT 0,
+            period_start INTEGER NOT NULL DEFAULT 0,
+            period_end INTEGER NOT NULL DEFAULT 0,
+            cancel_at_period_end INTEGER NOT NULL DEFAULT 0,
+            pending_plan_key TEXT NOT NULL DEFAULT '',
+            pending_keep TEXT NOT NULL DEFAULT '',
+            seat_limit INTEGER NOT NULL DEFAULT 1,
+            interval_key TEXT NOT NULL DEFAULT 'month',
+            updated_at INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE TABLE trial_claims (
+            email_norm TEXT PRIMARY KEY,
+            household_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            claimed_at INTEGER NOT NULL
+          );
+          CREATE TABLE credit_ledger (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            household_id INTEGER NOT NULL DEFAULT 0,
+            kind TEXT NOT NULL CHECK (kind IN ('trial','included','purchased')),
+            delta INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reserved','void')),
+            period_key TEXT NOT NULL DEFAULT '',
+            stripe_ref TEXT NOT NULL DEFAULT '',
+            movie_id INTEGER NOT NULL DEFAULT 0,
+            idem_key TEXT NOT NULL UNIQUE,
+            note TEXT NOT NULL DEFAULT '',
+            balance_after INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX ledger_user ON credit_ledger (user_id, kind, status);
+          CREATE INDEX ledger_movie ON credit_ledger (movie_id);
+          CREATE TABLE credit_purchases (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            household_id INTEGER NOT NULL DEFAULT 0,
+            pack_key TEXT NOT NULL,
+            credits INTEGER NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            currency TEXT NOT NULL DEFAULT 'usd',
+            stripe_session_id TEXT UNIQUE,
+            stripe_payment_intent TEXT,
+            status TEXT NOT NULL DEFAULT 'paid',
+            clawed_credits INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX purchases_pi ON credit_purchases (stripe_payment_intent);
+          CREATE TABLE stripe_events (
+            event_id TEXT PRIMARY KEY,
+            type TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'processing',
+            error TEXT NOT NULL DEFAULT '',
+            received_at INTEGER NOT NULL,
+            processed_at INTEGER NOT NULL DEFAULT 0
+          );
+          ALTER TABLE movies ADD COLUMN cost INTEGER NOT NULL DEFAULT 1;
+          PRAGMA user_version = 16;");
+    }
 }
 
 /* ---------- request setup ---------- */

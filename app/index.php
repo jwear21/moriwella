@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/src/lib.php';
+require __DIR__ . '/src/credits.php';
 require __DIR__ . '/src/i18n.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/templates.php';
@@ -27,6 +28,8 @@ if ($path === '/health') {
         'upload_max' => ini_get('upload_max_filesize'), 'post_max' => ini_get('post_max_size'), 'memory_limit' => ini_get('memory_limit')]);
     exit;
 }
+
+if ($path === '/webhooks/stripe' && $method === 'POST') { require __DIR__ . '/src/billing.php'; stripe_webhook(); }
 
 boot();
 $post = $method === 'POST';
@@ -314,6 +317,7 @@ if ($path === '/water' && $post) {
     json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day), 'unlocked' => $oz >= 64 ? achievements_eval($uid, ['day' => $day]) : []]);
 }
 
+require __DIR__ . '/src/billing.php';
 require __DIR__ . '/src/movies.php';
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
@@ -549,10 +553,20 @@ if (strpos($path, '/admin') === 0) {
         }
         redirect(url('/admin'));
     }
+    if ($path === '/admin/credits' && $post) {
+        $uid = (int)($_POST['user_id'] ?? 0);
+        $ok = db()->prepare('SELECT id, name FROM users WHERE id = ?'); $ok->execute([$uid]); $t = $ok->fetch();
+        if (!$t) { flash('err', 'Choose a person.'); redirect(url('/admin')); }
+        $n = (int)($_POST['amount'] ?? 0);
+        if (credits_admin_grant((int)$admin['id'], $uid, $n, trim((string)($_POST['reason'] ?? ''))) !== null) flash('err', 'Enter a number from 1 to 500.');
+        else flash('ok', $n . ($n === 1 ? ' movie credit' : ' movie credits') . ' given to ' . $t['name'] . '.');
+        redirect(url('/admin'));
+    }
     if ($path === '/admin') {
+        $grants = db()->query("SELECT l.*, u.name FROM credit_ledger l JOIN users u ON u.id = l.user_id WHERE l.stripe_ref LIKE 'admin:%' ORDER BY l.id DESC LIMIT 15")->fetchAll();
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
         $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
-        render('admin', ['users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
+        render('admin', ['grants' => $grants, 'users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
         exit;
     }
 }

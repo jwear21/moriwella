@@ -423,3 +423,11 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .lang-pick label{display:flex;flex-direction:column;gap:.25rem;flex:1 1 11rem;min-width:0}
 .lang-pick select{width:100%;max-width:100%}
 .lang-pick--bare{max-width:30rem;margin:1rem auto 0}
+
+/* billing */
+.plans{display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:760px){.plans{grid-template-columns:repeat(3,1fr)}}
+.plan h2{margin:0 0 4px}.plan-price b{font-size:1.6rem}.plan ul{padding-left:1.1rem;margin:.6rem 0}.plan--current{outline:2px solid var(--accent,#1B4D3E)}
+.balances{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 8px}.balances div{background:rgba(0,0,0,.04);border-radius:10px;padding:10px}.balances dt{font-size:.85rem}.balances dd{margin:0;font-size:1.6rem;font-weight:700}
+.packs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.activity,.members{list-style:none;padding:0;margin:0}.activity li,.members li{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid rgba(0,0,0,.08);flex-wrap:wrap}.members small{display:block}

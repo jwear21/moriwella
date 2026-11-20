@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/credits.php';
 /* Memory movies: request, watch progress, play, download, delete.
    Copyright (c) JSW Software Designs */
 require_once __DIR__ . '/movie_render.php';
@@ -29,8 +30,16 @@ if ($post && preg_match('#^/experiences/(\d+)/movie$#', $path, $mm)) {
         $len = isset(MV_LENGTHS[$_POST['length'] ?? '']) ? $_POST['length'] : 'full';
         $old = db()->prepare("SELECT * FROM movies WHERE event_id = ? AND user_id = ? AND status IN ('done','failed') ORDER BY id DESC"); $old->execute([$ev['id'], $uid]);
         foreach (array_slice($old->fetchAll(), 2) as $m) { mv_delete_files($m); db()->prepare('DELETE FROM movies WHERE id = ?')->execute([$m['id']]); }
-        db()->prepare('INSERT INTO movies (user_id, event_id, theme, length, subtitle, closing, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$uid, $ev['id'], $theme, $len, mb_substr(trim((string)($_POST['subtitle'] ?? '')), 0, 90), mb_substr(trim((string)($_POST['closing'] ?? '')), 0, 160), time()]);
+        /* one transaction: check access, hold the credit, queue the movie. Two quick clicks can never spend the same credit. */
+        $res = billing_tx(function () use ($uid, $ev, $theme, $len) {
+            if (!billing_can($uid, 'movies')) return 'billing.err_limited';
+            db()->prepare('INSERT INTO movies (user_id, event_id, theme, length, subtitle, closing, cost, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$uid, $ev['id'], $theme, $len, mb_substr(trim((string)($_POST['subtitle'] ?? '')), 0, 90), mb_substr(trim((string)($_POST['closing'] ?? '')), 0, 160), MV_CREDIT_COST, time()]);
+            $mid = (int)db()->lastInsertId();
+            if (credits_reserve($uid, $mid, MV_CREDIT_COST) === null) { db()->prepare('DELETE FROM movies WHERE id = ?')->execute([$mid]); return 'billing.err_no_credits'; }
+            return '';
+        });
+        if ($res !== '') { flash('err', tt($res)); redirect(url('/billing') . '#credits'); }
         mv_kick(); flash('ok', tt('msg.your_movie_is_in'));
     }
     redirect($back);

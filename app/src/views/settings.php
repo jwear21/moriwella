@@ -2,6 +2,7 @@
 <p class="subtle"><?= e($user['name']) ?> · <?= e($user['email']) ?></p>
 <nav class="menu-rows" aria-label="<?= t('settings.more') ?>">
   <a class="row" href="<?= url('/achievements') ?>"><span><b><?= t('common.achievements') ?></b><small><?= t('settings.milestones_you_have_earned') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>
+  <a class="row" href="<?= url('/billing') ?>"><span><b><?= t('billing.title') ?></b><small><?= t('billing.settings_hint') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>
   <a class="row" href="<?= url('/transfer') ?>"><span><b><?= t('common.import_and_export') ?></b><small><?= t('settings.take_your_journal_with') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>
   <a class="row" href="<?= url('/feedback') ?>"><span><b><?= t('common.send_feedback') ?></b><small><?= t('settings.something_confusing_or_missing') ?></small></span><i aria-hidden="true">&rsaquo;</i></a>
 </nav>

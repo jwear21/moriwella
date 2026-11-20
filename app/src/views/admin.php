@@ -47,6 +47,25 @@
 </table>
 </div>
 
+<h2 class="section-h">Movie credits</h2>
+<p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
+<form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
+  <?= csrf_field() ?>
+  <label>Who gets them
+    <select name="user_id" required>
+      <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>"<?= (int)$u['id'] === (int)$user['id'] ? ' selected' : '' ?>><?= e($u['name']) ?> (<?= e($u['email']) ?>)</option><?php endforeach; ?>
+    </select>
+  </label>
+  <label>How many <input type="number" name="amount" min="1" max="500" value="5" required></label>
+  <label>Reason (optional) <input type="text" name="reason" maxlength="120" placeholder="Testing, thank-you, support"></label>
+  <button class="btn" type="submit">Give credits</button>
+</form>
+<?php if (!empty($grants)): ?>
+<div class="tablewrap"><table class="users"><thead><tr><th>When</th><th>Who</th><th>Credits</th><th>Note</th></tr></thead><tbody>
+<?php foreach ($grants as $g): ?><tr><td data-l="When"><?= e(date('M j, g:i a', (int)$g['created_at'])) ?></td><td data-l="Who"><?= e($g['name']) ?></td><td data-l="Credits"><?= (int)$g['delta'] ?></td><td data-l="Note"><?= e($g['note']) ?></td></tr><?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>
+
 <h2 class="section-h">Feedback from testers</h2>
 <?php if (empty($feedback)): ?><p class="subtle">Nothing yet. Testers can send feedback from Me.</p><?php endif; ?>
 <?php foreach ($feedback as $f): ?>

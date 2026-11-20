@@ -95,6 +95,8 @@
       <input id="mv-sub" name="subtitle" maxlength="90" placeholder="<?= t('experience.for_the_family_with') ?>">
       <label for="mv-close"><?= t('experience.closing_note_optional') ?></label>
       <input id="mv-close" name="closing" maxlength="160" placeholder="<?= t('experience.thank_you_for_the') ?>">
+      <?php $cb = credits_balance((int)$user['id']); ?>
+      <p class="hint"><?= $cb['available'] > 0 ? t('billing.uses_one', ['n' => $cb['available']]) : t('billing.none_left') ?> <a class="link" href="<?= url('/billing') ?>#credits"><?= t('billing.title') ?></a></p>
       <button class="btn" type="submit"><?= t('experience.make_my_movie') ?></button>
     </form>
   </details>

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/credits.php';
 /* Memory movies: renderer. Plain PHP + GD (for title cards and captions) + FFmpeg (for motion and encoding).
    Safe to include from the web app and from the command-line worker: it defines functions only.
    Copyright (c) JSW Software Designs */
@@ -371,6 +372,7 @@ function mv_render(array $mv, callable $progress): array {
 function mv_worker_run(): int {
     $lock = fopen(data_dir() . '/movie.lock', 'c'); if (!$lock || !flock($lock, LOCK_EX | LOCK_NB)) return 0;
     $pdo = db(); $n = 0;
+    credits_reconcile_after_stale();
     $pdo->exec("UPDATE movies SET status = 'failed', error = 'The render was interrupted. Please try again.' WHERE status = 'rendering' AND started_at < " . (time() - 3600));
     while (true) {
         $mv = $pdo->query("SELECT * FROM movies WHERE status = 'queued' ORDER BY id LIMIT 1")->fetch(); if (!$mv) break;
@@ -378,10 +380,12 @@ function mv_worker_run(): int {
         try {
             $r = mv_render($mv, function (int $p) use ($pdo, $id) { $pdo->prepare('UPDATE movies SET progress = ? WHERE id = ?')->execute([min(99, $p), $id]); });
             $pdo->prepare("UPDATE movies SET status = 'done', progress = 100, file = ?, bytes = ?, seconds = ?, finished_at = ?, error = '' WHERE id = ?")->execute([$r['file'], $r['bytes'], $r['seconds'], time(), $id]);
+            credits_commit((int)$id);
         } catch (Throwable $t) {
             @file_put_contents(data_dir() . '/error.log', date('c') . ' movie ' . $id . ' ' . $t->getMessage() . "\n", FILE_APPEND);
             $msg = $t instanceof RuntimeException && stripos($t->getMessage(), 'failed') === false ? $t->getMessage() : 'Something went wrong while making the movie. Please try again.';
             $pdo->prepare("UPDATE movies SET status = 'failed', error = ?, finished_at = ? WHERE id = ?")->execute([$msg, time(), $id]);
+            credits_release((int)$id);
         }
         $n++;
     }
