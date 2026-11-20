@@ -206,22 +206,27 @@ function transfer_read_daylio(string $file, string $work): array {
     $cols = array_map(fn($c) => strtolower(trim((string)$c)), str_getcsv(trim($first), $delim));
     $idx = array_flip($cols);
     $hasDate = isset($idx['full_date']) || (isset($idx['year']) && isset($idx['date']));
-    if (!$hasDate || !isset($idx['time']) || !isset($idx['mood'])) { fclose($h); throw new RuntimeException('This does not look like a Daylio CSV. Export with More, Export Entries, CSV (table).'); }
+    if (!$hasDate || !isset($idx['mood'])) { fclose($h); throw new RuntimeException('This does not look like a Daylio CSV. Export with More, Export Entries, CSV (table).'); }
     rewind($h); fgets($h);
-    $moodMap = ['rad' => 5, 'good' => 4, 'meh' => 3, 'bad' => 2, 'awful' => 1];
+    /* Daylio's own moods, plus the names people commonly give their moods, in a few languages. */
+    $moodMap = ['rad' => 5, 'great' => 5, 'amazing' => 5, 'awesome' => 5, 'excellent' => 5, 'happy' => 5, 'fantastic' => 5, 'sehr gut' => 5, 'genial' => 5, 'super' => 5, 'très bien' => 5, 'muy bien' => 5,
+                'good' => 4, 'fine' => 4, 'nice' => 4, 'gut' => 4, 'bien' => 4, 'bueno' => 4, 'bien' => 4, 'content' => 4,
+                'meh' => 3, 'ok' => 3, 'okay' => 3, 'average' => 3, 'neutral' => 3, 'so-so' => 3, 'so so' => 3, 'normal' => 3, 'mittel' => 3, 'mäßig' => 3, 'regular' => 3, 'moyen' => 3,
+                'bad' => 2, 'sad' => 2, 'down' => 2, 'low' => 2, 'schlecht' => 2, 'mal' => 2, 'mauvais' => 2, 'triste' => 2, 'stressed' => 2,
+                'awful' => 1, 'terrible' => 1, 'horrible' => 1, 'worst' => 1, 'sehr schlecht' => 1, 'muy mal' => 1, 'horrible' => 1];
     $entries = []; $moodSum = []; $noteless = 0; $rows = 0;
     $get = function (array $r, string $k) use ($idx): string { return isset($idx[$k], $r[$idx[$k]]) ? trim((string)$r[$idx[$k]]) : ''; };
     while (($r = fgetcsv($h, 0, $delim)) !== false) {
         if (!$r || (count($r) === 1 && trim((string)$r[0]) === '')) continue;
         if (++$rows > TRANSFER_MAX_ENTRIES) { fclose($h); throw new RuntimeException('That file has more rows than we can import at once.'); }
-        $time = $get($r, 'time');
+        $time = $get($r, 'time'); if ($time === '') $time = '12:00';
         $ts = 0; $date = '';
         if (isset($idx['full_date']) && $get($r, 'full_date') !== '') $stamp = strtotime($get($r, 'full_date') . ' ' . $time);
         else $stamp = strtotime($get($r, 'date') . ', ' . $get($r, 'year') . ' ' . $time);
         if ($stamp === false || $stamp < 0) { $stamp = strtotime((isset($idx['full_date']) ? $get($r, 'full_date') : $get($r, 'date') . ', ' . $get($r, 'year'))); }
         if ($stamp === false || $stamp < 0) continue;
         $ts = (int)$stamp; $date = date('Y-m-d', $ts);
-        $mood = strtolower($get($r, 'mood'));
+        $mood = mb_strtolower(trim(preg_replace('/\s+/', ' ', $get($r, 'mood'))));
         if (isset($moodMap[$mood])) { $moodSum[$date][] = $moodMap[$mood]; }
         $note = isset($idx['note']) ? str_replace(["\r\n", "\r"], "\n", $get($r, 'note')) : '';
         $title = mb_substr($get($r, 'note_title'), 0, 200);
