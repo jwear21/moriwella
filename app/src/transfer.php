@@ -13,10 +13,10 @@ function transfer_sources(): array {
             'help' => 'The ZIP you get from Export on this page. Good for restoring a backup or moving between accounts.'],
         'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods go to Track.'],
         'journey'   => ['name' => 'Journey', 'ready' => true, 'accept' => '.zip', 'help' => 'In Journey, use Settings, Data and Cloud Services, Export/Backup to make a ZIP. Entries, photos, tags and dates come along.'],
-        'diaro'     => ['name' => 'Diaro', 'ready' => false, 'accept' => '.zip', 'help' => 'In Diaro, make a backup and use the ZIP.'],
+        'diaro'     => ['name' => 'Diaro', 'ready' => true, 'accept' => '.zip', 'help' => 'In Diaro, tap Settings, Data, Backup and restore, then make a backup without encryption. Entries, tags and photos come along.'],
         'evernote'  => ['name' => 'Evernote', 'ready' => true, 'accept' => '.enex,.xml', 'help' => 'In the Evernote desktop app, select a notebook or notes, then File, Export, and choose ENEX. Titles, dates, tags and images come along.'],
-        'dayone'    => ['name' => 'Day One', 'ready' => false, 'accept' => '.zip', 'help' => 'In Day One, export your journal as JSON with photos.'],
-        'apple'     => ['name' => 'Apple Journal', 'ready' => false, 'accept' => '.zip', 'help' => 'In Settings, Apps, Journal, choose Export All Journal Entries.'],
+        'dayone'    => ['name' => 'Day One', 'ready' => true, 'accept' => '.zip', 'help' => 'In Day One, choose Settings, Import/Export, then export as JSON and include photos. Entries, tags, photos and dates come along.'],
+        'apple'     => ['name' => 'Apple Journal', 'ready' => true, 'accept' => '.zip', 'help' => 'In the Journal app, tap More, then Export. Upload the AppleJournalEntries ZIP. Photos in iPhone HEIC format may not come along yet.'],
     ];
 }
 
@@ -256,12 +256,183 @@ function transfer_read_evernote(string $file, string $work): array {
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'evernote', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $otherFiles];
 }
+function transfer_xml_text($node, string $k): string { return ($node !== null && isset($node->{$k})) ? trim((string)$node->{$k}) : ''; }
+function transfer_read_diaro(string $file, string $work): array {
+    $zip = transfer_open_zip($file);
+    $xmlIdx = null; $media = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $n = (string)($zip->statIndex($i)['name'] ?? ''); if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
+        if (strcasecmp(basename($n), 'DiaroBackup.xml') === 0) $xmlIdx = $i; else $media[strtolower(ltrim($n, './'))] = $i;
+    }
+    if ($xmlIdx === null) throw new RuntimeException('This does not look like a Diaro backup. It should contain a file called DiaroBackup.xml.');
+    $raw = $zip->getFromIndex($xmlIdx);
+    if ($raw === false || $raw === '') throw new RuntimeException('This Diaro backup is encrypted. In Diaro, make a new backup with encryption turned off and try again.');
+    libxml_use_internal_errors(true);
+    $xml = simplexml_load_string($raw, 'SimpleXMLElement', LIBXML_NONET | LIBXML_PARSEHUGE | LIBXML_COMPACT); unset($raw);
+    if (!$xml) throw new RuntimeException('This Diaro backup is encrypted or damaged. If it is encrypted, make a new backup with encryption turned off.');
+    $tables = [];
+    foreach ($xml->table as $t) { $tables[(string)$t['name']] = $t; }
+    $tags = []; if (isset($tables['diaro_tags'])) foreach ($tables['diaro_tags']->children() as $r) $tags[transfer_xml_text($r, 'uid')] = transfer_xml_text($r, 'title');
+    $atts = []; if (isset($tables['diaro_attachments'])) foreach ($tables['diaro_attachments']->children() as $r) {
+        $fn = transfer_xml_text($r, 'filename'); $ty = transfer_xml_text($r, 'type') ?: 'photo'; if ($fn === '' || $ty !== 'photo') continue;
+        $atts[transfer_xml_text($r, 'entry_uid')][] = ['type' => $ty, 'filename' => $fn];
+    }
+    if (!isset($tables['diaro_entries'])) throw new RuntimeException('We did not find any entries in that Diaro backup.');
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0;
+    foreach ($tables['diaro_entries']->children() as $r) {
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That backup has more entries than we can import at once.'); }
+        $ms = (float)transfer_xml_text($r, 'date'); if ($ms <= 0) { $skipped++; continue; }
+        $ts = (int)floor($ms / 1000);
+        $off = transfer_xml_text($r, 'tz_offset'); $secs = null;
+        if (preg_match('/^([+-])(\d{1,2}):?(\d{2})$/', $off, $m)) $secs = ($m[1] === '-' ? -1 : 1) * ((int)$m[2] * 3600 + (int)$m[3] * 60);
+        elseif ($off !== '' && is_numeric($off) && abs((int)$off) <= 50400) $secs = (int)$off;
+        $date = $secs !== null ? gmdate('Y-m-d', $ts + $secs) : date('Y-m-d', $ts);
+        $title = mb_substr(transfer_xml_text($r, 'title'), 0, 200);
+        $text = str_replace(["\r\n", "\r"], "\n", trim((string)($r->text ?? '')));
+        $paras = [];
+        foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
+        $tl = []; foreach (explode(',', transfer_xml_text($r, 'tags')) as $tid) { $tid = trim($tid); if ($tid !== '' && !empty($tags[$tid])) $tl[] = $tags[$tid]; }
+        if ($tl && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tl)];
+        $uid = transfer_xml_text($r, 'uid'); $photos = [];
+        foreach ($atts[$uid] ?? [] as $a) {
+            $key = strtolower('media/' . $a['type'] . '/' . $a['filename']);
+            if (!isset($media[$key]) || $nPhotos >= TRANSFER_MAX_PHOTOS) continue;
+            $data = $zip->getFromIndex($media[$key]); if ($data === false) continue;
+            $nPhotos++; $local = 'p' . $nPhotos . '_' . transfer_safe_name($a['filename']);
+            file_put_contents($work . '/' . $local, $data); unset($data);
+            $photos[] = ['file' => $local, 'name' => $a['filename']];
+        }
+        if (!$paras && !$photos && $title === '') { $skipped++; continue; }
+        $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'dr:' . sha1(($uid !== '' ? $uid : $ts . $title))];
+    }
+    $zip->close(); libxml_clear_errors();
+    if (!$entries) throw new RuntimeException('We did not find any entries in that Diaro backup.');
+    usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    return ['source' => 'diaro', 'entries' => $entries, 'skipped' => $skipped];
+}
+/* Photos our photo system can read. HEIC (iPhone) is converted when this server can do it. */
+function transfer_photo_ok(string $name): bool { return (bool)preg_match('/\.(jpe?g|png|gif|webp)$/i', $name); }
+function transfer_try_heic(string $data, string $dest): bool {
+    if (!class_exists('Imagick')) return false;
+    try { $im = new Imagick(); $im->readImageBlob($data); $im->setImageFormat('jpeg'); $im->setImageCompressionQuality(90); $im->writeImage($dest); $im->clear(); return is_file($dest); }
+    catch (Throwable $e) { return false; }
+}
+function transfer_unescape_md(string $t): string { return preg_replace('/\\\\([\\\\`*_{}\[\]()#+\-.!>])/', '$1', str_replace("\xE2\x80\x8B", '', $t)); }
+
+function transfer_read_dayone(string $file, string $work): array {
+    $zip = transfer_open_zip($file);
+    $jsons = []; $byBase = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $n = (string)($zip->statIndex($i)['name'] ?? ''); if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
+        if (substr(strtolower($n), -5) === '.json' && substr_count($n, '/') <= 1) $jsons[] = $i; else $byBase[strtolower(basename($n))] = $i;
+    }
+    if (!$jsons) throw new RuntimeException('We did not find a Day One journal in that ZIP. It should hold a .json file such as Journal.json.');
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0; $found = false;
+    foreach ($jsons as $ji) {
+        $raw = $zip->getFromIndex($ji); $j = json_decode((string)$raw, true); unset($raw);
+        if (!is_array($j) || !isset($j['entries']) || !is_array($j['entries'])) continue;
+        $found = true;
+        foreach ($j['entries'] as $e) {
+            if (!is_array($e) || empty($e['creationDate'])) { $skipped++; continue; }
+            if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That journal has more entries than we can import at once.'); }
+            $ts = strtotime((string)$e['creationDate']); if (!$ts) { $skipped++; continue; }
+            try { $date = (new DateTimeImmutable('@' . $ts))->setTimezone(new DateTimeZone((string)($e['timeZone'] ?? '') ?: date_default_timezone_get()))->format('Y-m-d'); }
+            catch (Throwable $x) { $date = date('Y-m-d', $ts); }
+            $text = str_replace(["\r\n", "\r"], "\n", (string)($e['text'] ?? ''));
+            $text = preg_replace('/!\[[^\]]*\]\(dayone-moment:[^)]*\)/', '', $text);
+            $text = trim(transfer_unescape_md($text));
+            $title = '';
+            if (preg_match('/^#\s+(.+)\n?/', $text, $m)) { $title = mb_substr(trim($m[1]), 0, 200); $text = trim(substr($text, strlen($m[0]))); }
+            $paras = [];
+            foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
+            $tags = array_values(array_filter(array_map(fn($t) => trim((string)$t), is_array($e['tags'] ?? null) ? $e['tags'] : [])));
+            if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+            $photos = [];
+            foreach ((is_array($e['photos'] ?? null) ? $e['photos'] : []) as $ph) {
+                $md5 = strtolower((string)($ph['md5'] ?? '')); $type = strtolower((string)($ph['type'] ?? '')); if ($md5 === '') continue;
+                $key = $md5 . '.' . $type; if (!isset($byBase[$key])) { $key = null; foreach (['jpeg', 'jpg', 'png', 'gif', 'webp', 'heic'] as $x) if (isset($byBase[$md5 . '.' . $x])) { $key = $md5 . '.' . $x; break; } }
+                if ($key === null) continue;
+                if (!transfer_photo_ok($key)) {
+                    $data = $zip->getFromIndex($byBase[$key]); $local = 'p' . ($nPhotos + 1) . '_' . $md5 . '.jpg';
+                    if ($data !== false && preg_match('/\.hei[cf]$/', $key) && transfer_try_heic($data, $work . '/' . $local)) { $nPhotos++; $photos[] = ['file' => $local, 'name' => $md5 . '.jpg']; } else $other++;
+                    continue;
+                }
+                if ($nPhotos >= TRANSFER_MAX_PHOTOS) continue;
+                $data = $zip->getFromIndex($byBase[$key]); if ($data === false) continue;
+                $nPhotos++; $local = 'p' . $nPhotos . '_' . transfer_safe_name($key);
+                file_put_contents($work . '/' . $local, $data); unset($data);
+                $photos[] = ['file' => $local, 'name' => $key];
+            }
+            foreach (['videos', 'audios', 'pdfAttachments'] as $k) $other += is_array($e[$k] ?? null) ? count($e[$k]) : 0;
+            if (!$paras && !$photos && $title === '') { $skipped++; continue; }
+            $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'd1:' . sha1((string)($e['uuid'] ?? $ts))];
+        }
+    }
+    $zip->close();
+    if (!$found) throw new RuntimeException('That does not look like a Day One JSON export.');
+    if (!$entries) throw new RuntimeException('We did not find any entries in that Day One export.');
+    usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    return ['source' => 'dayone', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other];
+}
+
+function transfer_read_apple(string $file, string $work): array {
+    $zip = transfer_open_zip($file);
+    $htmls = []; $byBase = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $n = (string)($zip->statIndex($i)['name'] ?? ''); if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
+        $low = strtolower($n);
+        if (substr($low, -5) === '.html' && strtolower(basename($n)) !== 'index.html' && preg_match('#(^|/)entries/#', $low)) $htmls[] = $i;
+        else $byBase[strtolower(basename($n))] = $i;
+    }
+    if (!$htmls) throw new RuntimeException('We did not find any Apple Journal entries. The ZIP should have an Entries folder of .html files.');
+    libxml_use_internal_errors(true);
+    $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0;
+    foreach ($htmls as $i) {
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That export has more entries than we can import at once.'); }
+        $name = (string)$zip->statIndex($i)['name']; $html = (string)$zip->getFromIndex($i);
+        $doc = new DOMDocument(); @$doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NONET | LIBXML_COMPACT); $xp = new DOMXPath($doc);
+        $q1 = function (string $q) use ($xp) { $r = $xp->query($q); return $r && $r->length ? trim((string)$r->item(0)->textContent) : ''; };
+        $hdr = $q1("//div[contains(concat(' ',normalize-space(@class),' '),' pageHeader ')]");
+        $ts = $hdr !== '' ? strtotime($hdr . ' 12:00:00') : false;
+        if (!$ts && preg_match('/(\d{4}-\d{2}-\d{2})/', basename($name), $m)) $ts = strtotime($m[1] . ' 12:00:00');
+        if (!$ts) { $skipped++; continue; }
+        $date = date('Y-m-d', $ts);
+        $title = mb_substr($q1("//div[contains(concat(' ',normalize-space(@class),' '),' title ')]"), 0, 200);
+        $prompt = $q1("//div[contains(concat(' ',normalize-space(@class),' '),' reflectionPrompt ')]");
+        $paras = [];
+        if ($prompt !== '') $paras[] = ['ts' => 0, 'text' => 'Prompt: ' . $prompt];
+        foreach ($xp->query("//p[contains(@class,'p2') or contains(@class,'p3')]") as $p) { $t = trim(preg_replace('/[ \t]+/', ' ', str_replace("\xC2\xA0", ' ', (string)$p->textContent))); if ($t !== '') $paras[] = ['ts' => 0, 'text' => $t]; }
+        $extras = [];
+        foreach ($xp->query("//div[contains(@class,'assetType_stateOfMind')]//div[contains(@class,'gridItemOverlayHeader')]") as $d) $extras['Feeling'][] = trim($d->textContent);
+        foreach ($xp->query("//div[contains(@class,'assetType_contact')]//div[contains(@class,'gridItemOverlayHeader')]") as $d) $extras['With'][] = trim($d->textContent);
+        foreach ($xp->query("//div[contains(@class,'assetType_multiPinMap') or contains(@class,'assetType_genericMap')]//div[contains(@class,'gridItemOverlayFooter')]") as $d) $extras['Places'][] = trim($d->textContent);
+        foreach ($extras as $k => $v) { $v = array_values(array_filter($v)); if ($v && $paras) $paras[] = ['ts' => 0, 'text' => $k . ': ' . implode(', ', $v)]; }
+        $photos = [];
+        foreach ($xp->query("//div[contains(@class,'assetType_photo') or contains(@class,'assetType_livePhoto')]//img") as $img) {
+            $src = (string)$img->getAttribute('src'); $b = strtolower(basename(rawurldecode($src))); if ($b === '' || !isset($byBase[$b])) continue;
+            $data = $zip->getFromIndex($byBase[$b]); if ($data === false) continue;
+            if (transfer_photo_ok($b)) { if ($nPhotos >= TRANSFER_MAX_PHOTOS) continue; $nPhotos++; $local = 'p' . $nPhotos . '_' . transfer_safe_name($b); file_put_contents($work . '/' . $local, $data); $photos[] = ['file' => $local, 'name' => basename($src)]; }
+            elseif (preg_match('/\.hei[cf]$/', $b)) { $local = 'p' . ($nPhotos + 1) . '_' . transfer_safe_name(preg_replace('/\.hei[cf]$/i', '.jpg', $b)); if (transfer_try_heic($data, $work . '/' . $local)) { $nPhotos++; $photos[] = ['file' => $local, 'name' => basename($src)]; } else $other++; }
+            else $other++;
+            unset($data);
+        }
+        if (!$paras && !$photos && $title === '') { $skipped++; continue; }
+        $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'aj:' . sha1(basename($name) . '|' . $hdr . '|' . $title)];
+    }
+    $zip->close(); libxml_clear_errors();
+    if (!$entries) throw new RuntimeException('We did not find any readable entries in that Apple Journal export.');
+    usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
+    return ['source' => 'apple', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other];
+}
 function transfer_read(string $source, string $file, string $work): array {
     switch ($source) {
         case 'moriwella': return transfer_read_moriwella($file, $work);
         case 'daylio': return transfer_read_daylio($file, $work);
         case 'journey': return transfer_read_journey($file, $work);
         case 'evernote': return transfer_read_evernote($file, $work);
+        case 'diaro': return transfer_read_diaro($file, $work);
+        case 'dayone': return transfer_read_dayone($file, $work);
+        case 'apple': return transfer_read_apple($file, $work);
     }
     throw new RuntimeException('That app is not supported yet.');
 }
