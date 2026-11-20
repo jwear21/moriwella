@@ -7,7 +7,7 @@
   <form method="post" enctype="multipart/form-data" class="profile-form">
     <?= csrf_field() ?><input type="hidden" name="save_avatar" value="1">
     <label class="filebtn"><span class="btn btn--quiet"><?= t(avatar_has((int)$user['id']) ? 'profile.change' : 'profile.add') ?></span>
-      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required data-autosubmit></label>
+      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required data-autosubmit data-busy="<?= e(t('profile.uploading')) ?>"></label>
   </form>
   <?php if (avatar_has((int)$user['id'])): ?>
   <form method="post" class="profile-form"><?= csrf_field() ?><input type="hidden" name="remove_avatar" value="1"><button type="submit" class="linkbtn"><?= t('profile.remove') ?></button></form>
