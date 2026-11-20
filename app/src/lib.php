@@ -486,8 +486,9 @@ function send_mail(string $to, string $subject, string $body, string $replyTo = 
     $from = $clean((string)cfg('mail_from', 'noreply@moriwella.com'));
     $h = ['From: Moriwella <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: Moriwella'];
     if ($replyTo !== '' && filter_var($clean($replyTo), FILTER_VALIDATE_EMAIL)) $h[] = 'Reply-To: ' . $clean($replyTo);
-    $ok = @mail($to, '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=', str_replace("\n", "\r\n", $body), implode("\r\n", $h), '-f' . $from);
-    @file_put_contents(data_dir() . '/mail.log', date('c') . ' to=' . $to . ' subject=' . $clean($subject) . ' accepted=' . ($ok ? 'yes' : 'no') . "\n", FILE_APPEND);
+    $ok = @mail($to, '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=', str_replace("\n", "\r\n", $body), implode("\r\n", $h));
+    $why = $ok ? '' : ' reason=' . preg_replace('/\s+/', ' ', (string)((error_get_last()['message'] ?? 'mail() returned false') . ' disabled=' . (string)ini_get('disable_functions') . ' sendmail=' . (string)ini_get('sendmail_path')));
+    @file_put_contents(data_dir() . '/mail.log', date('c') . ' to=' . $to . ' subject=' . $clean($subject) . ' accepted=' . ($ok ? 'yes' : 'no') . $why . "\n", FILE_APPEND);
     return $ok;
 }
 /** The invitation email a household owner's guest receives, with the link to choose a password. */
