@@ -200,3 +200,79 @@ html,body{overflow-x:hidden}
 
 .welcome h2{margin:.1rem 0 .4rem}.welcome-list{padding-left:1.1rem;margin:.5rem 0}.welcome-list li{margin:.4rem 0}
 .welcome-acts{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.6rem}
+
+/* ===== Polish layer: one voice across every screen ===== */
+/* Journaling surfaces are serif; utility fields are sans */
+textarea{font-family:inherit;font-size:1rem}
+.title-in{font-family:inherit;font-size:1rem}
+input.journal-field{font-family:var(--serif);font-size:1.3rem}
+textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.65}
+::placeholder{color:#7E8F84;opacity:1}
+.journal-field::placeholder{font-style:italic}
+
+/* Page headers: back link, title, intro share one rhythm */
+.app-main>p:first-child:has(>a.link){margin:0 0 .35rem}
+.page-title{margin:0 0 .3rem}
+.page-title+.subtle,.page-title+.daynav{margin:.1rem 0 1.1rem}
+.section-h{margin:2rem 0 .7rem}
+.card{margin-top:1.1rem}
+.greet{display:flex;align-items:center;gap:.6rem}
+.greet-ico{width:1.7rem;height:1.7rem;flex:none;fill:none;stroke:#C28A1E;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.daynav{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
+
+/* Buttons keep their natural size; inline forms keep the button beside the field */
+.inline-form{flex-wrap:nowrap}
+.inline-form .title-in,.inline-form select{flex:1 1 0;min-width:0;margin-top:0}
+.inline-form .btn{flex:none;margin:0}
+.inline-form>select{flex:0 1 9rem}
+@media (max-width:720px){.inline-form{flex-wrap:wrap}.inline-form .btn{flex:none}.inline-form .title-in{flex:1 1 12rem}}
+
+/* Today: quieter second half */
+.coming{padding:1.1rem 1.3rem}
+.coming-more{display:inline-block;margin-top:.4rem;font-size:.9rem}
+.goals,.water{padding:1.2rem 1.4rem}
+
+/* Lists */
+.list-card{display:block;margin-top:.8rem}
+.list-card .snippet{display:block;color:var(--moss);margin-top:.15rem}
+.meter{display:block;height:6px;border-radius:99px;background:#EAF1E6;margin-top:.7rem;overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#A9C5B3,#6B8F77);border-radius:99px}
+.newlist{margin:1.2rem 0}.newlist>summary{list-style:none;display:inline-flex;cursor:pointer}.newlist>summary::-webkit-details-marker{display:none}
+.newlist[open]>summary{margin-bottom:0}
+.empty{margin:1.2rem 0}
+/* List items: edit sits quietly beside the text, not under it */
+.item{align-items:flex-start}
+.item .check{margin-top:.1rem}
+.item-edit{margin-top:.1rem}
+.item-edit>summary{min-height:32px;font-size:.85rem;color:#6B8F77;list-style:none}
+.item-edit>summary::-webkit-details-marker{display:none}
+.item-edit[open]>summary{color:#1B4D3E}
+.item-text>span{line-height:1.35}
+
+/* Me: rows with chevrons instead of stacked boxes */
+.menu-rows{margin:1rem 0;background:var(--paper);border-radius:14px;box-shadow:0 1px 0 rgba(33,54,47,.08),0 14px 30px -16px rgba(33,54,47,.4);overflow:hidden}
+.row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.9rem 1.2rem;min-height:56px;text-decoration:none;color:inherit}
+.row+.row{border-top:1px solid #E9D8B6}
+.row span{display:flex;flex-direction:column}.row b{color:var(--deep)}.row small{color:var(--moss);font-size:.85rem}
+.row i{font-style:normal;font-size:1.6rem;color:#6B8F77}
+.row:hover{background:#FCFAF4}
+.textbtn{background:none;border:0;padding:.4rem .2rem;min-height:44px;color:#6B8F77;font:inherit;font-size:.9rem;text-decoration:underline;cursor:pointer;width:auto;margin:0}
+.pw>summary{cursor:pointer;font-weight:600;color:var(--deep);min-height:44px;display:flex;align-items:center}
+.pw[open]>summary{margin-bottom:.4rem}
+.member{border-bottom:1px solid #F0E5CC}.member:last-of-type{border-bottom:0}
+
+/* Photo and dictation buttons share one row */
+.photo-pick{display:flex;flex-wrap:nowrap;gap:.45rem;align-items:center;margin-top:.8rem}
+.photo-pick .btn{padding:.55rem .9rem;font-size:.9rem;min-height:44px;white-space:nowrap}
+.photo-pick .hint{flex:1 1 auto;min-width:0}
+@media (max-width:720px){.photo-pick{flex-wrap:wrap}.photo-pick .btn{flex:1 1 auto;justify-content:center;text-align:center}.photo-pick .hint{flex-basis:100%}}
+#entry-form>textarea:first-of-type,.write>form>textarea:first-of-type{margin-top:0}
+/* Quieter list rows: the edit control shares the date line */
+.item-text{display:grid;grid-template-columns:1fr auto;align-items:start;column-gap:.5rem}
+.item-text>span{grid-column:1/-1}
+.item-text>.due-row{grid-column:1}
+.item-text>.item-edit{grid-column:2;grid-row:2}
+.item-text>.item-edit[open]{grid-column:1/-1;grid-row:3}
+.item-edit>summary{padding:0 .2rem}
+.row{padding:.7rem 1.1rem;min-height:0}.row i{line-height:1;font-size:1.5rem}
+@media (max-width:720px){.photo-pick{flex-wrap:wrap}.photo-pick .btn{flex:1 1 0;padding:.5rem .35rem;font-size:.85rem;min-width:0}.photo-pick .hint{flex-basis:100%}}

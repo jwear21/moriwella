@@ -24,7 +24,7 @@
       <a href="<?= url('/calendar') ?>">Calendar</a>
       <a href="<?= url('/lists') ?>">Lists</a>
       <a href="<?= url('/experiences') ?>">Experiences</a>
-      <a href="<?= url('/settings') ?>">Settings</a>
+      <a href="<?= url('/settings') ?>">Me</a>
       <?php if ($user['role'] === 'admin'): ?><a href="<?= url('/admin') ?>">Admin</a><?php endif; ?>
       <form method="post" action="<?= url('/logout') ?>" class="inline"><?= csrf_field() ?><button type="submit" class="navbtn">Sign out</button></form>
     </nav>

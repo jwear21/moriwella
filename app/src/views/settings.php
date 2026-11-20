@@ -1,11 +1,14 @@
-<h1 class="page-title">Settings</h1>
-<section class="card"><a class="link" href="<?= url('/achievements') ?>"><b>Achievements</b></a> <span class="subtle">See the milestones you have earned.</span></section>
-<section class="card"><a class="link" href="<?= url('/feedback') ?>"><b>Send feedback</b></a> <span class="subtle">Something confusing or missing? Tell Jeff.</span></section>
+<h1 class="page-title">Me</h1>
+<p class="subtle"><?= e($user['name']) ?> · <?= e($user['email']) ?></p>
+<nav class="menu-rows" aria-label="More">
+  <a class="row" href="<?= url('/achievements') ?>"><span><b>Achievements</b><small>Milestones you have earned</small></span><i aria-hidden="true">&rsaquo;</i></a>
+  <a class="row" href="<?= url('/feedback') ?>"><span><b>Send feedback</b><small>Something confusing or missing? Tell Jeff.</small></span><i aria-hidden="true">&rsaquo;</i></a>
+</nav>
 <section class="card write" id="goals">
   <h2 class="section-h">Daily goals</h2>
   <p class="subtle">Pick what you'd like to check off each day. They show up at the top of Today.</p>
   <?php foreach ($goals as $g): ?>
-    <form method="post" action="<?= url('/goals/' . $g['id'] . '/delete') ?>" class="member"><?= csrf_field() ?><span><?= e($g['name']) ?></span><button class="btn btn--quiet" type="submit">Remove</button></form>
+    <form method="post" action="<?= url('/goals/' . $g['id'] . '/delete') ?>" class="member"><?= csrf_field() ?><span><?= e($g['name']) ?></span><button class="textbtn" type="submit" aria-label="Remove <?= e($g['name']) ?>">Remove</button></form>
   <?php endforeach; ?>
   <form method="post" action="<?= url('/goals') ?>" class="inline-form">
     <?= csrf_field() ?>
@@ -29,8 +32,8 @@
     <button class="btn" type="submit">Save</button>
   </form>
 </section>
-<section class="card write">
-  <h2 class="section-h">Change password</h2>
+<details class="card write pw">
+  <summary>Change password</summary>
   <form method="post">
     <?= csrf_field() ?><input type="hidden" name="change_password" value="1">
     <label>Current password<input type="password" name="current" autocomplete="current-password" required></label>
@@ -38,8 +41,7 @@
     <label>Confirm new password<input type="password" name="password2" autocomplete="new-password" minlength="10" required></label>
     <button class="btn" type="submit">Change password</button>
   </form>
-</section>
-<section class="card"><p class="subtle">Signed in as <?= e($user['email']) ?>. Plan: <?= e($user['plan']) ?>.</p></section>
+</details>
 <section class="card write">
   <h2 class="section-h">Account</h2>
   <div class="acct-actions">

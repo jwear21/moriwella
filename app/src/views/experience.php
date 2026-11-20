@@ -16,9 +16,9 @@
         </select></div><?php endif; ?>
     </div>
     <label class="sr-only" for="title">Title (optional)</label>
-    <input id="title" name="title" maxlength="200" placeholder="Title (optional)" class="title-in">
+    <input id="title" name="title" maxlength="200" placeholder="Title (optional)" class="title-in journal-field">
     <label class="sr-only" for="body">What happened?</label>
-    <textarea id="body" name="body" rows="6" placeholder="What happened?"></textarea>
+    <textarea id="body" name="body" rows="6" placeholder="What happened?" class="journal-field"></textarea>
     <div class="photo-pick">
       <label class="btn btn--quiet" for="photos">Add photos</label>
       <input id="photos" type="file" name="photos[]" accept="image/*" multiple class="sr-only">

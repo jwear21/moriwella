@@ -1,5 +1,5 @@
 <?php $base = url('/lists/' . $list['id']); $done = array_filter($items, fn($i) => $i['done_at'] !== null); ?>
-<p><a class="link" href="<?= url('/lists') ?>">&larr; All lists</a></p>
+<p class="back"><a class="link" href="<?= url('/lists') ?>">&larr; All lists</a></p>
 <h1 class="page-title"><?= e($list['name']) ?></h1>
 <?php if (!$isOwner): ?><p class="subtle">Shared by <?= e($ownerName) ?></p><?php endif; ?>
 
