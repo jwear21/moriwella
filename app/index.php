@@ -550,9 +550,9 @@ if (strpos($path, '/admin') === 0) {
         redirect(url('/admin'));
     }
     if (preg_match('#^/admin/users/(\d+)/act$#', $path, $m) && $post) {
-        $s = db()->prepare("SELECT * FROM users WHERE id = ? AND status = 'active' AND role <> 'admin'"); $s->execute([(int)$m[1]]);
-        if ($t = $s->fetch()) { $_SESSION['acting_admin'] = (int)$admin['id']; $_SESSION['uid'] = (int)$t['id']; flash('ok', 'You are now acting as ' . $t['name'] . '.'); redirect(url('/')); }
-        flash('err', 'You can act as active members only.'); redirect(url('/admin'));
+        $s = db()->prepare("SELECT * FROM users WHERE id = ? AND status = 'active' AND id <> ?"); $s->execute([(int)$m[1], (int)$admin['id']]);
+        if ($t = $s->fetch()) { $_SESSION['acting_admin'] = (int)($_SESSION['acting_admin'] ?? $admin['id']); $_SESSION['uid'] = (int)$t['id']; flash('ok', 'You are now acting as ' . $t['name'] . '.'); redirect(url('/')); }
+        flash('err', 'You can act as other people with active accounts.'); redirect(url('/admin'));
     }
     if (preg_match('#^/admin/users/(\d+)/(link|toggle)$#', $path, $m) && $post) {
         $s = db()->prepare('SELECT * FROM users WHERE id = ?'); $s->execute([(int)$m[1]]);
