@@ -451,7 +451,9 @@ function transfer_read_dayone(string $file, string $work): array {
                 file_put_contents($work . '/' . $local, $data); unset($data);
                 $photos[] = ['file' => $local, 'name' => $key];
             }
-            foreach (['videos', 'audios', 'pdfAttachments'] as $k) $other += is_array($e[$k] ?? null) ? count($e[$k]) : 0;
+            $att = 0; foreach (['videos', 'audios', 'pdfAttachments'] as $k) $att += is_array($e[$k] ?? null) ? count($e[$k]) : 0;
+            $other += $att;
+            if (!$paras && !$photos && $title === '' && $att) $paras[] = ['ts' => $ts, 'text' => 'This entry had video, audio or PDF attachments in Day One that were not brought over.'];
             if (!$paras && !$photos && $title === '') { $skipped++; continue; }
             $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'd1:' . sha1((string)($e['uuid'] ?? $ts))];
         }

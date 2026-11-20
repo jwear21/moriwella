@@ -4,7 +4,7 @@
 <section class="card write xfer">
   <div class="pv-stats">
     <div><b><?= count($entries) ?></b><span><?= count($entries) === 1 ? 'entry' : 'entries' ?></span></div>
-    <?php if ($photos): ?><div><b><?= (int)$photos ?></b><span>photos</span></div><?php endif; ?>
+    <?php if ($photos): ?><div><b><?= (int)$photos ?></b><span><?= $photos === 1 ? 'photo' : 'photos' ?></span></div><?php endif; ?>
     <?php if ($moods): ?><div><b><?= (int)$moods ?></b><span>days of mood</span></div><?php endif; ?>
     <div><b><?= e($from !== '' ? date('M Y', strtotime($from)) : '') ?><?= ($from !== '' && substr($from, 0, 7) !== substr($to, 0, 7)) ? ' to ' . e(date('M Y', strtotime($to))) : '' ?></b><span>dates</span></div>
   </div>
