@@ -140,7 +140,15 @@ function mv_caption(array $th, string $label, string $line, string $path): void 
 
 /* ---------- FFmpeg ---------- */
 function mv_run(array $cmd, string $what): void {
-    $full = array_merge(['nice', '-n', '19', mv_ffmpeg(), '-y', '-loglevel', 'error', '-threads', '2'], $cmd);
+    /* Shared hosting caps threads per account, and FFmpeg starts one thread per CPU core for every input.
+       So: one decoder thread per input, a small fixed number for filters and the encoder. */
+    $full = ['nice', '-n', '19', mv_ffmpeg(), '-y', '-loglevel', 'error', '-filter_threads', '1', '-filter_complex_threads', '1'];
+    $last = count($cmd) - 1;
+    foreach ($cmd as $i => $tok) {
+        if ($tok === '-i') { $full[] = '-threads'; $full[] = '1'; }
+        if ($i === $last) { $full[] = '-threads'; $full[] = '2'; }
+        $full[] = $tok;
+    }
     $p = @proc_open($full, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     if (!is_resource($p)) throw new RuntimeException('Could not start FFmpeg for ' . $what);
     $out = stream_get_contents($pipes[1]); $err = stream_get_contents($pipes[2]); fclose($pipes[1]); fclose($pipes[2]);
