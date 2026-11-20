@@ -4,10 +4,15 @@
 
 <section class="card write xfer" id="export">
   <h2 class="section-h">Export your journal</h2>
-  <p>A ZIP file with one readable page for every day, your original photos, and a data file holding every exact date and time. You can import it back into Moriwella any time.</p>
+  <p>Take everything with you, with exact dates and your original photos. Choose the kind of file you need.</p>
   <?php if ($entryCount > 0): ?>
   <form method="post" action="<?= url('/transfer/export') ?>" data-download="Packing up your journal" data-detail="This can take a minute if you have a lot of photos.">
     <?= csrf_field() ?>
+    <div class="src-list" role="radiogroup" aria-label="Export format">
+      <label class="src"><input type="radio" name="format" value="moriwella" checked><span class="src-body"><b>Moriwella archive</b><small>A ZIP with one readable page for each day, your photos, and a data file. Moriwella can import it again.</small></span></label>
+      <label class="src"><input type="radio" name="format" value="evernote"><span class="src-body"><b>For Evernote</b><small>An .enex file. In Evernote, choose File, then Import Notes. Each entry becomes a note.</small></span></label>
+      <label class="src"><input type="radio" name="format" value="dayone"><span class="src-body"><b>For Day One</b><small>A ZIP in Day One's JSON format. In Day One, choose Import, then JSON ZIP.</small></span></label>
+    </div>
     <button class="btn" type="submit">Download my journal</button>
     <span class="hint"><?= (int)$entryCount ?> <?= $entryCount === 1 ? 'entry' : 'entries' ?></span>
   </form>

@@ -71,6 +71,94 @@ function transfer_export_moriwella(int $uid, array $user): string {
     return $zipPath;
 }
 
+/* ---------- exporters for other apps ---------- */
+function transfer_export_rows(int $uid): array {
+    $q = db()->prepare('SELECT e.*, ev.title AS event_title FROM entries e LEFT JOIN events ev ON ev.id = e.event_id WHERE e.user_id = ? ORDER BY e.entry_date, e.id');
+    $q->execute([$uid]); $rows = $q->fetchAll();
+    return [$rows, photos_for_entries(array_column($rows, 'id'))];
+}
+function transfer_uuid(): string { return strtoupper(bin2hex(random_bytes(16))); }
+function transfer_mime(string $ext): string {
+    $ext = strtolower($ext);
+    return ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp'][$ext] ?? 'application/octet-stream';
+}
+/* The moment an entry was written, as a Unix time. Uses the first time stamp in the text, else the day at noon. */
+function transfer_entry_ts(array $r, array $parts): int {
+    foreach ($parts as $b) if (!empty($b['ts'])) return (int)$b['ts'];
+    $t = strtotime($r['entry_date'] . ' 12:00:00'); return $t ?: (int)$r['created_at'];
+}
+
+/* Evernote: one .enex file; each entry is a note. */
+function transfer_export_evernote(int $uid): string {
+    [$rows, $photos] = transfer_export_rows($uid);
+    $path = transfer_tmp($uid) . '/export-' . bin2hex(random_bytes(4)) . '.enex';
+    $f = fopen($path, 'wb'); if (!$f) throw new RuntimeException('Could not start the export.');
+    $utc = fn(int $t) => gmdate('Ymd\THis\Z', $t);
+    fwrite($f, '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">' . "\n");
+    fwrite($f, '<en-export export-date="' . $utc(time()) . '" application="Moriwella" version="1.0">' . "\n");
+    foreach ($rows as $r) {
+        $parts = body_parts($r['body'], (int)$r['created_at']);
+        $ts = transfer_entry_ts($r, $parts);
+        $title = $r['title'] !== '' ? $r['title'] : date('F j, Y', strtotime($r['entry_date'] . ' 12:00:00'));
+        $h = '';
+        foreach ($parts as $b) {
+            $t = ''; if (!empty($b['ts'])) $t = '<div><i>' . htmlspecialchars(date('g:i a', (int)$b['ts']), ENT_XML1) . '</i></div>';
+            $h .= $t;
+            foreach (preg_split('/\n/', (string)$b['text']) as $line) $h .= '<div>' . ($line === '' ? '<br/>' : htmlspecialchars($line, ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8')) . '</div>';
+            $h .= '<div><br/></div>';
+        }
+        $res = '';
+        foreach ($photos[$r['id']] ?? [] as $p) {
+            $src = photo_path($p, 'orig') ?: photo_path($p, 'web'); if (!$src) continue;
+            $data = @file_get_contents($src); if ($data === false || $data === '') continue;
+            $ext = strtolower(pathinfo($src, PATHINFO_EXTENSION)); $mime = transfer_mime($ext); $md5 = md5($data);
+            $dim = @getimagesizefromstring($data);
+            $h .= '<div><en-media type="' . $mime . '" hash="' . $md5 . '"/></div>';
+            $res .= '<resource><data encoding="base64">' . chunk_split(base64_encode($data), 76, "\n") . '</data><mime>' . $mime . '</mime>'
+                 . ($dim ? '<width>' . (int)$dim[0] . '</width><height>' . (int)$dim[1] . '</height>' : '')
+                 . '<resource-attributes><file-name>' . htmlspecialchars($p['orig_name'] !== '' ? $p['orig_name'] : ('photo.' . $ext), ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8') . '</file-name></resource-attributes></resource>' . "\n";
+            unset($data);
+        }
+        $content = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' . "\n" . '<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">' . "\n" . '<en-note>' . $h . '</en-note>';
+        $tags = '<tag>Moriwella</tag>'; if (!empty($r['event_title'])) $tags .= '<tag>' . htmlspecialchars($r['event_title'], ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8') . '</tag>';
+        fwrite($f, '<note><title>' . htmlspecialchars($title, ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8') . '</title><content><![CDATA[' . str_replace(']]>', ']]]]><![CDATA[>', $content) . ']]></content><created>' . $utc($ts) . '</created><updated>' . $utc(max($ts, (int)($r['updated_at'] ?? $ts))) . '</updated>' . $tags . $res . '</note>' . "\n");
+    }
+    fwrite($f, '</en-export>' . "\n"); fclose($f);
+    return $path;
+}
+
+/* Day One: a ZIP holding Journal.json and a photos folder. */
+function transfer_export_dayone(int $uid): string {
+    [$rows, $photos] = transfer_export_rows($uid);
+    $zipPath = transfer_tmp($uid) . '/export-' . bin2hex(random_bytes(4)) . '.zip';
+    $zip = new ZipArchive(); if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Could not start the export.');
+    $tz = date_default_timezone_get(); $entries = []; $added = [];
+    foreach ($rows as $r) {
+        $parts = body_parts($r['body'], (int)$r['created_at']);
+        $ts = transfer_entry_ts($r, $parts);
+        $text = ($r['title'] !== '' ? '# ' . $r['title'] . "\n\n" : '');
+        foreach ($parts as $b) { if (!empty($b['ts'])) $text .= '*' . date('g:i a', (int)$b['ts']) . "*\n\n"; $text .= trim((string)$b['text']) . "\n\n"; }
+        $ph = [];
+        foreach ($photos[$r['id']] ?? [] as $i => $p) {
+            $src = photo_path($p, 'orig') ?: photo_path($p, 'web'); if (!$src) continue;
+            $md5 = md5_file($src); if (!$md5) continue;
+            $ext = strtolower(pathinfo($src, PATHINFO_EXTENSION)); $type = $ext === 'jpg' ? 'jpeg' : $ext;
+            $dim = @getimagesize($src); $id = transfer_uuid();
+            if (!isset($added[$md5])) { $zip->addFile($src, 'photos/' . $md5 . '.' . $type); $added[$md5] = 1; }
+            $ph[] = ['identifier' => $id, 'md5' => $md5, 'type' => $type, 'fileSize' => (int)filesize($src), 'width' => (int)($dim[0] ?? 0), 'height' => (int)($dim[1] ?? 0), 'orderInEntry' => count($ph), 'isSketch' => false, 'hasMetadata' => false, 'favorite' => false, 'duration' => 0];
+            $text .= '![](dayone-moment://' . $id . ")\n\n";
+        }
+        $e = ['uuid' => transfer_uuid(), 'creationDate' => gmdate('Y-m-d\TH:i:s\Z', $ts), 'modifiedDate' => gmdate('Y-m-d\TH:i:s\Z', max($ts, (int)($r['updated_at'] ?? $ts))),
+              'timeZone' => $tz, 'starred' => false, 'isPinned' => false, 'isAllDay' => false, 'text' => rtrim($text)];
+        if (!empty($r['event_title'])) $e['tags'] = [(string)$r['event_title']];
+        if ($ph) $e['photos'] = $ph;
+        $entries[] = $e;
+    }
+    $zip->addFromString('Journal.json', json_encode(['metadata' => ['version' => '1.0'], 'entries' => $entries], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+    $zip->close();
+    return $zipPath;
+}
+
 /* ---------- readers: each returns a manifest ---------- */
 /* manifest = ['source'=>, 'entries'=>[ ['date','ts','title','paragraphs'=>[['ts','text']],'photos'=>[['file','name']],'key'] ] ] ; photo files live in the work folder */
 function transfer_open_zip(string $file): ZipArchive {
@@ -476,12 +564,16 @@ if ($path === '/transfer') {
 }
 if ($path === '/transfer/export' && $post) {
     @set_time_limit(0);
-    try { $zip = transfer_export_moriwella($uid, $user); }
-    catch (Throwable $e) { flash('err', 'Sorry, the export could not be made. Please try again.'); redirect(url('/transfer')); }
-    header('Content-Type: application/zip');
-    header('Content-Disposition: attachment; filename="moriwella-journal-' . date('Y-m-d') . '.zip"');
-    header('Content-Length: ' . filesize($zip)); header('Cache-Control: private, no-store');
-    readfile($zip); @unlink($zip); exit;
+    $fmt = (string)($_POST['format'] ?? 'moriwella');
+    try {
+        if ($fmt === 'evernote') { $file = transfer_export_evernote($uid); $name = 'moriwella-for-evernote-' . date('Y-m-d') . '.enex'; $type = 'application/xml'; }
+        elseif ($fmt === 'dayone') { $file = transfer_export_dayone($uid); $name = 'moriwella-for-dayone-' . date('Y-m-d') . '.zip'; $type = 'application/zip'; }
+        else { $file = transfer_export_moriwella($uid, $user); $name = 'moriwella-journal-' . date('Y-m-d') . '.zip'; $type = 'application/zip'; }
+    } catch (Throwable $e) { flash('err', 'Sorry, the export could not be made. Please try again.'); redirect(url('/transfer')); }
+    header('Content-Type: ' . $type);
+    header('Content-Disposition: attachment; filename="' . $name . '"');
+    header('Content-Length: ' . filesize($file)); header('Cache-Control: private, no-store');
+    readfile($file); @unlink($file); exit;
 }
 if ($path === '/transfer/upload' && $post) {
     @set_time_limit(0);
