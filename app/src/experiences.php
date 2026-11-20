@@ -87,6 +87,7 @@ if (preg_match('#^/experiences/(\d+)(?:/([a-z-]+)(?:/(\d+))?(?:/([a-z]+))?)?$#',
             flash('ok', 'Saved.'); redirect($back);
         }
         if ($act === 'delete') {
+            movies_purge_event((int)$ev['id'], $uid);
             db()->prepare('UPDATE entries SET event_id = NULL, section_id = NULL WHERE event_id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
             db()->prepare('DELETE FROM events WHERE id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
             flash('ok', 'Experience removed. Your entries are still in your journal.'); redirect(url('/experiences'));
@@ -133,7 +134,8 @@ if (preg_match('#^/experiences/(\d+)(?:/([a-z-]+)(?:/(\d+))?(?:/([a-z]+))?)?$#',
         $today = date('Y-m-d');
         $addDate = $today < $ev['start_date'] ? $ev['start_date'] : ($today > $ev['end_date'] ? $ev['end_date'] : $today);
         $total = days_between($ev['start_date'], $ev['end_date']) + 1;
-        render('experience', ['ev' => $ev, 'sections' => $sections, 'entries' => $entries, 'filter' => $filter, 'addDate' => $addDate, 'total' => $total,
+        $pc = db()->prepare('SELECT COUNT(*) FROM entry_photos p JOIN entries e ON e.id = p.entry_id WHERE e.event_id = ? AND e.user_id = ?'); $pc->execute([$ev['id'], $uid]);
+        render('experience', ['movies' => movies_for_event((int)$ev['id'], $uid), 'photoTotal' => (int)$pc->fetchColumn(), 'ev' => $ev, 'sections' => $sections, 'entries' => $entries, 'filter' => $filter, 'addDate' => $addDate, 'total' => $total,
             'dayNo' => ($today >= $ev['start_date'] && $today <= $ev['end_date']) ? days_between($ev['start_date'], $today) + 1 : 0,
             'upTo' => $today < $ev['start_date'] ? days_between($today, $ev['start_date']) : 0], $ev['title']);
         exit;

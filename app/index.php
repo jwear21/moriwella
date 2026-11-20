@@ -304,6 +304,7 @@ if ($path === '/water' && $post) {
     json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day), 'unlocked' => $oz >= 64 ? achievements_eval($uid, ['day' => $day]) : []]);
 }
 
+require __DIR__ . '/src/movies.php';
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
 require __DIR__ . '/src/transfer.php';

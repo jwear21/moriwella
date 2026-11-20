@@ -264,6 +264,28 @@ function migrate(PDO $p): void {
           DELETE FROM tracker_on WHERE tkey = 'mood';
           PRAGMA user_version = 13;");
     }
+    if ($v < 14) {
+        $p->exec("CREATE TABLE movies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            status TEXT NOT NULL DEFAULT 'queued',
+            progress INTEGER NOT NULL DEFAULT 0,
+            theme TEXT NOT NULL DEFAULT 'evergreen',
+            length TEXT NOT NULL DEFAULT 'full',
+            subtitle TEXT NOT NULL DEFAULT '',
+            closing TEXT NOT NULL DEFAULT '',
+            file TEXT NOT NULL DEFAULT '',
+            bytes INTEGER NOT NULL DEFAULT 0,
+            seconds REAL NOT NULL DEFAULT 0,
+            error TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            started_at INTEGER NOT NULL DEFAULT 0,
+            finished_at INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE INDEX movies_event ON movies (event_id, id);
+          PRAGMA user_version = 14;");
+    }
 }
 
 /* ---------- request setup ---------- */

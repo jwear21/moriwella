@@ -374,3 +374,16 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .demo-res{list-style:none;margin:0 0 1rem;padding:0;display:flex;flex-direction:column;gap:.55rem}
 .demo-res li{display:flex;flex-direction:column;gap:.1rem;min-width:0;overflow-wrap:anywhere}
 .demo-res .err{color:#8A2E1F}
+
+/* memory movies */
+.movie-card video{width:100%;max-width:100%;border-radius:8px;background:#163E30;display:block}
+.movie-row{margin:1rem 0}
+.movie-actions{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-top:.5rem}
+.movie-actions form{margin:0}
+.movie-new summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.movie-new form{display:grid;gap:.4rem;margin-top:.5rem}
+.err-text{color:#8a2f1f}
+
+/* account buttons line up */
+.acct-actions{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+.acct-actions .btn,.acct-actions form{margin:0}

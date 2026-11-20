@@ -61,6 +61,48 @@
   </article>
 <?php endforeach; endif; ?>
 
+<?php if ($photoTotal >= 3 || $movies): $busy = false; foreach ($movies as $mv) if (in_array($mv['status'], ['queued', 'rendering'], true)) $busy = true; ?>
+<h2 class="section-h" id="movie">Memory movie</h2>
+<section class="card movie-card">
+  <p class="subtle">Turn this experience into a short film with a title card, your photos and a line from each moment.</p>
+  <?php foreach ($movies as $mv): ?>
+    <div class="movie-row" data-movie="<?= (int)$mv['id'] ?>" data-status="<?= e($mv['status']) ?>" data-url="<?= url('/movies/' . $mv['id'] . '/status') ?>">
+      <?php if ($mv['status'] === 'done'): ?>
+        <video controls playsinline preload="metadata" src="<?= url('/movies/' . $mv['id'] . '/file') ?>"></video>
+        <p class="hint"><?= e(MV_THEMES[$mv['theme']]['name'] ?? '') ?> · <?= (int)round($mv['seconds']) ?> seconds · <?= round($mv['bytes'] / 1048576, 1) ?> MB · made <?= e(date('M j', (int)$mv['finished_at'])) ?></p>
+        <p class="movie-actions"><a class="btn btn--quiet" href="<?= url('/movies/' . $mv['id'] . '/file') ?>?dl=1">Download</a>
+          <form method="post" action="<?= url('/movies/' . $mv['id'] . '/delete') ?>" data-confirm="Delete this movie? Your photos and entries are not affected."><?= csrf_field() ?><button class="btn btn--quiet" type="submit">Delete</button></form></p>
+      <?php elseif ($mv['status'] === 'failed'): ?>
+        <p class="err-text"><?= e($mv['error']) ?></p>
+        <form method="post" action="<?= url('/movies/' . $mv['id'] . '/delete') ?>"><?= csrf_field() ?><button class="btn btn--quiet" type="submit">Dismiss</button></form>
+      <?php else: ?>
+        <p><strong class="movie-state"><?= $mv['status'] === 'queued' ? 'Waiting for its turn' : 'Making your movie' ?></strong> <span class="hint movie-pct"><?= (int)$mv['progress'] ?>%</span></p>
+        <div class="progress"><div class="bar" style="width:<?= (int)$mv['progress'] ?>%"></div></div>
+        <p class="hint">You can leave this page. It takes a couple of minutes.</p>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+  <?php if (!$busy && $photoTotal >= 3): ?>
+  <details class="movie-new"<?= $movies ? '' : ' open' ?>>
+    <summary><?= $movies ? 'Make another version' : 'Make a movie' ?></summary>
+    <form method="post" action="<?= url('/experiences/' . $ev['id'] . '/movie') ?>">
+      <?= csrf_field() ?>
+      <label for="mv-theme">Look</label>
+      <select id="mv-theme" name="theme"><?php foreach (MV_THEMES as $k => $t): ?><option value="<?= e($k) ?>"><?= e($t['name']) ?></option><?php endforeach; ?></select>
+      <label for="mv-len">Length</label>
+      <select id="mv-len" name="length"><?php foreach (MV_LENGTHS as $k => $t): ?><option value="<?= e($k) ?>"<?= $k === 'full' ? ' selected' : '' ?>><?= e($t['name']) ?></option><?php endforeach; ?></select>
+      <label for="mv-sub">Opening line (optional)</label>
+      <input id="mv-sub" name="subtitle" maxlength="90" placeholder="For the family, with love">
+      <label for="mv-close">Closing note (optional)</label>
+      <input id="mv-close" name="closing" maxlength="160" placeholder="Thank you for the best week">
+      <button class="btn" type="submit">Make my movie</button>
+    </form>
+  </details>
+  <?php endif; ?>
+</section>
+<script src="<?= url('/static/movie.js') ?>" defer></script>
+<?php endif; ?>
+
 <h2 class="section-h" id="sections">Sections</h2>
 <section class="card write">
   <p class="subtle">Rename them, change the prompt that appears while you write, or add your own.</p>
