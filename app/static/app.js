@@ -337,3 +337,8 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('click', function (e) { if (!panel.hidden && !box.contains(e.target)) setOpen(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) setOpen(false, true); });
 });
+
+/* A confirmation dialog the server asks to show once the page loads */
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('dialog[data-autoshow]').forEach(function (d) { if (d.showModal) { try { d.showModal(); } catch (e) {} } });
+});
