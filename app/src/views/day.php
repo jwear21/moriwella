@@ -20,14 +20,20 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <p class="hint">Tap a cup for each 8 oz. Tap the last filled cup again to undo.</p>
 </section>
 
+<?php $hasDay = count($entries) > 0; ?>
 <section class="card write">
   <form method="post" action="<?= url('/entries') ?>" id="entry-form" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <input type="hidden" name="entry_date" id="entry-date" value="<?= e($day) ?>">
-    <label class="sr-only" for="title">Title (optional)</label>
-    <input id="title" name="title" maxlength="200" placeholder="Title (optional)" class="title-in">
+    <?php if ($hasDay): ?>
+      <label class="check-row"><input type="checkbox" name="separate" value="1" id="separate"> Make this its own entry</label>
+      <div id="title-wrap" hidden><label class="sr-only" for="title">Title</label><input id="title" name="title" maxlength="200" placeholder="Title for this entry" class="title-in"></div>
+    <?php else: ?>
+      <label class="sr-only" for="title">Title (optional)</label>
+      <input id="title" name="title" maxlength="200" placeholder="Title (optional)" class="title-in">
+    <?php endif; ?>
     <label class="sr-only" for="body">What's on your mind?</label>
-    <textarea id="body" name="body" rows="7" placeholder="<?= $isToday ? 'What\'s on your mind today?' : 'What happened this day?' ?>" <?= $isToday ? 'data-draft="mw-draft-body"' : '' ?>></textarea>
+    <textarea id="body" name="body" rows="7" placeholder="<?= $hasDay ? ($isToday ? 'What happened next?' : 'Add more to this day…') : ($isToday ? 'What\'s on your mind today?' : 'What happened this day?') ?>" <?= $isToday ? 'data-draft="mw-draft-body"' : '' ?>></textarea>
     <div class="photo-pick">
       <label class="btn btn--quiet" for="photos">Add photos</label>
       <input id="photos" type="file" name="photos[]" accept="image/*" multiple class="sr-only">
@@ -40,12 +46,12 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <div class="progress" id="upload-progress" hidden><div class="bar" id="upload-bar"></div></div>
     <div class="write-foot">
       <span class="hint" id="draft-state" aria-live="polite"></span>
-      <button class="btn" type="submit" id="save-btn">Save entry</button>
+      <button class="btn" type="submit" id="save-btn"><?= $hasDay ? ($isToday ? 'Add to your day' : 'Add to this day') : 'Save entry' ?></button>
     </div>
   </form>
 </section>
 
-<h2 class="section-h"><?= $isToday ? 'Today\'s pages' : 'Pages from this day' ?></h2>
+<h2 class="section-h"><?= $isToday ? 'Your day so far' : 'This day' ?></h2>
 <?php if (!$entries): ?>
   <p class="subtle"><?= $isToday ? 'Nothing yet today. Even one sentence counts.' : 'No entries on this day.' ?></p>
 <?php else: foreach ($entries as $en): ?>
@@ -61,3 +67,8 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <p><a class="link" href="<?= url('/entries/' . $en['id']) ?>">Edit</a></p>
   </article>
 <?php endforeach; endif; ?>
+<?php if (count($entries) > 1): ?>
+  <form method="post" action="<?= url('/day/' . $day . '/combine') ?>" data-confirm="Combine these into one page? Photos move with them.">
+    <?= csrf_field() ?><button class="btn btn--quiet" type="submit">Combine into one page</button>
+  </form>
+<?php endif; ?>

@@ -2,5 +2,9 @@ Options -Indexes
 DirectoryIndex index.php
 RewriteEngine On
 RewriteBase /app/
+# Always use the secure address
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^ index.php [L]

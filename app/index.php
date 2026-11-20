@@ -123,6 +123,28 @@ function render_day(array $user, string $day): void {
 
 if ($path === '/') { render_day($user, date('Y-m-d')); exit; }
 
+if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})/combine$#', $path, $m) && $post) {
+    $d = $m[1]; if (!valid_date($d)) redirect(url('/'));
+    $q = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? ORDER BY id'); $q->execute([$uid, $d]);
+    $rows = $q->fetchAll();
+    if (count($rows) > 1) {
+        $keep = array_shift($rows); $title = $keep['title']; $parts = $keep['body'] === '' ? [] : [$keep['body']];
+        foreach ($rows as $r) {
+            $chunk = trim(($r['title'] !== '' && $title !== '' ? $r['title'] . "\n" : '') . $r['body']);
+            if ($title === '' && $r['title'] !== '') $title = $r['title'];
+            if ($chunk !== '') $parts[] = $chunk;
+        }
+        db()->beginTransaction();
+        db()->prepare('UPDATE entries SET title = ?, body = ?, updated_at = ? WHERE id = ?')->execute([$title, mb_substr(implode("\n\n", $parts), 0, 50000), time(), $keep['id']]);
+        foreach ($rows as $r) {
+            db()->prepare('UPDATE entry_photos SET entry_id = ? WHERE entry_id = ? AND user_id = ?')->execute([$keep['id'], $r['id'], $uid]);
+            db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$r['id'], $uid]);
+        }
+        db()->commit();
+        flash('ok', 'Combined into one page.');
+    }
+    redirect(url('/day/' . $d));
+}
 if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})$#', $path, $m)) {
     if (!valid_date($m[1])) redirect(url('/'));
     render_day($user, $m[1]); exit;
@@ -170,9 +192,18 @@ if ($path === '/entries' && $post) {
     $hasPhotos = false; foreach (normalize_files('photos') as $f) { if ($f['error'] !== UPLOAD_ERR_NO_FILE) $hasPhotos = true; }
     if ($title === '' && $body === '' && !$hasPhotos) { flash('err', 'Write something or add a photo first.'); redirect(url('/day/' . $date)); }
     $now = time();
-    db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-        ->execute([$uid, $date, $title, $body, $now, $now]);
-    $entryId = (int)db()->lastInsertId();
+    $mainQ = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? ORDER BY id LIMIT 1'); $mainQ->execute([$uid, $date]);
+    $main = $mainQ->fetch();
+    if ($main && empty($_POST['separate'])) {
+        /* Add to the day's page as a new paragraph */
+        $joined = $main['body'] === '' ? $body : ($body === '' ? $main['body'] : $main['body'] . "\n\n" . $body);
+        db()->prepare('UPDATE entries SET body = ?, updated_at = ? WHERE id = ? AND user_id = ?')->execute([mb_substr($joined, 0, 50000), $now, $main['id'], $uid]);
+        $entryId = (int)$main['id'];
+    } else {
+        db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$uid, $date, $title, $body, $now, $now]);
+        $entryId = (int)db()->lastInsertId();
+    }
     $errs = save_uploaded_photos($entryId, $uid);
     $n = db()->prepare('SELECT COUNT(*) FROM entries WHERE user_id = ?'); $n->execute([$uid]);
     if ($errs) { flash('err', 'Entry saved. ' . implode(' ', $errs)); }

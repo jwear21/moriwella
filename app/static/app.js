@@ -50,6 +50,10 @@
     else celebrate({ level: 'small', origin: c });
   }
 
+  /* Show the title box only when starting a separate entry */
+  var sep = document.getElementById('separate'), tw = document.getElementById('title-wrap');
+  if (sep && tw) sep.addEventListener('change', function () { tw.hidden = !sep.checked; if (sep.checked) { var ti = document.getElementById('title'); if (ti) ti.focus(); } });
+
   /* Photo previews before saving (gallery picker and camera) */
   var pin = document.getElementById('photos'), cam = document.getElementById('camera'), prev = document.getElementById('photo-preview'), ps = document.getElementById('photo-state');
   function showPreviews() {
@@ -67,7 +71,7 @@
   [pin, cam].forEach(function (i) { if (i) i.addEventListener('change', showPreviews); });
 
   /* Save with a visible progress bar, so a big upload never looks frozen */
-  var ef = document.getElementById('entry-form'), sb = document.getElementById('save-btn');
+  var ef = document.getElementById('entry-form'), sb = document.getElementById('save-btn'), sbText = sb ? sb.textContent : 'Save entry';
   if (ef && sb && window.XMLHttpRequest && window.FormData) {
     ef.addEventListener('submit', function (e) {
       var hasFiles = (pin && pin.files.length) || (cam && cam.files.length);
@@ -81,7 +85,7 @@
         if (p.lengthComputable && bar) { var pct = Math.round(p.loaded / p.total * 100); bar.style.width = pct + '%'; sb.textContent = pct < 100 ? 'Uploading ' + pct + '%' : 'Processing photos…'; }
       };
       x.onload = function () { try { localStorage.removeItem('mw-draft-body'); } catch (er) {} var to = location.href; try { to = JSON.parse(x.responseText).redirect || to; } catch (er) {} window.location.href = to; };
-      x.onerror = function () { sb.disabled = false; sb.textContent = 'Save entry'; if (ps) ps.textContent = 'The upload didn\'t go through. Your text is still here, so try again.'; if (wrap) wrap.hidden = true; };
+      x.onerror = function () { sb.disabled = false; sb.textContent = sbText; if (ps) ps.textContent = 'The upload didn\'t go through. Your text is still here, so try again.'; if (wrap) wrap.hidden = true; };
       x.send(new FormData(ef));
     });
   }
