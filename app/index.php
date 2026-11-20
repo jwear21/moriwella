@@ -576,10 +576,22 @@ if (strpos($path, '/admin') === 0) {
         if ($err) flash('err', $err); else flash('ok', $t['name'] . ($mode === 'standard' ? ' is back on standard billing.' : ' now has a free ' . plan_for((string)$_POST['plan'])['name'] . ' plan with ' . (int)$_POST['seats'] . ' seat' . ((int)$_POST['seats'] === 1 ? '' : 's') . '.'));
         redirect(url('/admin#access'));
     }
-    if ($path === '/admin/credits' && $post) {
-        $uid = (int)($_POST['user_id'] ?? 0);
-        $ok = db()->prepare('SELECT id, name FROM users WHERE id = ?'); $ok->execute([$uid]); $t = $ok->fetch();
+    if (preg_match('#^/admin/users/(\d+)/role$#', $path, $m) && $post) {
+        $s = db()->prepare('SELECT * FROM users WHERE id = ?'); $s->execute([(int)$m[1]]); $t = $s->fetch();
+        $make = ($_POST['role'] ?? '') === 'admin' ? 'admin' : 'member';
         if (!$t) { flash('err', 'Choose a person.'); redirect(url('/admin')); }
+        if ($make === 'member' && (int)$t['id'] === (int)$admin['id']) { flash('err', 'You can\'t remove your own administrator access. Ask another administrator.'); redirect(url('/admin')); }
+        if ($make === 'admin' && $t['status'] !== 'active') { flash('err', $t['name'] . ' needs to finish setting up their account first.'); redirect(url('/admin')); }
+        if ($make === 'member' && (int)db()->query("SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'active'")->fetchColumn() < 2) { flash('err', 'There must always be at least one administrator.'); redirect(url('/admin')); }
+        db()->prepare('UPDATE users SET role = ? WHERE id = ?')->execute([$make, $t['id']]);
+        billing_log('admin ' . $admin['id'] . ' set user ' . $t['id'] . ' role to ' . $make);
+        flash('ok', $t['name'] . ($make === 'admin' ? ' is now an administrator.' : ' is no longer an administrator.'));
+        redirect(url('/admin?' . http_build_query(array_filter(['q' => (string)($_POST['q'] ?? ''), 'page' => (int)($_POST['page'] ?? 0) ?: null]))));
+    }
+    if ($path === '/admin/credits' && $post) {
+        $em = strtolower(trim((string)($_POST['email'] ?? '')));
+        $ok = db()->prepare('SELECT id, name FROM users WHERE email = ?'); $ok->execute([$em]); $t = $ok->fetch(); $uid = (int)($t['id'] ?? 0);
+        if (!$t) { flash('err', 'No account has that email address.'); redirect(url('/admin')); }
         $n = (int)($_POST['amount'] ?? 0);
         if (credits_admin_grant((int)$admin['id'], $uid, $n, trim((string)($_POST['reason'] ?? ''))) !== null) flash('err', 'Enter a number from 1 to 500.');
         else flash('ok', $n . ($n === 1 ? ' movie credit' : ' movie credits') . ' given to ' . $t['name'] . '.');
@@ -589,14 +601,20 @@ if (strpos($path, '/admin') === 0) {
         $grants = db()->query("SELECT l.*, u.name FROM credit_ledger l JOIN users u ON u.id = l.user_id WHERE l.stripe_ref LIKE 'admin:%' ORDER BY l.id DESC LIMIT 15")->fetchAll();
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
         $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
+        $q = trim((string)($_GET['q'] ?? '')); $per = 25; $page = max(1, (int)($_GET['page'] ?? 1));
+        $where = ''; $args = [];
+        if ($q !== '') { $where = "WHERE name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'"; $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%'; $args = [$like, $like]; }
+        $cnt = db()->prepare("SELECT COUNT(*) FROM users $where"); $cnt->execute($args); $total = (int)$cnt->fetchColumn();
+        $pages = max(1, (int)ceil($total / $per)); $page = min($page, $pages);
+        $lst = db()->prepare("SELECT * FROM users $where ORDER BY (role = 'admin') DESC, name COLLATE NOCASE LIMIT $per OFFSET " . (($page - 1) * $per)); $lst->execute($args);
         $access = [];
-        foreach (db()->query("SELECT * FROM users WHERE status <> 'disabled' ORDER BY role DESC, name")->fetchAll() as $u) {
+        foreach ($lst->fetchAll() as $u) {
             $h = household_of((int)$u['id']);
             if ($h && (int)$h['owner_user_id'] !== (int)$u['id']) { $o = db()->prepare('SELECT name FROM users WHERE id = ?'); $o->execute([$h['owner_user_id']]); $access[] = ['u' => $u, 'member_of' => (string)$o->fetchColumn()]; continue; }
             $sub = $h ? subscription_of((int)$h['id']) : null;
             $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
         }
-        render('admin', ['access' => $access, 'grants' => $grants, 'users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
+        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
         exit;
     }
 }
