@@ -42,7 +42,7 @@ function transfer_safe_name(string $n): string {
 function transfer_export_moriwella(int $uid, array $user): string {
     $zipPath = transfer_tmp($uid) . '/export-' . bin2hex(random_bytes(4)) . '.zip';
     $zip = new ZipArchive();
-    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Could not start the archive.');
+    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new RuntimeException(tt('msg.could_not_start_the_archive'));
     $q = db()->prepare('SELECT e.*, ev.title AS event_title FROM entries e LEFT JOIN events ev ON ev.id = e.event_id WHERE e.user_id = ? ORDER BY e.entry_date, e.id');
     $q->execute([$uid]); $rows = $q->fetchAll();
     $photos = photos_for_entries(array_column($rows, 'id'));
@@ -96,7 +96,7 @@ function transfer_entry_ts(array $r, array $parts): int {
 function transfer_export_evernote(int $uid): string {
     [$rows, $photos] = transfer_export_rows($uid);
     $path = transfer_tmp($uid) . '/export-' . bin2hex(random_bytes(4)) . '.enex';
-    $f = fopen($path, 'wb'); if (!$f) throw new RuntimeException('Could not start the export.');
+    $f = fopen($path, 'wb'); if (!$f) throw new RuntimeException(tt('msg.could_not_start_the_export'));
     $utc = fn(int $t) => gmdate('Ymd\THis\Z', $t);
     fwrite($f, '<?xml version="1.0" encoding="UTF-8"?>' . "\n" . '<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">' . "\n");
     fwrite($f, '<en-export export-date="' . $utc(time()) . '" application="Moriwella" version="1.0">' . "\n");
@@ -135,7 +135,7 @@ function transfer_export_evernote(int $uid): string {
 function transfer_export_dayone(int $uid): string {
     [$rows, $photos] = transfer_export_rows($uid);
     $zipPath = transfer_tmp($uid) . '/export-' . bin2hex(random_bytes(4)) . '.zip';
-    $zip = new ZipArchive(); if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Could not start the export.');
+    $zip = new ZipArchive(); if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) throw new RuntimeException(tt('msg.could_not_start_the_export'));
     $tz = date_default_timezone_get(); $entries = []; $added = [];
     foreach ($rows as $r) {
         $parts = body_parts($r['body'], (int)$r['created_at']);
@@ -167,20 +167,20 @@ function transfer_export_dayone(int $uid): string {
 /* manifest = ['source'=>, 'entries'=>[ ['date','ts','title','paragraphs'=>[['ts','text']],'photos'=>[['file','name']],'key'] ] ] ; photo files live in the work folder */
 function transfer_open_zip(string $file): ZipArchive {
     $zip = new ZipArchive();
-    if ($zip->open($file) !== true) throw new RuntimeException('That file does not look like a ZIP.');
+    if ($zip->open($file) !== true) throw new RuntimeException(tt('msg.that_file_does_not_look'));
     $total = 0;
     for ($i = 0; $i < $zip->numFiles; $i++) { $total += (int)($zip->statIndex($i)['size'] ?? 0); }
-    if ($total > 4 * 1024 * 1024 * 1024) throw new RuntimeException('That archive is larger than we can read here.');
+    if ($total > 4 * 1024 * 1024 * 1024) throw new RuntimeException(tt('msg.that_archive_is_larger_than'));
     return $zip;
 }
 function transfer_read_moriwella(string $file, string $work): array {
     $zip = transfer_open_zip($file);
     $raw = $zip->getFromName('moriwella.json');
     $j = $raw === false ? null : json_decode($raw, true);
-    if (!is_array($j) || ($j['format'] ?? '') !== 'moriwella-archive') throw new RuntimeException('This is not a Moriwella archive. It should contain a file called moriwella.json.');
+    if (!is_array($j) || ($j['format'] ?? '') !== 'moriwella-archive') throw new RuntimeException(tt('msg.this_is_not_a_moriwella'));
     $entries = []; $nPhotos = 0; $n = 0;
     foreach (($j['entries'] ?? []) as $e) {
-        if (++$n > TRANSFER_MAX_ENTRIES) throw new RuntimeException('That archive has more entries than we can import at once.');
+        if (++$n > TRANSFER_MAX_ENTRIES) throw new RuntimeException(tt('msg.that_archive_has_more_entries'));
         $date = (string)($e['date'] ?? ''); if (!valid_date($date)) continue;
         $paras = [];
         foreach (($e['paragraphs'] ?? []) as $p) { $t = trim((string)($p['text'] ?? '')); if ($t !== '') $paras[] = ['ts' => (int)($p['time'] ?? 0), 'text' => $t]; }
@@ -229,21 +229,21 @@ function transfer_face_for(array $feelings): int {
     if (!$n) return 0; $avg = $score / $n; return $avg > 0.4 ? 4 : ($avg < -0.4 ? 2 : 3);
 }
 function transfer_read_daylio(string $file, string $work): array {
-    $h = @fopen($file, 'r'); if (!$h) throw new RuntimeException('That file could not be opened.');
-    $first = fgets($h); if ($first === false) throw new RuntimeException('That file is empty.');
+    $h = @fopen($file, 'r'); if (!$h) throw new RuntimeException(tt('msg.that_file_could_not_be'));
+    $first = fgets($h); if ($first === false) throw new RuntimeException(tt('msg.that_file_is_empty'));
     $first = preg_replace('/^\xEF\xBB\xBF/', '', $first);
     $delim = substr_count($first, ';') > substr_count($first, ',') ? ';' : ',';
     $cols = array_map(fn($c) => strtolower(trim((string)$c)), str_getcsv(trim($first), $delim));
     $idx = array_flip($cols);
     $hasDate = isset($idx['full_date']) || (isset($idx['year']) && isset($idx['date']));
-    if (!$hasDate || !isset($idx['mood'])) { fclose($h); throw new RuntimeException('This does not look like a Daylio CSV. Export with More, Export Entries, CSV (table).'); }
+    if (!$hasDate || !isset($idx['mood'])) { fclose($h); throw new RuntimeException(tt('msg.this_does_not_look_like')); }
     rewind($h); fgets($h);
     $moodMap = transfer_mood_map();
     $entries = []; $moodLog = []; $noteless = 0; $rows = 0; $timed = isset($idx['time']);
     $get = function (array $r, string $k) use ($idx): string { return isset($idx[$k], $r[$idx[$k]]) ? trim((string)$r[$idx[$k]]) : ''; };
     while (($r = fgetcsv($h, 0, $delim)) !== false) {
         if (!$r || (count($r) === 1 && trim((string)$r[0]) === '')) continue;
-        if (++$rows > TRANSFER_MAX_ENTRIES) { fclose($h); throw new RuntimeException('That file has more rows than we can import at once.'); }
+        if (++$rows > TRANSFER_MAX_ENTRIES) { fclose($h); throw new RuntimeException(tt('msg.that_file_has_more_rows')); }
         $time = $get($r, 'time'); if ($time === '') $time = '12:00';
         $ts = 0; $date = '';
         if (isset($idx['full_date']) && $get($r, 'full_date') !== '') $stamp = strtotime($get($r, 'full_date') . ' ' . $time);
@@ -260,7 +260,7 @@ function transfer_read_daylio(string $file, string $work): array {
         $paras = [];
         foreach (preg_split('/\n{2,}/', $note) as $i => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $i === 0 ? $ts : 0, 'text' => $t]; }
         if (!$paras) $paras[] = ['ts' => $ts, 'text' => $title]; 
-        if ($acts !== '') $paras[] = ['ts' => 0, 'text' => 'Activities: ' . implode(', ', array_map('trim', explode('|', $acts)))];
+        if ($acts !== '') $paras[] = ['ts' => 0, 'text' => tt('msg.activities') . implode(', ', array_map('trim', explode('|', $acts)))];
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => [], 'key' => 'dl:' . sha1($ts . '|' . $note . '|' . $title)];
     }
     fclose($h);
@@ -278,7 +278,7 @@ function transfer_html_to_text(string $html): string {
 }
 function transfer_read_journey(string $file, string $work): array {
     $zip = transfer_open_zip($file);
-    if ($zip->numFiles > 60000) throw new RuntimeException('That archive has more files than we can read at once.');
+    if ($zip->numFiles > 60000) throw new RuntimeException(tt('msg.that_archive_has_more_files'));
     $byBase = []; $jsons = [];
     for ($i = 0; $i < $zip->numFiles; $i++) {
         $st = $zip->statIndex($i); $n = $st['name'] ?? ''; if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
@@ -290,7 +290,7 @@ function transfer_read_journey(string $file, string $work): array {
     foreach ($jsons as $i) {
         $j = json_decode((string)$zip->getFromIndex($i), true);
         if (!is_array($j) || !isset($j['date_journal']) || !array_key_exists('text', $j)) { $skipped++; continue; }
-        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That archive has more entries than we can import at once.'); }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException(tt('msg.that_archive_has_more_entries')); }
         $ms = (float)$j['date_journal']; if ($ms <= 0) { $skipped++; continue; }
         $ts = (int)floor($ms / 1000);
         $tzName = (string)($j['timezone'] ?? ''); $date = '';
@@ -302,7 +302,7 @@ function transfer_read_journey(string $file, string $work): array {
         $paras = [];
         foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
         $tags = array_values(array_filter(array_map(fn($t) => trim((string)$t), is_array($j['tags'] ?? null) ? $j['tags'] : [])));
-        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => tt('msg.tags') . implode(', ', $tags)];
         $photos = [];
         foreach ((is_array($j['photos'] ?? null) ? $j['photos'] : []) as $ph) {
             $name = is_string($ph) ? $ph : (string)($ph['filename'] ?? $ph['name'] ?? ''); $b = strtolower(basename($name));
@@ -316,7 +316,7 @@ function transfer_read_journey(string $file, string $work): array {
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => '', 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'jn:' . sha1((string)($j['id'] ?? '') . '|' . $ms)];
     }
     $zip->close();
-    if (!$entries) throw new RuntimeException('We did not find any Journey entries in that ZIP. It should hold one .json file per entry.');
+    if (!$entries) throw new RuntimeException(tt('msg.we_did_not_find_any'));
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'journey', 'entries' => $entries, 'skipped' => $skipped];
 }
@@ -326,7 +326,7 @@ function transfer_enex_time(string $t): int {
 }
 function transfer_read_evernote(string $file, string $work): array {
     $r = new XMLReader();
-    if (!@$r->open($file, null, LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE)) throw new RuntimeException('That file could not be opened.');
+    if (!@$r->open($file, null, LIBXML_NONET | LIBXML_COMPACT | LIBXML_PARSEHUGE)) throw new RuntimeException(tt('msg.that_file_could_not_be'));
     $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $otherFiles = 0; $sawExport = false;
     libxml_use_internal_errors(true);
     while (@$r->read()) {
@@ -336,7 +336,7 @@ function transfer_read_evernote(string $file, string $work): array {
         $node = @$r->expand(); if (!$node) { $skipped++; continue; }
         $doc = new DOMDocument(); $doc->appendChild($doc->importNode($node, true));
         $x = simplexml_import_dom($doc); if (!$x) { $skipped++; continue; }
-        if (++$n > TRANSFER_MAX_ENTRIES) { $r->close(); throw new RuntimeException('That file has more notes than we can import at once.'); }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $r->close(); throw new RuntimeException(tt('msg.that_file_has_more_notes')); }
         $title = mb_substr(trim((string)$x->title), 0, 200);
         $ts = transfer_enex_time((string)$x->created) ?: transfer_enex_time((string)$x->updated);
         if (!$ts) { $skipped++; continue; }
@@ -349,7 +349,7 @@ function transfer_read_evernote(string $file, string $work): array {
         $paras = [];
         foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
         $tags = []; foreach ($x->tag as $tg) { $tg = trim((string)$tg); if ($tg !== '') $tags[] = $tg; }
-        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+        if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => tt('msg.tags') . implode(', ', $tags)];
         $photos = [];
         foreach ($x->resource as $res) {
             $mime = strtolower(trim((string)$res->mime));
@@ -367,8 +367,8 @@ function transfer_read_evernote(string $file, string $work): array {
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'en:' . sha1($title . '|' . $ts . '|' . $text)];
     }
     $r->close(); libxml_clear_errors();
-    if (!$sawExport && !$entries) throw new RuntimeException('This does not look like an Evernote export. In Evernote, choose File, Export, and pick ENEX.');
-    if (!$entries) throw new RuntimeException('We did not find any notes in that file.');
+    if (!$sawExport && !$entries) throw new RuntimeException(tt('msg.this_does_not_look_like_2'));
+    if (!$entries) throw new RuntimeException(tt('msg.we_did_not_find_any_2'));
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'evernote', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $otherFiles];
 }
@@ -380,12 +380,12 @@ function transfer_read_diaro(string $file, string $work): array {
         $n = (string)($zip->statIndex($i)['name'] ?? ''); if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
         if (strcasecmp(basename($n), 'DiaroBackup.xml') === 0) $xmlIdx = $i; else $media[strtolower(ltrim($n, './'))] = $i;
     }
-    if ($xmlIdx === null) throw new RuntimeException('This does not look like a Diaro backup. It should contain a file called DiaroBackup.xml.');
+    if ($xmlIdx === null) throw new RuntimeException(tt('msg.this_does_not_look_like_3'));
     $raw = $zip->getFromIndex($xmlIdx);
-    if ($raw === false || $raw === '') throw new RuntimeException('This Diaro backup is encrypted. In Diaro, make a new backup with encryption turned off and try again.');
+    if ($raw === false || $raw === '') throw new RuntimeException(tt('msg.this_diaro_backup_is_encrypted'));
     libxml_use_internal_errors(true);
     $xml = simplexml_load_string($raw, 'SimpleXMLElement', LIBXML_NONET | LIBXML_PARSEHUGE | LIBXML_COMPACT); unset($raw);
-    if (!$xml) throw new RuntimeException('This Diaro backup is encrypted or damaged. If it is encrypted, make a new backup with encryption turned off.');
+    if (!$xml) throw new RuntimeException(tt('msg.this_diaro_backup_is_encrypted_2'));
     $tables = [];
     foreach ($xml->table as $t) { $tables[(string)$t['name']] = $t; }
     $tags = []; if (isset($tables['diaro_tags'])) foreach ($tables['diaro_tags']->children() as $r) $tags[transfer_xml_text($r, 'uid')] = transfer_xml_text($r, 'title');
@@ -395,10 +395,10 @@ function transfer_read_diaro(string $file, string $work): array {
         $fn = transfer_xml_text($r, 'filename'); $ty = transfer_xml_text($r, 'type') ?: 'photo'; if ($fn === '' || $ty !== 'photo') continue;
         $atts[transfer_xml_text($r, 'entry_uid')][] = ['type' => $ty, 'filename' => $fn];
     }
-    if (!isset($tables['diaro_entries'])) throw new RuntimeException('We did not find any entries in that Diaro backup.');
+    if (!isset($tables['diaro_entries'])) throw new RuntimeException(tt('msg.we_did_not_find_any_3'));
     $entries = []; $nPhotos = 0; $n = 0; $skipped = 0;
     foreach ($tables['diaro_entries']->children() as $r) {
-        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That backup has more entries than we can import at once.'); }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException(tt('msg.that_backup_has_more_entries')); }
         $ms = (float)transfer_xml_text($r, 'date'); if ($ms <= 0) { $skipped++; continue; }
         $ts = (int)floor($ms / 1000);
         $off = transfer_xml_text($r, 'tz_offset'); $secs = null;
@@ -410,7 +410,7 @@ function transfer_read_diaro(string $file, string $work): array {
         $paras = [];
         foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
         $tl = []; foreach (explode(',', transfer_xml_text($r, 'tags')) as $tid) { $tid = trim($tid); if ($tid !== '' && !empty($tags[$tid])) $tl[] = $tags[$tid]; }
-        if ($tl && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tl)];
+        if ($tl && $paras) $paras[] = ['ts' => 0, 'text' => tt('msg.tags') . implode(', ', $tl)];
         $mt = $moodTitles[transfer_xml_text($r, 'mood')] ?? ''; $mk = mb_strtolower(trim($mt));
         if ($mk !== '') { if (isset($moodMap[$mk])) $moodLog[] = ['day' => $date, 'ts' => $ts, 'v' => $moodMap[$mk]]; if (($fk = transfer_feeling_for($mk)) !== null) $feelLog[] = ['day' => $date, 'feeling' => $fk]; }
         $uid = transfer_xml_text($r, 'uid'); $photos = [];
@@ -426,7 +426,7 @@ function transfer_read_diaro(string $file, string $work): array {
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'dr:' . sha1(($uid !== '' ? $uid : $ts . $title))];
     }
     $zip->close(); libxml_clear_errors();
-    if (!$entries) throw new RuntimeException('We did not find any entries in that Diaro backup.');
+    if (!$entries) throw new RuntimeException(tt('msg.we_did_not_find_any_3'));
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'diaro', 'entries' => $entries, 'skipped' => $skipped, 'moods' => $moodLog, 'feelings' => $feelLog];
 }
@@ -446,7 +446,7 @@ function transfer_read_dayone(string $file, string $work): array {
         $n = (string)($zip->statIndex($i)['name'] ?? ''); if ($n === '' || substr($n, -1) === '/' || strpos($n, '__MACOSX') !== false) continue;
         if (substr(strtolower($n), -5) === '.json' && substr_count($n, '/') <= 1) $jsons[] = $i; else $byBase[strtolower(basename($n))] = $i;
     }
-    if (!$jsons) throw new RuntimeException('We did not find a Day One journal in that ZIP. It should hold a .json file such as Journal.json.');
+    if (!$jsons) throw new RuntimeException(tt('msg.we_did_not_find_a'));
     $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0; $found = false;
     foreach ($jsons as $ji) {
         $raw = $zip->getFromIndex($ji); $j = json_decode((string)$raw, true); unset($raw);
@@ -454,7 +454,7 @@ function transfer_read_dayone(string $file, string $work): array {
         $found = true;
         foreach ($j['entries'] as $e) {
             if (!is_array($e) || empty($e['creationDate'])) { $skipped++; continue; }
-            if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That journal has more entries than we can import at once.'); }
+            if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException(tt('msg.that_journal_has_more_entries')); }
             $ts = strtotime((string)$e['creationDate']); if (!$ts) { $skipped++; continue; }
             try { $date = (new DateTimeImmutable('@' . $ts))->setTimezone(new DateTimeZone((string)($e['timeZone'] ?? '') ?: date_default_timezone_get()))->format('Y-m-d'); }
             catch (Throwable $x) { $date = date('Y-m-d', $ts); }
@@ -466,7 +466,7 @@ function transfer_read_dayone(string $file, string $work): array {
             $paras = [];
             foreach (preg_split('/\n{2,}/', $text) as $k => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $k === 0 ? $ts : 0, 'text' => $t]; }
             $tags = array_values(array_filter(array_map(fn($t) => trim((string)$t), is_array($e['tags'] ?? null) ? $e['tags'] : [])));
-            if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => 'Tags: ' . implode(', ', $tags)];
+            if ($tags && $paras) $paras[] = ['ts' => 0, 'text' => tt('msg.tags') . implode(', ', $tags)];
             $photos = [];
             foreach ((is_array($e['photos'] ?? null) ? $e['photos'] : []) as $ph) {
                 $md5 = strtolower((string)($ph['md5'] ?? '')); $type = strtolower((string)($ph['type'] ?? '')); if ($md5 === '') continue;
@@ -485,14 +485,14 @@ function transfer_read_dayone(string $file, string $work): array {
             }
             $att = 0; foreach (['videos', 'audios', 'pdfAttachments'] as $k) $att += is_array($e[$k] ?? null) ? count($e[$k]) : 0;
             $other += $att;
-            if (!$paras && !$photos && $title === '' && $att) $paras[] = ['ts' => $ts, 'text' => 'This entry had video, audio or PDF attachments in Day One that were not brought over.'];
+            if (!$paras && !$photos && $title === '' && $att) $paras[] = ['ts' => $ts, 'text' => tt('msg.this_entry_had_video')];
             if (!$paras && !$photos && $title === '') { $skipped++; continue; }
             $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'd1:' . sha1((string)($e['uuid'] ?? $ts))];
         }
     }
     $zip->close();
-    if (!$found) throw new RuntimeException('That does not look like a Day One JSON export.');
-    if (!$entries) throw new RuntimeException('We did not find any entries in that Day One export.');
+    if (!$found) throw new RuntimeException(tt('msg.that_does_not_look_like'));
+    if (!$entries) throw new RuntimeException(tt('msg.we_did_not_find_any_4'));
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'dayone', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other];
 }
@@ -506,11 +506,11 @@ function transfer_read_apple(string $file, string $work): array {
         if (substr($low, -5) === '.html' && strtolower(basename($n)) !== 'index.html' && preg_match('#(^|/)entries/#', $low)) $htmls[] = $i;
         else $byBase[strtolower(basename($n))] = $i;
     }
-    if (!$htmls) throw new RuntimeException('We did not find any Apple Journal entries. The ZIP should have an Entries folder of .html files.');
+    if (!$htmls) throw new RuntimeException(tt('msg.we_did_not_find_any_5'));
     libxml_use_internal_errors(true);
     $entries = []; $nPhotos = 0; $n = 0; $skipped = 0; $other = 0; $moodLog = []; $feelLog = [];
     foreach ($htmls as $i) {
-        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException('That export has more entries than we can import at once.'); }
+        if (++$n > TRANSFER_MAX_ENTRIES) { $zip->close(); throw new RuntimeException(tt('msg.that_export_has_more_entries')); }
         $name = (string)$zip->statIndex($i)['name']; $html = (string)$zip->getFromIndex($i);
         $doc = new DOMDocument(); @$doc->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NONET | LIBXML_COMPACT); $xp = new DOMXPath($doc);
         $q1 = function (string $q) use ($xp) { $r = $xp->query($q); return $r && $r->length ? trim((string)$r->item(0)->textContent) : ''; };
@@ -522,7 +522,7 @@ function transfer_read_apple(string $file, string $work): array {
         $title = mb_substr($q1("//div[contains(concat(' ',normalize-space(@class),' '),' title ')]"), 0, 200);
         $prompt = $q1("//div[contains(concat(' ',normalize-space(@class),' '),' reflectionPrompt ')]");
         $paras = [];
-        if ($prompt !== '') $paras[] = ['ts' => 0, 'text' => 'Prompt: ' . $prompt];
+        if ($prompt !== '') $paras[] = ['ts' => 0, 'text' => tt('msg.prompt') . $prompt];
         foreach ($xp->query("//p[contains(@class,'p2') or contains(@class,'p3')]") as $p) { $t = trim(preg_replace('/[ \t]+/', ' ', str_replace("\xC2\xA0", ' ', (string)$p->textContent))); if ($t !== '') $paras[] = ['ts' => 0, 'text' => $t]; }
         $extras = [];
         $feels = []; $unmapped = [];
@@ -546,7 +546,7 @@ function transfer_read_apple(string $file, string $work): array {
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => $photos, 'key' => 'aj:' . sha1(basename($name) . '|' . $hdr . '|' . $title)];
     }
     $zip->close(); libxml_clear_errors();
-    if (!$entries) throw new RuntimeException('We did not find any readable entries in that Apple Journal export.');
+    if (!$entries) throw new RuntimeException(tt('msg.we_did_not_find_any_6'));
     usort($entries, fn($a, $b) => $a['ts'] <=> $b['ts']);
     return ['source' => 'apple', 'entries' => $entries, 'skipped' => $skipped, 'otherFiles' => $other, 'moods' => $moodLog, 'feelings' => $feelLog];
 }
@@ -560,7 +560,7 @@ function transfer_read(string $source, string $file, string $work): array {
         case 'dayone': return transfer_read_dayone($file, $work);
         case 'apple': return transfer_read_apple($file, $work);
     }
-    throw new RuntimeException('That app is not supported yet.');
+    throw new RuntimeException(tt('msg.that_app_is_not_supported'));
 }
 
 /* ---------- saving ---------- */
@@ -616,7 +616,7 @@ if ($path === '/transfer/export' && $post) {
         if ($fmt === 'evernote') { $file = transfer_export_evernote($uid); $name = 'moriwella-for-evernote-' . date('Y-m-d') . '.enex'; $type = 'application/xml'; }
         elseif ($fmt === 'dayone') { $file = transfer_export_dayone($uid); $name = 'moriwella-for-dayone-' . date('Y-m-d') . '.zip'; $type = 'application/zip'; }
         else { $file = transfer_export_moriwella($uid, $user); $name = 'moriwella-journal-' . date('Y-m-d') . '.zip'; $type = 'application/zip'; }
-    } catch (Throwable $e) { flash('err', 'Sorry, the export could not be made. Please try again.'); redirect(url('/transfer')); }
+    } catch (Throwable $e) { flash('err', tt('msg.sorry_the_export_could')); redirect(url('/transfer')); }
     header('Content-Type: ' . $type);
     header('Content-Disposition: attachment; filename="' . $name . '"');
     header('Content-Length: ' . filesize($file)); header('Cache-Control: private, no-store');
@@ -625,40 +625,40 @@ if ($path === '/transfer/export' && $post) {
 if ($path === '/transfer/upload' && $post) {
     @set_time_limit(0);
     $src = (string)($_POST['source'] ?? ''); $S = transfer_sources();
-    if (!isset($S[$src]) || !$S[$src]['ready']) { flash('err', 'Choose which app your file came from.'); redirect(url('/transfer') . '#import'); }
+    if (!isset($S[$src]) || !$S[$src]['ready']) { flash('err', tt('msg.choose_which_app_your')); redirect(url('/transfer') . '#import'); }
     $f = $_FILES['file'] ?? null;
     if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         $big = $f && in_array($f['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
-        flash('err', $big ? 'That file is larger than this server accepts (' . ini_get('upload_max_filesize') . ').' : 'Choose the file to bring in.'); redirect(url('/transfer') . '#import');
+        flash('err', $big ? tt('msg.import_file_too_large', ['size' => ini_get('upload_max_filesize')]) : tt('msg.choose_file_to_bring_in')); redirect(url('/transfer') . '#import');
     }
     $token = bin2hex(random_bytes(8)); $work = transfer_tmp($uid, $token);
     try {
         $manifest = transfer_read($src, $f['tmp_name'], $work);
-        if (!$manifest['entries'] && empty($manifest['moods'])) throw new RuntimeException('We did not find any entries in that file.');
+        if (!$manifest['entries'] && empty($manifest['moods'])) throw new RuntimeException(tt('msg.we_did_not_find_any_7'));
         file_put_contents($work . '/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE));
     } catch (Throwable $e) {
-        transfer_rmdir($work); flash('err', $e instanceof RuntimeException ? $e->getMessage() : 'We could not read that file.'); redirect(url('/transfer') . '#import');
+        transfer_rmdir($work); flash('err', $e instanceof RuntimeException ? $e->getMessage() : tt('msg.could_not_read_file')); redirect(url('/transfer') . '#import');
     }
     redirect(url('/transfer/preview/' . $token));
 }
 if (preg_match('#^/transfer/(preview|import|cancel)/([a-f0-9]{16})$#', $path, $mm)) {
     $work = transfer_tmp($uid, $mm[2]);
     $manifest = is_file($work . '/manifest.json') ? json_decode((string)file_get_contents($work . '/manifest.json'), true) : null;
-    if (!is_array($manifest)) { flash('err', 'That import has expired. Please upload the file again.'); redirect(url('/transfer')); }
-    if ($mm[1] === 'cancel' && $post) { transfer_rmdir($work); flash('ok', 'Import cancelled. Nothing was added.'); redirect(url('/transfer')); }
+    if (!is_array($manifest)) { flash('err', tt('msg.that_import_has_expired')); redirect(url('/transfer')); }
+    if ($mm[1] === 'cancel' && $post) { transfer_rmdir($work); flash('ok', tt('msg.import_cancelled_nothing_was')); redirect(url('/transfer')); }
     if ($mm[1] === 'import' && $post) {
         @set_time_limit(0);
         db()->beginTransaction();
         try { $r = transfer_commit($uid, $manifest, $work); db()->commit(); }
-        catch (Throwable $e) { db()->rollBack(); flash('err', 'The import stopped partway and nothing was added. Please try again.'); redirect(url('/transfer/preview/' . $mm[2])); }
+        catch (Throwable $e) { db()->rollBack(); flash('err', tt('msg.the_import_stopped_partway')); redirect(url('/transfer/preview/' . $mm[2])); }
         transfer_rmdir($work);
         $bits = [];
-        if ($r['entries']) $bits[] = $r['entries'] . ($r['entries'] === 1 ? ' entry' : ' entries');
-        if ($r['photos']) $bits[] = $r['photos'] . ' photos';
-        if ($r['moods']) $bits[] = $r['moods'] . ' moods';
-        $msg = $bits ? 'Imported ' . implode(', ', $bits) . '.' : 'Nothing new to add. Everything in that file was already here.';
-        if ($r['skipped'] && $r['entries']) $msg .= ' ' . $r['skipped'] . ' already here, skipped.';
-        if ($r['photoErrors']) $msg .= ' ' . $r['photoErrors'] . ' photos could not be read.';
+        if ($r['entries']) $bits[] = tn('msg.n_entries', (int)$r['entries']);
+        if ($r['photos']) $bits[] = tn('msg.n_photos', (int)$r['photos']);
+        if ($r['moods']) $bits[] = tn('msg.n_moods', (int)$r['moods']);
+        $msg = $bits ? tt('msg.imported_list', ['list' => implode(', ', $bits)]) : tt('msg.nothing_new_to_add');
+        if ($r['skipped'] && $r['entries']) $msg .= ' ' . tn('msg.n_skipped', (int)$r['skipped']);
+        if ($r['photoErrors']) $msg .= ' ' . tn('msg.n_photos_unreadable', (int)$r['photoErrors']);
         flash('ok', $msg); redirect(url('/transfer'));
     }
     $has = db()->prepare('SELECT 1 FROM entries WHERE user_id = ? AND source_key = ?');
@@ -676,7 +676,7 @@ if (preg_match('#^/transfer/undo/([a-f0-9]{12})$#', $path, $mm) && $post) {
         db()->prepare('DELETE FROM mood_log WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
         db()->prepare('DELETE FROM day_feelings WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
         db()->prepare('DELETE FROM imports WHERE batch = ? AND user_id = ?')->execute([$mm[1], $uid]);
-        flash('ok', 'That import was undone.');
+        flash('ok', tt('msg.that_import_was_undone'));
     }
     redirect(url('/transfer'));
 }

@@ -2,6 +2,14 @@
 /* Track: small things worth noticing each day. Quiet by design: they sit under the journal, never above it. */
 
 function tracker_catalog(): array {
+    $out = [];
+    foreach (tracker_catalog_en() as $g => $items) {
+        foreach ($items as $k => $it) foreach (['label', 'hint', 'unit', 'ph', 'low', 'high'] as $f) if (isset($it[$f])) $items[$k][$f] = tl($it[$f]);
+        $out[tl($g)] = $items;
+    }
+    return $out;
+}
+function tracker_catalog_en(): array {
     $c = fn($l, $t, $x = []) => array_merge(['label' => $l, 'type' => $t], $x);
     return [
       'Food and drink' => [

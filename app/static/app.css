@@ -417,3 +417,9 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .users .acts form{margin:0}
 .inline-form label{flex:1 1 12rem;min-width:0}
 .inline-form label input{width:100%;box-sizing:border-box}
+
+/* language chooser */
+.lang-pick{display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin:.25rem 0}
+.lang-pick label{display:flex;flex-direction:column;gap:.25rem;flex:1 1 11rem;min-width:0}
+.lang-pick select{width:100%;max-width:100%}
+.lang-pick--bare{max-width:30rem;margin:1rem auto 0}

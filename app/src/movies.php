@@ -21,9 +21,9 @@ if ($post && preg_match('#^/experiences/(\d+)/movie$#', $path, $mm)) {
     $n = db()->prepare('SELECT COUNT(*) FROM entry_photos p JOIN entries e ON e.id = p.entry_id WHERE e.event_id = ? AND e.user_id = ?'); $n->execute([$ev['id'], $uid]);
     $act = db()->prepare("SELECT COUNT(*) FROM movies WHERE user_id = ? AND status IN ('queued','rendering')"); $act->execute([$uid]);
     $day = db()->prepare('SELECT COUNT(*) FROM movies WHERE user_id = ? AND created_at > ?'); $day->execute([$uid, time() - 86400]);
-    if ((int)$n->fetchColumn() < 3) flash('err', 'Add at least three photos to this experience first.');
-    elseif ((int)$act->fetchColumn() > 0) flash('err', 'Your other movie is still being made. It will be ready soon.');
-    elseif ((int)$day->fetchColumn() >= 6) flash('err', 'That is plenty of movies for one day. Try again tomorrow.');
+    if ((int)$n->fetchColumn() < 3) flash('err', tt('msg.add_at_least_three'));
+    elseif ((int)$act->fetchColumn() > 0) flash('err', tt('msg.your_other_movie_is'));
+    elseif ((int)$day->fetchColumn() >= 6) flash('err', tt('msg.that_is_plenty_of'));
     else {
         $theme = isset(MV_THEMES[$_POST['theme'] ?? '']) ? $_POST['theme'] : 'evergreen';
         $len = isset(MV_LENGTHS[$_POST['length'] ?? '']) ? $_POST['length'] : 'full';
@@ -31,7 +31,7 @@ if ($post && preg_match('#^/experiences/(\d+)/movie$#', $path, $mm)) {
         foreach (array_slice($old->fetchAll(), 2) as $m) { mv_delete_files($m); db()->prepare('DELETE FROM movies WHERE id = ?')->execute([$m['id']]); }
         db()->prepare('INSERT INTO movies (user_id, event_id, theme, length, subtitle, closing, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
             ->execute([$uid, $ev['id'], $theme, $len, mb_substr(trim((string)($_POST['subtitle'] ?? '')), 0, 90), mb_substr(trim((string)($_POST['closing'] ?? '')), 0, 160), time()]);
-        mv_kick(); flash('ok', 'Your movie is in the works. This page will update when it is ready.');
+        mv_kick(); flash('ok', tt('msg.your_movie_is_in'));
     }
     redirect($back);
 }
@@ -41,7 +41,7 @@ if (preg_match('#^/movies/(\d+)/(status|file|delete)$#', $path, $mm)) {
     if ($mm[2] === 'status') json_out(['ok' => true, 'status' => $m['status'], 'progress' => (int)$m['progress'], 'error' => $m['error']]);
     if ($mm[2] === 'delete' && $post) {
         mv_delete_files($m); db()->prepare('DELETE FROM movies WHERE id = ?')->execute([$m['id']]);
-        flash('ok', 'Movie deleted.'); redirect(url('/experiences/' . $m['event_id']) . '#movie');
+        flash('ok', tt('msg.movie_deleted')); redirect(url('/experiences/' . $m['event_id']) . '#movie');
     }
     if ($mm[2] === 'file') {
         if ($m['status'] !== 'done' || !is_file($m['file'])) { http_response_code(404); exit; }

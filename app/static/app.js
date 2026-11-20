@@ -14,7 +14,7 @@
     b.addEventListener('click', function () {
       var i = document.querySelector(b.getAttribute('data-copy')); if (!i) return;
       i.select();
-      var done = function () { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy link'; }, 2000); };
+      var done = function () { b.textContent = T('js.copied', 'Copied'); setTimeout(function () { b.textContent = T('js.copy_link', 'Copy link'); }, 2000); };
       if (navigator.clipboard) navigator.clipboard.writeText(i.value).then(done, function () { document.execCommand('copy'); done(); });
       else { document.execCommand('copy'); done(); }
     });
@@ -36,11 +36,11 @@
   var ta = document.querySelector('textarea[data-draft]');
   if (ta) {
     var key = ta.getAttribute('data-draft'), state = document.getElementById('draft-state'), t;
-    try { if (!ta.value) { var s = localStorage.getItem(key); if (s) { ta.value = s; if (state) state.textContent = 'Restored your unsaved draft.'; } } } catch (e) {}
+    try { if (!ta.value) { var s = localStorage.getItem(key); if (s) { ta.value = s; if (state) state.textContent = T('js.restored_your_unsaved_draft', 'Restored your unsaved draft.'); } } } catch (e) {}
     ta.addEventListener('input', function () {
       clearTimeout(t);
       t = setTimeout(function () {
-        try { localStorage.setItem(key, ta.value); if (state) state.textContent = 'Draft saved on this device.'; } catch (e) {}
+        try { localStorage.setItem(key, ta.value); if (state) state.textContent = T('js.draft_saved_on_this_device', 'Draft saved on this device.'); } catch (e) {}
       }, 500);
     });
     var f = document.getElementById('entry-form');
@@ -50,7 +50,7 @@
   /* Celebrations after a save */
   var c = document.getElementById('saved-note');
   if (c) {
-    if (c.getAttribute('data-celebrate') === 'first') celebrate({ level: 'milestone', title: 'Your first entry', sub: 'The first page of your story is in.' });
+    if (c.getAttribute('data-celebrate') === 'first') celebrate({ level: 'milestone', title: T('js.your_first_entry', 'Your first entry'), sub: T('js.the_first_page_of_your', 'The first page of your story is in.') });
     else celebrate({ level: 'small', origin: c });
   }
 
@@ -67,7 +67,7 @@
     [pin, cam].forEach(function (i) { if (i && i.files) files = files.concat(Array.prototype.slice.call(i.files)); });
     if (ps) ps.textContent = files.length ? files.length + (files.length === 1 ? ' photo' : ' photos') + ' ready to save' : '';
     files.slice(0, 12).forEach(function (f) {
-      var im = document.createElement('img'); im.alt = 'Selected photo'; im.src = URL.createObjectURL(f);
+      var im = document.createElement('img'); im.alt = T('js.selected_photo', 'Selected photo'); im.src = URL.createObjectURL(f);
       im.onload = function () { URL.revokeObjectURL(im.src); };
       prev.appendChild(im);
     });
@@ -75,7 +75,7 @@
   [pin, cam].forEach(function (i) { if (i) i.addEventListener('change', showPreviews); });
 
   /* Save with a visible progress bar, so a big upload never looks frozen */
-  var ef = document.getElementById('entry-form'), sb = document.getElementById('save-btn'), sbText = sb ? sb.textContent : 'Save entry';
+  var ef = document.getElementById('entry-form'), sb = document.getElementById('save-btn'), sbText = sb ? sb.textContent : T('js.save_entry', 'Save entry');
   if (ef && sb && window.XMLHttpRequest && window.FormData) {
     ef.addEventListener('submit', function (e) {
       var hasFiles = (pin && pin.files.length) || (cam && cam.files.length);
@@ -86,10 +86,10 @@
       if (wrap) wrap.hidden = false;
       x.open('POST', ef.action || location.href); x.setRequestHeader('X-Requested-With', 'fetch');
       x.upload.onprogress = function (p) {
-        if (p.lengthComputable && bar) { var pct = Math.round(p.loaded / p.total * 100); bar.style.width = pct + '%'; sb.textContent = pct < 100 ? 'Uploading ' + pct + '%' : 'Processing photos…'; }
+        if (p.lengthComputable && bar) { var pct = Math.round(p.loaded / p.total * 100); bar.style.width = pct + '%'; sb.textContent = pct < 100 ? T('js.uploading_pct', 'Uploading {pct}%', { pct: pct }) : T('js.processing_photos', 'Processing photos…'); }
       };
       x.onload = function () { try { localStorage.removeItem('mw-draft-body'); } catch (er) {} var to = location.href; try { to = JSON.parse(x.responseText).redirect || to; } catch (er) {} window.location.href = to; };
-      x.onerror = function () { sb.disabled = false; sb.textContent = sbText; if (ps) ps.textContent = 'The upload didn\'t go through. Your text is still here, so try again.'; if (wrap) wrap.hidden = true; };
+      x.onerror = function () { sb.disabled = false; sb.textContent = sbText; if (ps) ps.textContent = T('js.upload_failed', 'The upload didn\'t go through. Your text is still here, so try again.'); if (wrap) wrap.hidden = true; };
       x.send(new FormData(ef));
     });
   }
@@ -100,7 +100,7 @@
   if (dBtn && bodyTa && SR) {
     dBtn.hidden = false;
     var rec = null, on = false, base = '';
-    var stop = function () { on = false; dBtn.setAttribute('aria-pressed', 'false'); dBtn.textContent = 'Dictate'; if (rec) { try { rec.stop(); } catch (er) {} } };
+    var stop = function () { on = false; dBtn.setAttribute('aria-pressed', 'false'); dBtn.textContent = T('js.dictate', 'Dictate'); if (rec) { try { rec.stop(); } catch (er) {} } };
     dBtn.addEventListener('click', function () {
       if (on) { stop(); return; }
       rec = new SR(); rec.lang = navigator.language || 'en-US'; rec.continuous = true; rec.interimResults = true;
@@ -112,9 +112,9 @@
         bodyTa.value = base + finalText + interim;
         bodyTa.dispatchEvent(new Event('input'));
       };
-      rec.onerror = function (ev) { if (ev.error === 'not-allowed' && ps) ps.textContent = 'Allow the microphone to dictate.'; stop(); };
+      rec.onerror = function (ev) { if (ev.error === 'not-allowed' && ps) ps.textContent = T('js.allow_the_microphone_to_dictate', 'Allow the microphone to dictate.'); stop(); };
       rec.onend = function () { if (on) { try { rec.start(); } catch (er) { stop(); } } };
-      try { rec.start(); on = true; dBtn.setAttribute('aria-pressed', 'true'); dBtn.textContent = 'Stop dictating'; } catch (er) { stop(); }
+      try { rec.start(); on = true; dBtn.setAttribute('aria-pressed', 'true'); dBtn.textContent = T('js.stop_dictating', 'Stop dictating'); } catch (er) { stop(); }
     });
   }
 
@@ -131,7 +131,7 @@
         var body = new URLSearchParams({ day: w.getAttribute('data-day'), oz: oz, _csrf: w.getAttribute('data-csrf') });
         fetch(w.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: body, credentials: 'same-origin' })
           .then(function (r) { return r.json(); })
-          .then(function (j) { if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 150); else if (j.goal) celebrate(j.allDone ? { level: 'milestone', title: 'All your goals are done', sub: 'Water, and everything else. Great day.' } : { level: 'milestone', title: '64 ounces', sub: 'You hit your water goal for the day.' }); })
+          .then(function (j) { if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 150); else if (j.goal) celebrate(j.allDone ? { level: 'milestone', title: T('js.all_your_goals_are_done', 'All your goals are done'), sub: T('js.water_and_everything_else_great', 'Water, and everything else. Great day.') } : { level: 'milestone', title: '64 ounces', sub: T('js.you_hit_your_water_goal', 'You hit your water goal for the day.') }); })
           .catch(function () { oz = prevOz; paint(); });
       });
     });
@@ -140,7 +140,7 @@
   /* Experience section prompts */
   var sp = document.getElementById('section-pick'), bodyEl = document.getElementById('body');
   if (sp && bodyEl) {
-    var setPrompt = function () { var o = sp.options[sp.selectedIndex]; bodyEl.placeholder = (o && o.getAttribute('data-prompt')) || 'What happened?'; };
+    var setPrompt = function () { var o = sp.options[sp.selectedIndex]; bodyEl.placeholder = (o && o.getAttribute('data-prompt')) || T('js.what_happened', 'What happened?'); };
     sp.addEventListener('change', setPrompt); setPrompt();
   }
 
@@ -156,7 +156,7 @@
             if (!j.ok) return;
             li.classList.toggle('done', j.done); b.setAttribute('aria-checked', j.done ? 'true' : 'false');
             document.getElementById('goals-done').textContent = gc.querySelectorAll('.item.done').length;
-            if (j.done) { celebrate({ level: 'burst', origin: b }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 700); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'All your goals are done', sub: 'Every goal checked off today. Great day.' }); }, 700); }
+            if (j.done) { celebrate({ level: 'burst', origin: b }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 700); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: T('js.all_your_goals_are_done', 'All your goals are done'), sub: T('js.every_goal_checked_off_today', 'Every goal checked off today. Great day.') }); }, 700); }
           }).catch(function () {});
       });
     });
@@ -173,7 +173,7 @@
           if (!j.ok) return;
           li.classList.toggle('done', j.done); btn.setAttribute('aria-checked', j.done ? 'true' : 'false');
           if (j.done && j.next) { celebrate({ level: 'burst', origin: btn }); setTimeout(function () { location.reload(); }, 1100); return; }
-          if (j.done) { celebrate({ level: 'burst', origin: btn }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 600); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: 'List complete', sub: 'Everything on "' + j.list + '" is done.' }); }, 500); }
+          if (j.done) { celebrate({ level: 'burst', origin: btn }); if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 600); else if (j.allDone) setTimeout(function () { celebrate({ level: 'milestone', title: T('js.list_complete', 'List complete'), sub: T('js.list_done', 'Everything on "{list}" is done.', { list: j.list }) }); }, 500); }
         }).catch(function () { f.submit(); });
     });
   });
@@ -211,7 +211,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
 /* how are you feeling */
 (function () {
   var card = document.getElementById('feel'); if (!card) return;
-  var faces = { 1: ['\u{1F61E}', 'Rough'], 2: ['\u{1F641}', 'Low'], 3: ['\u{1F610}', 'Okay'], 4: ['\u{1F642}', 'Good'], 5: ['\u{1F604}', 'Great'] };
+  var faces = { 1: ['\u{1F61E}', T('js.rough', 'Rough')], 2: ['\u{1F641}', T('js.low', 'Low')], 3: ['\u{1F610}', T('js.okay', 'Okay')], 4: ['\u{1F642}', T('js.good', 'Good')], 5: ['\u{1F604}', T('js.great', 'Great')] };
   var moods = []; try { moods = JSON.parse(card.getAttribute('data-moods') || '[]'); } catch (e) {}
   function part(d) { var h = d.getHours(); return h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : h >= 17 && h < 21 ? 'evening' : 'night'; }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
@@ -226,7 +226,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
         var d = new Date(m.ts * 1000), t = el('time', 'stamp', d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); t.dataset.ts = m.ts;
         li.appendChild(t); li.appendChild(document.createTextNode(' ')); li.appendChild(el('span', 'ml-part', part(d)));
       }
-      var x = el('button', 'ml-x', '\u00D7'); x.type = 'button'; x.setAttribute('data-id', m.id); x.setAttribute('aria-label', 'Remove this mood'); li.appendChild(x); ul.appendChild(li);
+      var x = el('button', 'ml-x', '\u00D7'); x.type = 'button'; x.setAttribute('data-id', m.id); x.setAttribute('aria-label', T('js.remove_this_mood', 'Remove this mood')); li.appendChild(x); ul.appendChild(li);
     });
   }
   function save(data, done) {
@@ -259,7 +259,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
   window.mwLoader = {
     show: function (msg, detail) {
       if (!el) build();
-      el.querySelector('.mw-loader-msg').textContent = msg || 'One moment';
+      el.querySelector('.mw-loader-msg').textContent = msg || T('js.one_moment', 'One moment');
       el.querySelector('.mw-loader-detail').textContent = detail || '';
       void el.offsetWidth; el.classList.add('on');
     },
@@ -277,7 +277,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
           var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click();
           setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
         });
-      }).then(function () { window.mwLoader.hide(); }).catch(function () { window.mwLoader.hide(); alert('Sorry, the export could not be made. Please try again.'); });
+      }).then(function () { window.mwLoader.hide(); }).catch(function () { window.mwLoader.hide(); alert(T('js.sorry_the_export_could_not', 'Sorry, the export could not be made. Please try again.')); });
       return;
     }
     var m = f.getAttribute && f.getAttribute('data-loader');
@@ -286,7 +286,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
   window.addEventListener('pageshow', function (ev) { if (ev.persisted && el) el.classList.remove('on'); });
   var fi = document.getElementById('xfer-file');
   if (fi) {
-    fi.addEventListener('change', function () { document.getElementById('filepick-n').textContent = fi.files[0] ? fi.files[0].name : 'No file chosen'; });
+    fi.addEventListener('change', function () { document.getElementById('filepick-n').textContent = fi.files[0] ? fi.files[0].name : T('js.no_file_chosen', 'No file chosen'); });
     document.querySelectorAll('.src input[type=radio]').forEach(function (r) {
       function set() { if (r.checked) fi.setAttribute('accept', r.getAttribute('data-accept') || ''); }
       r.addEventListener('change', set); set();

@@ -3,7 +3,7 @@
 function achievement_defs(): array {
     static $defs = null;
     if ($defs === null) { $j = json_decode((string)file_get_contents(__DIR__ . '/achievements.json'), true); $defs = $j['achievements'] ?? []; }
-    return $defs;
+    return array_map(fn($a) => ['title' => tl($a['title']), 'description' => tl($a['description'])] + $a, $defs);
 }
 function achievement_period(array $a, string $day, array $ctx): string {
     $rep = $a['repeatable'] ?? false;

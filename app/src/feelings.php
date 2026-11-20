@@ -2,8 +2,8 @@
 /* How you feel: one face for the day (stored with the other daily numbers as "mood"), plus any number of named feelings. */
 
 function feelings_faces(): array {
-    return [1 => ['e' => "\u{1F61E}", 'l' => 'Rough'], 2 => ['e' => "\u{1F641}", 'l' => 'Low'], 3 => ['e' => "\u{1F610}", 'l' => 'Okay'],
-            4 => ['e' => "\u{1F642}", 'l' => 'Good'], 5 => ['e' => "\u{1F604}", 'l' => 'Great']];
+    return [1 => ['e' => "\u{1F61E}", 'l' => tl('Rough')], 2 => ['e' => "\u{1F641}", 'l' => tl('Low')], 3 => ['e' => "\u{1F610}", 'l' => tl('Okay')],
+            4 => ['e' => "\u{1F642}", 'l' => tl('Good')], 5 => ['e' => "\u{1F604}", 'l' => tl('Great')]];
 }
 function feelings_catalog(): array {
     return [

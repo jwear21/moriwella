@@ -24,11 +24,11 @@ function photo_path(array $p, string $size): ?string {
     return is_file($o) ? $o : null;
 }
 function upload_error_text(array $f): string {
-    $n = $f['name'] !== '' ? $f['name'] : 'A photo';
+    $n = $f['name'] !== '' ? $f['name'] : tt('msg.a_photo');
     switch ($f['error']) {
-        case UPLOAD_ERR_INI_SIZE: case UPLOAD_ERR_FORM_SIZE: return $n . ' is larger than this server accepts (' . ini_get('upload_max_filesize') . ').';
+        case UPLOAD_ERR_INI_SIZE: case UPLOAD_ERR_FORM_SIZE: return tt('msg.photo_over_server_limit', ['name' => $n, 'size' => ini_get('upload_max_filesize')]);
         case UPLOAD_ERR_NO_FILE: return '';
-        default: return $n . ' could not be uploaded. Please try again.';
+        default: return tt('msg.photo_upload_failed', ['name' => $n]);
     }
 }
 function normalize_files(string $key): array {
@@ -71,11 +71,11 @@ function make_derivative(string $src, int $type, int $maxDim, string $dest, int 
 function save_photo(int $entryId, int $uid, array $f): ?string {
     if ($f['error'] === UPLOAD_ERR_NO_FILE) return null;
     if ($f['error'] !== UPLOAD_ERR_OK) return upload_error_text($f);
-    if ($f['size'] > PHOTO_MAX_BYTES) return $f['name'] . ' is too large (limit 40 MB).';
+    if ($f['size'] > PHOTO_MAX_BYTES) return tt('msg.photo_too_large', ['name' => $f['name']]);
     $info = @getimagesize($f['tmp_name']);
     $types = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_GIF => 'gif', IMAGETYPE_WEBP => 'webp'];
-    if (!$info || !isset($types[$info[2]])) return $f['name'] . ' isn\'t a JPG, PNG, GIF or WebP photo.';
-    if ($info[0] * $info[1] > PHOTO_MAX_PIXELS) return $f['name'] . ' has too many pixels to process.';
+    if (!$info || !isset($types[$info[2]])) return tt('msg.photo_bad_type', ['name' => $f['name']]);
+    if ($info[0] * $info[1] > PHOTO_MAX_PIXELS) return tt('msg.photo_too_many_pixels', ['name' => $f['name']]);
     $type = $info[2]; $ext = $types[$type];
     $pdo = db();
     $pdo->prepare('INSERT INTO entry_photos (entry_id, user_id, orig_name, ext, mime, width, height, bytes, created_at) VALUES (?,?,?,?,?,?,?,?,?)')
@@ -85,7 +85,7 @@ function save_photo(int $entryId, int $uid, array $f): ?string {
     $placed = !empty($f['_copy']) ? @copy($f['tmp_name'], $base . '_o.' . $ext) : move_uploaded_file($f['tmp_name'], $base . '_o.' . $ext);
     if (!$placed) {
         $pdo->prepare('DELETE FROM entry_photos WHERE id = ?')->execute([$id]);
-        return $f['name'] . ' could not be saved.';
+        return tt('msg.photo_not_saved', ['name' => $f['name']]);
     }
     @chmod($base . '_o.' . $ext, 0600);
     $src = $base . '_o.' . $ext;
@@ -110,7 +110,7 @@ function save_uploaded_photos(int $entryId, int $uid): array {
     $errs = []; $n = 0;
     foreach (normalize_files('photos') as $f) {
         if ($f['error'] === UPLOAD_ERR_NO_FILE) continue;
-        if (++$n > PHOTO_MAX_PER_UPLOAD) { $errs[] = 'Only ' . PHOTO_MAX_PER_UPLOAD . ' photos can be added at a time.'; break; }
+        if (++$n > PHOTO_MAX_PER_UPLOAD) { $errs[] = tt('msg.photo_max_per_upload', ['n' => PHOTO_MAX_PER_UPLOAD]); break; }
         $e = save_photo($entryId, $uid, $f);
         if ($e) $errs[] = $e;
     }
@@ -136,18 +136,18 @@ function photos_for_entries(array $ids): array {
 
 /* Save an edited version made in the photo studio. The untouched original stays on disk. */
 function save_photo_edit(array $p, array $f): ?string {
-    if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return 'The edited photo did not arrive. Please try again.';
-    if ($f['size'] > 25 * 1024 * 1024) return 'The edited photo is too large.';
+    if (($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return tt('msg.edit_not_arrived');
+    if ($f['size'] > 25 * 1024 * 1024) return tt('msg.edit_too_large');
     $info = @getimagesize($f['tmp_name']);
-    if (!$info || $info[2] !== IMAGETYPE_JPEG) return 'The edited photo was not a valid image.';
-    if ($info[0] * $info[1] > PHOTO_MAX_PIXELS) return 'The edited photo has too many pixels.';
+    if (!$info || $info[2] !== IMAGETYPE_JPEG) return tt('msg.edit_not_valid');
+    if ($info[0] * $info[1] > PHOTO_MAX_PIXELS) return tt('msg.edit_too_many_pixels');
     $base = photo_dir((int)$p['user_id']) . '/' . $p['id'];
     $edited = $base . '_e.jpg';
-    if (!move_uploaded_file($f['tmp_name'], $edited)) return 'The edited photo could not be saved.';
+    if (!move_uploaded_file($f['tmp_name'], $edited)) return tt('msg.edit_not_saved');
     @chmod($edited, 0600);
     $web = make_derivative($edited, IMAGETYPE_JPEG, 2000, $base . '_w.jpg', 85);
     $thumb = $web ? make_derivative($edited, IMAGETYPE_JPEG, 520, $base . '_t.jpg', 80) : null;
-    if (!$web) { @unlink($edited); return 'The edited photo could not be processed.'; }
+    if (!$web) { @unlink($edited); return tt('msg.edit_not_processed'); }
     db()->prepare('UPDATE entry_photos SET width = ?, height = ?, has_derived = 1, edited_at = ? WHERE id = ?')->execute([$web[0], $web[1], time(), $p['id']]);
     return null;
 }

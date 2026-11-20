@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/src/lib.php';
+require __DIR__ . '/src/i18n.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/templates.php';
 require __DIR__ . '/src/achievements.php';
@@ -30,10 +31,17 @@ if ($path === '/health') {
 boot();
 $post = $method === 'POST';
 if ($post && !$_POST && !$_FILES && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
-    flash('err', 'That upload was larger than this server allows (' . ini_get('post_max_size') . ' per save). Try fewer or smaller photos.');
+    flash('err', tt('msg.post_too_large', ['size' => ini_get('post_max_size')]));
     redirect($_SERVER['HTTP_REFERER'] ?? url('/'));
 }
 if ($post) csrf_check();
+
+/* ---------- language choice (works signed out, too) ---------- */
+if ($path === '/lang' && $post) {
+    set_lang((string)($_POST['lang'] ?? ''));
+    $back = (string)($_POST['back'] ?? '');
+    redirect(strpos($back, MW_BASE) === 0 && strpos($back, '//') === false ? $back : url('/'));
+}
 
 /* ---------- first-run admin setup ---------- */
 if ($path === '/setup') {
@@ -42,13 +50,13 @@ if ($path === '/setup') {
     if ($post) {
         $code = strtoupper(trim((string)($_POST['setup_code'] ?? '')));
         $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
-        if (!$err && !hash_equals((string)cfg('setup_code_hash'), hash('sha256', $code))) { $err = 'That setup code isn\'t right.'; }
+        if (!$err && !hash_equals((string)cfg('setup_code_hash'), hash('sha256', $code))) { $err = tt('msg.that_setup_code_isn'); }
         if (!$err) {
             db()->prepare("INSERT INTO users (email, name, role, plan, status, password_hash, created_at) VALUES (?, ?, 'admin', 'admin', 'active', ?, ?)")
                 ->execute([cfg('admin_email'), cfg('admin_name'), hash_pw((string)$_POST['password']), time()]);
             $u = db()->query('SELECT * FROM users WHERE id = ' . (int)db()->lastInsertId())->fetch();
             login_user($u);
-            flash('ok', 'Your administrator account is ready. Next, add your beta testers.');
+            flash('ok', tt('msg.your_administrator_account_is'));
             redirect(url('/admin'));
         }
     }
@@ -64,7 +72,7 @@ if ($path === '/login') {
     if ($post) {
         $email = trim((string)($_POST['email'] ?? ''));
         if (too_many_attempts()) {
-            $err = 'Too many attempts. Please wait 15 minutes and try again.';
+            $err = tt('msg.too_many_attempts_please');
         } else {
             $s = db()->prepare("SELECT * FROM users WHERE email = ? AND status = 'active'");
             $s->execute([$email]);
@@ -74,7 +82,7 @@ if ($path === '/login') {
             $ok = password_verify((string)($_POST['password'] ?? ''), $hash) && $u && $u['password_hash'];
             if ($ok) { login_user($u); redirect(url('/')); }
             record_failed_attempt();
-            $err = 'That email and password don\'t match.';
+            $err = tt('msg.that_email_and_password');
         }
     }
     render('login', ['err' => $err, 'email' => $email], 'Sign in', true);
@@ -85,7 +93,7 @@ if ($path === '/logout' && $post) { $_SESSION = []; session_destroy(); redirect(
 /* ---------- invitation / password link ---------- */
 if (preg_match('#^/join/([a-f0-9]{48})$#', $path, $m)) {
     $target = find_by_invite($m[1]);
-    if (!$target) { render('message', ['heading' => 'This link has expired', 'text' => 'Ask Jeff for a new sign-in link.'], 'Link expired', true); exit; }
+    if (!$target) { render('message', ['heading' => tt('msg.this_link_has_expired'), 'text' => tt('msg.ask_jeff_for_a')], 'Link expired', true); exit; }
     $err = null;
     if ($post) {
         $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
@@ -93,7 +101,7 @@ if (preg_match('#^/join/([a-f0-9]{48})$#', $path, $m)) {
             db()->prepare("UPDATE users SET password_hash = ?, status = 'active', invite_hash = NULL, invite_expires = NULL WHERE id = ?")
                 ->execute([hash_pw((string)$_POST['password']), $target['id']]);
             login_user($target);
-            flash('ok', 'Welcome to Moriwella, ' . $target['name'] . '.');
+            flash('ok', tt('msg.welcome_name', ['name' => $target['name']]));
             redirect(url('/'));
         }
     }
@@ -132,7 +140,7 @@ function render_day(array $user, string $day): void {
         'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
         'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day), 'feel' => feelings_for_day($uid, $day),
-    ], $day === date('Y-m-d') ? 'Today' : date('F j, Y', strtotime($day)));
+    ], $day === date('Y-m-d') ? 'Today' : ldate('F j, Y', strtotime($day)));
 }
 
 if ($path === '/') { render_day($user, date('Y-m-d')); exit; }
@@ -155,7 +163,7 @@ if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})/combine$#', $path, $m) && $post) {
             db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$r['id'], $uid]);
         }
         db()->commit();
-        flash('ok', 'Combined into one page.');
+        flash('ok', tt('msg.combined_into_one_page'));
     }
     redirect(url('/day/' . $d));
 }
@@ -180,7 +188,7 @@ if (preg_match('#^/photos/(\d+)/(edit|revert)$#', $path, $m) && $post) {
     $s = db()->prepare('SELECT * FROM entry_photos WHERE id = ? AND user_id = ?');
     $s->execute([(int)$m[1], $uid]);
     $p = $s->fetch();
-    if (!$p) json_out(['ok' => false, 'error' => 'Photo not found.'], 404);
+    if (!$p) json_out(['ok' => false, 'error' => tt('msg.photo_not_found')], 404);
     if ($m[2] === 'revert') { revert_photo_edit($p); json_out(['ok' => true, 'v' => time()]); }
     $err = save_photo_edit($p, $_FILES['edited'] ?? ['error' => UPLOAD_ERR_NO_FILE]);
     if ($err) json_out(['ok' => false, 'error' => $err], 400);
@@ -192,7 +200,7 @@ if (preg_match('#^/photos/(\d+)/delete$#', $path, $m) && $post) {
     if ($p = $s->fetch()) {
         delete_photo_files($p);
         db()->prepare('DELETE FROM entry_photos WHERE id = ?')->execute([$p['id']]);
-        flash('ok', 'Photo removed.');
+        flash('ok', tt('msg.photo_removed'));
         redirect(url('/entries/' . $p['entry_id']));
     }
     redirect(url('/journal'));
@@ -204,7 +212,7 @@ if ($path === '/entries' && $post) {
     $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
     $body = mb_substr(trim((string)($_POST['body'] ?? '')), 0, 50000);
     $hasPhotos = false; foreach (normalize_files('photos') as $f) { if ($f['error'] !== UPLOAD_ERR_NO_FILE) $hasPhotos = true; }
-    if ($title === '' && $body === '' && !$hasPhotos) { flash('err', 'Write something or add a photo first.'); redirect(!empty($_POST['event_id']) ? url('/experiences/' . (int)$_POST['event_id']) : url('/day/' . $date)); }
+    if ($title === '' && $body === '' && !$hasPhotos) { flash('err', tt('msg.write_something_or_add')); redirect(!empty($_POST['event_id']) ? url('/experiences/' . (int)$_POST['event_id']) : url('/day/' . $date)); }
     $now = time();
     $body = $body === '' ? '' : stamp_text($now, str_replace(["\r\n", "\r"], "\n", $body));
     $evId = (int)($_POST['event_id'] ?? 0); $ev = null;
@@ -216,7 +224,7 @@ if ($path === '/entries' && $post) {
         db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at, event_id, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
             ->execute([$uid, $date, $title, $body, $now, $now, $ev['id'], $secId]);
         $errs = save_uploaded_photos((int)db()->lastInsertId(), $uid);
-        flash($errs ? 'err' : 'ok', $errs ? 'Saved. ' . implode(' ', $errs) : 'Added to ' . $ev['title'] . '.');
+        flash($errs ? 'err' : 'ok', $errs ? tt('msg.saved_notes', ['notes' => implode(' ', $errs)]) : tt('msg.added_to', ['title' => $ev['title']]));
         queue_unlocked(achievements_eval($uid, ['day' => $date]));
         redirect(url('/experiences/' . $ev['id']));
     }
@@ -234,8 +242,8 @@ if ($path === '/entries' && $post) {
     }
     $errs = save_uploaded_photos($entryId, $uid);
     $n = db()->prepare('SELECT COUNT(*) FROM entries WHERE user_id = ?'); $n->execute([$uid]);
-    if ($errs) { flash('err', 'Entry saved. ' . implode(' ', $errs)); }
-    else { flash((int)$n->fetchColumn() === 1 ? 'first' : 'saved', 'Saved.'); }
+    if ($errs) { flash('err', tt('msg.entry_saved_notes', ['notes' => implode(' ', $errs)])); }
+    else { flash((int)$n->fetchColumn() === 1 ? 'first' : 'saved', tt('msg.saved')); }
     queue_unlocked(achievements_eval($uid, ['day' => $date]));
     redirect(url('/day/' . $date));
 }
@@ -273,12 +281,12 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
     $s = db()->prepare('SELECT * FROM entries WHERE id = ? AND user_id = ?');
     $s->execute([(int)$m[1], $uid]);
     $entry = $s->fetch();
-    if (!$entry) { http_response_code(404); render('message', ['heading' => 'Entry not found', 'text' => 'It may have been deleted.'], 'Not found'); exit; }
+    if (!$entry) { http_response_code(404); render('message', ['heading' => tt('msg.entry_not_found'), 'text' => tt('msg.it_may_have_been')], 'Not found'); exit; }
     if ($post) {
         if (isset($_POST['delete'])) {
             delete_entry_photos((int)$entry['id'], $uid);
             db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$entry['id'], $uid]);
-            flash('ok', 'Entry deleted.'); redirect($entry['event_id'] ? url('/experiences/' . $entry['event_id']) : url('/journal'));
+            flash('ok', tt('msg.entry_deleted')); redirect($entry['event_id'] ? url('/experiences/' . $entry['event_id']) : url('/journal'));
         }
         $date = (string)($_POST['entry_date'] ?? ''); if (!valid_date($date)) $date = $entry['entry_date'];
         $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
@@ -289,7 +297,7 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
         db()->prepare('UPDATE entries SET entry_date = ?, title = ?, body = ?, updated_at = ? WHERE id = ? AND user_id = ?')
             ->execute([$date, $title, $body, time(), $entry['id'], $uid]);
         $errs = save_uploaded_photos((int)$entry['id'], $uid);
-        flash($errs ? 'err' : 'ok', $errs ? 'Changes saved. ' . implode(' ', $errs) : 'Changes saved.');
+        flash($errs ? 'err' : 'ok', $errs ? tt('msg.changes_saved_notes', ['notes' => implode(' ', $errs)]) : tt('msg.changes_saved'));
         redirect($entry['event_id'] ? url('/experiences/' . $entry['event_id']) : url('/day/' . $date));
     }
     $entry['photos'] = photos_for_entries([$entry['id']])[$entry['id']] ?? [];
@@ -328,9 +336,9 @@ function all_goals_done(int $uid, string $day): bool {
 if ($path === '/goals' && $post) {
     $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
     $c = db()->prepare('SELECT COUNT(*) FROM goals WHERE user_id = ?'); $c->execute([$uid]);
-    if ($name === '') flash('err', 'Give the goal a name.');
-    elseif ((int)$c->fetchColumn() >= 12) flash('err', 'That\'s plenty of goals. Remove one before adding another.');
-    else { db()->prepare('INSERT INTO goals (user_id, name, created_at) VALUES (?, ?, ?)')->execute([$uid, $name, time()]); flash('ok', 'Goal added.'); }
+    if ($name === '') flash('err', tt('msg.give_the_goal_a'));
+    elseif ((int)$c->fetchColumn() >= 12) flash('err', tt('msg.that_s_plenty_of'));
+    else { db()->prepare('INSERT INTO goals (user_id, name, created_at) VALUES (?, ?, ?)')->execute([$uid, $name, time()]); flash('ok', tt('msg.goal_added')); }
     redirect(url('/track') . '#goals');
 }
 if (preg_match('#^/goals/(\d+)/(toggle|delete)$#', $path, $mm) && $post) {
@@ -378,7 +386,7 @@ if ($path === '/lists') {
     if ($post) {
         $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
         $kind = in_array($_POST['kind'] ?? '', ['todo', 'shopping', 'project', 'chore'], true) ? $_POST['kind'] : 'todo';
-        if ($name === '') { flash('err', 'Give the list a name.'); redirect(url('/lists')); }
+        if ($name === '') { flash('err', tt('msg.give_the_list_a')); redirect(url('/lists')); }
         db()->prepare('INSERT INTO lists (owner_id, name, kind, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $name, $kind, time()]);
         redirect(url('/lists/' . db()->lastInsertId()));
     }
@@ -396,7 +404,7 @@ if ($path === '/lists') {
 if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
     $listId = (int)$m[1]; $sub = $m[2] ?? '';
     $list = list_access($listId, $uid);
-    if (!$list) { http_response_code(404); render('message', ['heading' => 'List not found', 'text' => 'It may have been deleted or not shared with you.'], 'Not found'); exit; }
+    if (!$list) { http_response_code(404); render('message', ['heading' => tt('msg.list_not_found'), 'text' => tt('msg.it_may_have_been_2')], 'Not found'); exit; }
     $isOwner = (bool)$list['is_owner'];
     if ($post) {
         if ($sub === 'items') {
@@ -409,7 +417,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
             $text = mb_substr(trim((string)($_POST['text'] ?? '')), 0, 300);
             [$due, $rep, $who] = clean_item_fields(list_people($list));
             if ($text !== '') db()->prepare('UPDATE list_items SET text = ?, due_date = ?, repeat = ?, assigned_to = ? WHERE id = ? AND list_id = ?')->execute([$text, $due, $rep, $who, (int)$mm[1], $listId]);
-            else flash('err', 'An item needs some text.');
+            else flash('err', tt('msg.an_item_needs_some'));
             redirect(url('/lists/' . $listId));
         }
         if (preg_match('#^items/(\d+)/toggle$#', $sub, $mm)) {
@@ -436,11 +444,11 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
         if ($sub === 'share' && $isOwner) {
             $email = strtolower(trim((string)($_POST['email'] ?? '')));
             $t = db()->prepare("SELECT id, name FROM users WHERE email = ? AND status != 'disabled'"); $t->execute([$email]); $target = $t->fetch();
-            if (!$target) flash('err', 'No Moriwella account uses ' . $email . ' yet. Ask Jeff to add them first.');
-            elseif ((int)$target['id'] === $uid) flash('err', 'That\'s you. You already own this list.');
+            if (!$target) flash('err', tt('msg.no_account_for_email', ['email' => $email]));
+            elseif ((int)$target['id'] === $uid) flash('err', tt('msg.that_s_you_you'));
             else {
                 db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, added_at) VALUES (?, ?, ?)')->execute([$listId, $target['id'], time()]);
-                flash('ok', 'Shared with ' . $target['name'] . '.'); queue_unlocked(achievements_eval($uid));
+                flash('ok', tt('msg.shared_with', ['name' => $target['name']])); queue_unlocked(achievements_eval($uid));
             }
             redirect(url('/lists/' . $listId));
         }
@@ -449,7 +457,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
             if ($isOwner || $mid === $uid) db()->prepare('DELETE FROM list_members WHERE list_id = ? AND user_id = ?')->execute([$listId, $mid]);
             redirect($mid === $uid && !$isOwner ? url('/lists') : url('/lists/' . $listId));
         }
-        if ($sub === 'delete' && $isOwner) { db()->prepare('DELETE FROM lists WHERE id = ?')->execute([$listId]); flash('ok', 'List deleted.'); redirect(url('/lists')); }
+        if ($sub === 'delete' && $isOwner) { db()->prepare('DELETE FROM lists WHERE id = ?')->execute([$listId]); flash('ok', tt('msg.list_deleted')); redirect(url('/lists')); }
         redirect(url('/lists/' . $listId));
     }
     $mine = ($_GET['who'] ?? '') === 'me';
@@ -467,9 +475,9 @@ if ($path === '/welcome/dismiss' && $post) { mark_welcomed($uid); redirect(url('
 if ($path === '/feedback') {
     if ($post) {
         $msg = mb_substr(trim((string)($_POST['message'] ?? '')), 0, 4000);
-        if ($msg === '') { flash('err', 'Write a few words first.'); redirect(url('/feedback')); }
+        if ($msg === '') { flash('err', tt('msg.write_a_few_words')); redirect(url('/feedback')); }
         db()->prepare('INSERT INTO feedback (user_id, message, page, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $msg, mb_substr(trim((string)($_POST['page'] ?? '')), 0, 120), time()]);
-        flash('ok', 'Thank you. Jeff will read this.'); redirect(url('/settings'));
+        flash('ok', tt('msg.thank_you_jeff_will')); redirect(url('/settings'));
     }
     render('feedback', [], 'Send feedback');
     exit;
@@ -486,13 +494,13 @@ if ($path === '/settings') {
     if ($post) {
         if (isset($_POST['save_prefs'])) {
             save_prefs($uid, !empty($_POST['celebrations']), water_on($uid), (string)($_POST['celebrate_size'] ?? 'big'));
-            flash('ok', 'Preferences saved.'); redirect(url('/settings'));
+            flash('ok', tt('msg.preferences_saved')); redirect(url('/settings'));
         }
         if (isset($_POST['change_password'])) {
             $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
-            if (!$err && !password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) $err = 'Your current password isn\'t right.';
+            if (!$err && !password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) $err = tt('msg.your_current_password_isn');
             if ($err) { flash('err', $err); }
-            else { db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_pw((string)$_POST['password']), $uid]); flash('ok', 'Password changed.'); }
+            else { db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_pw((string)$_POST['password']), $uid]); flash('ok', tt('msg.password_changed')); }
             redirect(url('/settings'));
         }
     }
@@ -550,4 +558,4 @@ if (strpos($path, '/admin') === 0) {
 }
 
 http_response_code(404);
-render('message', ['heading' => 'Page not found', 'text' => 'That page doesn\'t exist.'], 'Not found', !current_user());
+render('message', ['heading' => tt('msg.page_not_found'), 'text' => tt('msg.that_page_doesn_t')], 'Not found', !current_user());

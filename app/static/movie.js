@@ -8,7 +8,7 @@
       if (d.status === 'done' || d.status === 'failed') { location.reload(); return; }
       if (bar) bar.style.width = d.progress + '%';
       if (pct) pct.textContent = d.progress + '%';
-      if (state) state.textContent = d.status === 'queued' ? 'Waiting for its turn' : 'Making your movie';
+      if (state) state.textContent = d.status === 'queued' ? 'Waiting for its turn' : T('js.making_your_movie', 'Making your movie');
       setTimeout(tick, 4000);
     }).catch(function () { setTimeout(tick, 8000); });
   }

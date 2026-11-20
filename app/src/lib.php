@@ -286,6 +286,9 @@ function migrate(PDO $p): void {
           CREATE INDEX movies_event ON movies (event_id, id);
           PRAGMA user_version = 14;");
     }
+    if ($v < 15) {
+        $p->exec("ALTER TABLE users ADD COLUMN lang TEXT NOT NULL DEFAULT ''; PRAGMA user_version = 15;");
+    }
 }
 
 /* ---------- request setup ---------- */
@@ -323,7 +326,7 @@ function csrf_token(): string {
 function csrf_field(): string { return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">'; }
 function csrf_check(): void {
     $ok = isset($_POST['_csrf'], $_SESSION['csrf']) && hash_equals($_SESSION['csrf'], (string)$_POST['_csrf']);
-    if (!$ok) { http_response_code(400); render('message', ['heading' => 'That page expired', 'text' => 'Please go back, refresh the page and try again.'], 'Expired', true); exit; }
+    if (!$ok) { http_response_code(400); render('message', ['heading' => tt('msg.that_page_expired'), 'text' => tt('msg.please_go_back_refresh')], 'Expired', true); exit; }
 }
 
 function render(string $view, array $v = [], string $title = 'Moriwella', bool $bare = false): void {
@@ -349,19 +352,23 @@ function current_user(): ?array {
 function require_login(): array { $u = current_user(); if (!$u) redirect(url('/login')); return $u; }
 function require_admin(): array {
     $u = require_login();
-    if ($u['role'] !== 'admin') { http_response_code(403); render('message', ['heading' => 'Admins only', 'text' => 'This area is for Moriwella administrators.'], 'Not allowed'); exit; }
+    if ($u['role'] !== 'admin') { http_response_code(403); render('message', ['heading' => tt('msg.admins_only'), 'text' => tt('msg.this_area_is_for')], 'Not allowed'); exit; }
     return $u;
 }
 function hash_pw(string $p): string { return password_hash($p, defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT); }
 function check_password_rules(string $p, string $p2): ?string {
-    if (strlen($p) < 10) return 'Use at least 10 characters.';
-    if ($p !== $p2) return 'The two passwords don\'t match.';
+    if (strlen($p) < 10) return tt('msg.use_at_least_10');
+    if ($p !== $p2) return tt('msg.the_two_passwords_don');
     return null;
 }
 function login_user(array $u): void {
     session_regenerate_id(true);
     $_SESSION['uid'] = (int)$u['id'];
     db()->prepare('UPDATE users SET last_login_at = ? WHERE id = ?')->execute([time(), $u['id']]);
+    /* a language chosen on the sign-in screen becomes this person's setting the first time */
+    if (($u['lang'] ?? '') === '' && !empty($_SESSION['lang']) && isset(langs_available()[$_SESSION['lang']])) {
+        db()->prepare('UPDATE users SET lang = ? WHERE id = ?')->execute([$_SESSION['lang'], $u['id']]);
+    }
 }
 function client_ip(): string { return (string)($_SERVER['REMOTE_ADDR'] ?? '0'); }
 function too_many_attempts(): bool {

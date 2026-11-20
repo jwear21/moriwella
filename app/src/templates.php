@@ -2,6 +2,9 @@
 /* Starter experience templates. Sections are suggestions: prompts are gentle, never required.
    Every section can be renamed, removed or added to once an experience is created. */
 function starter_templates(): array {
+    return tl_walk(starter_templates_en());
+}
+function starter_templates_en(): array {
     $s = fn(array $pairs) => array_map(fn($k, $v) => ['name' => $k, 'prompt' => $v], array_keys($pairs), array_values($pairs));
     return [
         'cruise' => ['name' => 'Cruise vacation', 'blurb' => 'Ship, ports, excursions, dining and sea days.', 'sections' => $s([

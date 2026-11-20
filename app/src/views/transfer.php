@@ -1,53 +1,53 @@
-<p><a class="link back" href="<?= url('/settings') ?>">&larr; Account</a></p>
-<h1 class="page-title">Import and export</h1>
-<p class="subtle">Your words are yours. Take them with you, or bring them here from another app.</p>
+<p><a class="link back" href="<?= url('/settings') ?>"><?= t('common.account') ?></a></p>
+<h1 class="page-title"><?= t('common.import_and_export') ?></h1>
+<p class="subtle"><?= t('transfer.your_words_are_yours') ?></p>
 
 <section class="card write xfer" id="export">
-  <h2 class="section-h">Export your journal</h2>
-  <p>Take everything with you, with exact dates and your original photos. Choose the kind of file you need.</p>
+  <h2 class="section-h"><?= t('transfer.export_your_journal') ?></h2>
+  <p><?= t('transfer.take_everything_with_you') ?></p>
   <?php if ($entryCount > 0): ?>
-  <form method="post" action="<?= url('/transfer/export') ?>" data-download="Packing up your journal" data-detail="This can take a minute if you have a lot of photos.">
+  <form method="post" action="<?= url('/transfer/export') ?>" data-download="<?= t('transfer.packing_up_your_journal') ?>" data-detail="<?= t('transfer.this_can_take_a') ?>">
     <?= csrf_field() ?>
-    <div class="src-list" role="radiogroup" aria-label="Export format">
-      <label class="src"><input type="radio" name="format" value="moriwella" checked><span class="src-body"><b>Moriwella archive</b><small>A ZIP with one readable page for each day, your photos, and a data file. Moriwella can import it again.</small></span></label>
-      <label class="src"><input type="radio" name="format" value="evernote"><span class="src-body"><b>For Evernote</b><small>An .enex file. In Evernote, choose File, then Import Notes. Each entry becomes a note.</small></span></label>
-      <label class="src"><input type="radio" name="format" value="dayone"><span class="src-body"><b>For Day One</b><small>A ZIP in Day One's JSON format. In Day One, choose Import, then JSON ZIP.</small></span></label>
+    <div class="src-list" role="radiogroup" aria-label="<?= t('transfer.export_format') ?>">
+      <label class="src"><input type="radio" name="format" value="moriwella" checked><span class="src-body"><b><?= t('transfer.moriwella_archive') ?></b><small><?= t('transfer.a_zip_with_one') ?></small></span></label>
+      <label class="src"><input type="radio" name="format" value="evernote"><span class="src-body"><b><?= t('transfer.for_evernote') ?></b><small><?= t('transfer.an_enex_file_in') ?></small></span></label>
+      <label class="src"><input type="radio" name="format" value="dayone"><span class="src-body"><b><?= t('transfer.for_day_one') ?></b><small><?= t('transfer.a_zip_in_day') ?></small></span></label>
     </div>
-    <button class="btn" type="submit">Download my journal</button>
+    <button class="btn" type="submit"><?= t('transfer.download_my_journal') ?></button>
     <span class="hint"><?= (int)$entryCount ?> <?= $entryCount === 1 ? 'entry' : 'entries' ?></span>
   </form>
   <?php else: ?>
-  <p class="hint">There is nothing to export yet. Once you have written an entry, it will show up here.</p>
+  <p class="hint"><?= t('transfer.there_is_nothing_to') ?></p>
   <?php endif; ?>
 </section>
 
 <section class="card write xfer" id="import">
-  <h2 class="section-h">Bring entries from another app</h2>
-  <p>Choose where your file came from. You will see a preview before anything is added, and you can undo an import afterwards.</p>
-  <form method="post" action="<?= url('/transfer/upload') ?>" enctype="multipart/form-data" data-loader="Reading your file" data-detail="Almost there. Nothing is added yet.">
+  <h2 class="section-h"><?= t('transfer.bring_entries_from_another') ?></h2>
+  <p><?= t('transfer.choose_where_your_file') ?></p>
+  <form method="post" action="<?= url('/transfer/upload') ?>" enctype="multipart/form-data" data-loader="<?= t('transfer.reading_your_file') ?>" data-detail="<?= t('transfer.almost_there_nothing_is') ?>">
     <?= csrf_field() ?>
-    <div class="src-list" role="radiogroup" aria-label="Where did your file come from?">
+    <div class="src-list" role="radiogroup" aria-label="<?= t('transfer.where_did_your_file') ?>">
       <?php $first = true; foreach ($sources as $key => $s): ?>
       <label class="src<?= $s['ready'] ? '' : ' src--soon' ?>">
         <input type="radio" name="source" value="<?= e($key) ?>" data-accept="<?= e($s['accept']) ?>"<?= $s['ready'] ? '' : ' disabled' ?><?= ($s['ready'] && $first) ? ' checked' : '' ?>>
-        <span class="src-body"><b><?= e($s['name']) ?></b><small><?= e($s['help']) ?></small></span>
-        <?php if (!$s['ready']): ?><span class="src-tag">Coming soon</span><?php endif; ?>
+        <span class="src-body"><b><?= e($s['name']) ?></b><small><?= e(tl($s['help'])) ?></small></span>
+        <?php if (!$s['ready']): ?><span class="src-tag"><?= t('transfer.coming_soon') ?></span><?php endif; ?>
       </label>
       <?php if ($s['ready']) $first = false; endforeach; ?>
     </div>
-    <label class="filepick"><span class="filepick-t">Choose your file</span><span class="filepick-n" id="filepick-n">No file chosen</span><input type="file" name="file" id="xfer-file" accept=".zip" required></label>
-    <p class="hint">Files up to <?= e($maxUpload) ?>.</p>
-    <button class="btn" type="submit">Read my file</button>
+    <label class="filepick"><span class="filepick-t"><?= t('transfer.choose_your_file') ?></span><span class="filepick-n" id="filepick-n"><?= t('transfer.no_file_chosen') ?></span><input type="file" name="file" id="xfer-file" accept=".zip" required></label>
+    <p class="hint"><?= t('transfer.files_up_to', ['size' => $maxUpload]) ?></p>
+    <button class="btn" type="submit"><?= t('transfer.read_my_file') ?></button>
   </form>
 </section>
 
 <?php if ($imports): ?>
 <section class="card write xfer">
-  <h2 class="section-h">Recent imports</h2>
+  <h2 class="section-h"><?= t('transfer.recent_imports') ?></h2>
   <ul class="trk-list">
   <?php foreach ($imports as $im): ?>
-    <li><span class="trk-name"><b><?= e($sources[$im['source']]['name'] ?? $im['source']) ?></b><small><?= (int)$im['entries'] ?> <?= (int)$im['entries'] === 1 ? 'entry' : 'entries' ?><?= $im['photos'] ? ', ' . (int)$im['photos'] . ' photos' : '' ?><?= !empty($im['moods']) ? ', ' . (int)$im['moods'] . ' moods' : '' ?> &middot; <?= e(date('M j, Y', (int)$im['created_at'])) ?></small></span>
-      <form method="post" action="<?= url('/transfer/undo/' . $im['batch']) ?>" data-confirm="Remove everything that came in with this import? Your other entries are not touched."><?= csrf_field() ?><button class="trk-btn" type="submit">Undo</button></form></li>
+    <li><span class="trk-name"><b><?= e($sources[$im['source']]['name'] ?? $im['source']) ?></b><small><?= (int)$im['entries'] ?> <?= (int)$im['entries'] === 1 ? 'entry' : 'entries' ?><?= $im['photos'] ? ', ' . (int)$im['photos'] . ' photos' : '' ?><?= !empty($im['moods']) ? ', ' . (int)$im['moods'] . ' moods' : '' ?> &middot; <?= e(ldate('M j, Y', (int)$im['created_at'])) ?></small></span>
+      <form method="post" action="<?= url('/transfer/undo/' . $im['batch']) ?>" data-confirm="<?= t('transfer.remove_everything_that_came') ?>"><?= csrf_field() ?><button class="trk-btn" type="submit"><?= t('transfer.undo') ?></button></form></li>
   <?php endforeach; ?>
   </ul>
 </section>

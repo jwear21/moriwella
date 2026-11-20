@@ -3,15 +3,15 @@
 (function () {
   var script = document.currentScript, BASE = script.getAttribute('data-base') || '', CSRF = script.getAttribute('data-csrf') || '';
   var LOOKS = [
-    { id: 'original', name: 'Original', p: {} },
-    { id: 'golden', name: 'Golden hour', p: { b: 4, c: 8, s: 14, w: 26 } },
-    { id: 'coast', name: 'Coastline', p: { b: 2, c: 10, s: 8, w: -22 } },
-    { id: 'fade', name: 'Soft fade', p: { b: 6, c: -14, s: -10, w: 8, fade: 22 } },
-    { id: 'vivid', name: 'Vivid', p: { c: 14, s: 38 } },
-    { id: 'mono', name: 'Black & white', p: { c: 10, s: -100 } },
-    { id: 'sepia', name: 'Keepsake', p: { c: -4, sepia: 70, b: 2 } }
+    { id: 'original', name: T('js.original', 'Original'), p: {} },
+    { id: 'golden', name: T('js.golden_hour', 'Golden hour'), p: { b: 4, c: 8, s: 14, w: 26 } },
+    { id: 'coast', name: T('js.coastline', 'Coastline'), p: { b: 2, c: 10, s: 8, w: -22 } },
+    { id: 'fade', name: T('js.soft_fade', 'Soft fade'), p: { b: 6, c: -14, s: -10, w: 8, fade: 22 } },
+    { id: 'vivid', name: T('js.vivid', 'Vivid'), p: { c: 14, s: 38 } },
+    { id: 'mono', name: T('js.black_white', 'Black & white'), p: { c: 10, s: -100 } },
+    { id: 'sepia', name: T('js.keepsake', 'Keepsake'), p: { c: -4, sepia: 70, b: 2 } }
   ];
-  var ASPECTS = [['free', 'Free', 0], ['orig', 'Original', -1], ['sq', 'Square', 1], ['45', '4:5', 4 / 5], ['32', '3:2', 3 / 2], ['169', '16:9', 16 / 9]];
+  var ASPECTS = [['free', T('js.free', 'Free'), 0], ['orig', T('js.original', 'Original'), -1], ['sq', T('js.square', 'Square'), 1], ['45', '4:5', 4 / 5], ['32', '3:2', 3 / 2], ['169', '16:9', 16 / 9]];
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
   /* Pixel pipeline: the same math is used for previews and for the saved file */
@@ -47,7 +47,7 @@
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
 
   function open(photoId, opener) {
-    var img = new Image(), back = el('div', 'ps-back'), box = el('div', 'ps'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', 'Photo studio');
+    var img = new Image(), back = el('div', 'ps-back'), box = el('div', 'ps'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', T('js.photo_studio', 'Photo studio'));
     box.innerHTML = '<div class="ps-head"><h2 class="ps-title">Photo studio</h2><button type="button" class="ps-x" aria-label="Close">&times;</button></div><div class="ps-load">Opening your photo…</div>';
     back.appendChild(box); document.body.appendChild(back); document.body.style.overflow = 'hidden';
     var closeBtn = box.querySelector('.ps-x');
@@ -55,7 +55,7 @@
     function onKey(e) { if (e.key === 'Escape') close(); }
     document.addEventListener('keydown', onKey); closeBtn.addEventListener('click', close);
     back.addEventListener('mousedown', function (e) { if (e.target === back) close(); });
-    img.onerror = function () { box.querySelector('.ps-load').textContent = 'That photo could not be opened.'; };
+    img.onerror = function () { box.querySelector('.ps-load').textContent = T('js.that_photo_could_not_be', 'That photo could not be opened.'); };
     img.onload = function () { build(); };
     img.src = BASE + '/photo/' + photoId + '/orig?t=' + Date.now();
 
@@ -67,7 +67,7 @@
       wrap.appendChild(view); wrap.appendChild(cropEl); stage.appendChild(wrap);
       var side = el('div', 'ps-side'), tabs = el('div', 'ps-tabs'); tabs.setAttribute('role', 'tablist');
       var panels = {};
-      [['crop', 'Crop'], ['look', 'Looks'], ['adjust', 'Adjust']].forEach(function (t) {
+      [['crop', T('js.crop', 'Crop')], ['look', T('js.looks', 'Looks')], ['adjust', T('js.adjust', 'Adjust')]].forEach(function (t) {
         var b = el('button', 'ps-tab', t[1]); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.tab = t[0];
         b.addEventListener('click', function () { setTab(t[0]); }); tabs.appendChild(b);
         panels[t[0]] = el('div', 'ps-panel'); panels[t[0]].setAttribute('role', 'tabpanel');
@@ -77,19 +77,19 @@
 
       /* Crop panel */
       var pc = panels.crop;
-      pc.appendChild(el('div', 'ps-lbl', 'Shape'));
+      pc.appendChild(el('div', 'ps-lbl', T('js.shape', 'Shape')));
       var chips = el('div', 'ps-chips'); pc.appendChild(chips);
       ASPECTS.forEach(function (a) {
         var b = el('button', 'ps-chip', a[1]); b.type = 'button'; b.dataset.a = a[0]; b.setAttribute('aria-pressed', a[0] === 'free' ? 'true' : 'false');
         b.addEventListener('click', function () { st.aspect = a[0]; chips.querySelectorAll('.ps-chip').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); }); applyAspect(); drawCrop(); });
         chips.appendChild(b);
       });
-      pc.appendChild(el('div', 'ps-lbl', 'Turn'));
+      pc.appendChild(el('div', 'ps-lbl', T('js.turn', 'Turn')));
       var turn = el('div', 'ps-chips'); pc.appendChild(turn);
-      [['Rotate left', function () { st.rot = (st.rot + 3) % 4; resetCrop(); }], ['Rotate right', function () { st.rot = (st.rot + 1) % 4; resetCrop(); }], ['Mirror', function () { st.flip = !st.flip; render(); }]].forEach(function (a) {
+      [[T('js.rotate_left', 'Rotate left'), function () { st.rot = (st.rot + 3) % 4; resetCrop(); }], [T('js.rotate_right', 'Rotate right'), function () { st.rot = (st.rot + 1) % 4; resetCrop(); }], [T('js.mirror', 'Mirror'), function () { st.flip = !st.flip; render(); }]].forEach(function (a) {
         var b = el('button', 'ps-chip', a[0]); b.type = 'button'; b.addEventListener('click', a[1]); turn.appendChild(b);
       });
-      pc.appendChild(el('p', 'ps-msg', 'Drag the gold corners to crop. Drag inside the box to move it.'));
+      pc.appendChild(el('p', 'ps-msg', T('js.drag_the_gold_corners_to', 'Drag the gold corners to crop. Drag inside the box to move it.')));
 
       /* Looks panel */
       var pl = panels.look, grid = el('div', 'ps-looks'); pl.appendChild(grid);
@@ -103,20 +103,20 @@
 
       /* Adjust panel */
       var pa = panels.adjust, outs = {};
-      [['b', 'Brightness'], ['c', 'Contrast'], ['s', 'Color'], ['w', 'Warmth']].forEach(function (a) {
+      [['b', T('js.brightness', 'Brightness')], ['c', T('js.contrast', 'Contrast')], ['s', T('js.color', 'Color')], ['w', T('js.warmth', 'Warmth')]].forEach(function (a) {
         var wr = el('div', 'ps-sl'), id = 'ps-' + a[0], lb = el('label'); lb.htmlFor = id; lb.innerHTML = '<span>' + a[1] + '</span>'; var o = el('output', '', '0'); lb.appendChild(o);
         var r = el('input'); r.type = 'range'; r.min = -50; r.max = 50; r.value = 0; r.id = id; outs[a[0]] = o;
         r.addEventListener('input', function () { st.adj[a[0]] = +r.value; o.textContent = r.value; render(); });
         wr.appendChild(lb); wr.appendChild(r); pa.appendChild(wr); outs[a[0] + 'r'] = r;
       });
-      var reset = el('button', 'ps-link', 'Reset adjustments'); reset.type = 'button';
+      var reset = el('button', 'ps-link', T('js.reset_adjustments', 'Reset adjustments')); reset.type = 'button';
       reset.addEventListener('click', function () { ['b', 'c', 's', 'w'].forEach(function (k) { st.adj[k] = 0; outs[k + 'r'].value = 0; outs[k].textContent = '0'; }); render(); }); pa.appendChild(reset);
 
       /* Footer */
       var foot = el('div', 'ps-foot'), msg = el('span', 'ps-msg'), g1 = el('div', 'grp'), g2 = el('div', 'grp');
-      var revert = el('button', 'ps-link', 'Revert to original'); revert.type = 'button';
-      var cancel = el('button', 'ps-btn', 'Cancel'); cancel.type = 'button'; cancel.addEventListener('click', close);
-      var save = el('button', 'ps-btn ps-btn--go', 'Save photo'); save.type = 'button';
+      var revert = el('button', 'ps-link', T('js.revert_to_original', 'Revert to original')); revert.type = 'button';
+      var cancel = el('button', 'ps-btn', T('js.cancel', 'Cancel')); cancel.type = 'button'; cancel.addEventListener('click', close);
+      var save = el('button', 'ps-btn ps-btn--go', T('js.save_photo', 'Save photo')); save.type = 'button';
       g1.appendChild(revert); g1.appendChild(msg); g2.appendChild(cancel); g2.appendChild(save); foot.appendChild(g1); foot.appendChild(g2);
       box.appendChild(body); box.appendChild(foot);
 
@@ -218,20 +218,20 @@
       save.addEventListener('click', function () {
         save.disabled = true; save.textContent = 'Saving…'; msg.textContent = '';
         exportBlob(function (blob) {
-          if (!blob) { save.disabled = false; save.textContent = 'Save photo'; msg.textContent = 'This browser could not export the photo.'; return; }
+          if (!blob) { save.disabled = false; save.textContent = T('js.save_photo', 'Save photo'); msg.textContent = T('js.this_browser_could_not_export', 'This browser could not export the photo.'); return; }
           var fd = new FormData(); fd.append('_csrf', CSRF); fd.append('edited', blob, 'edited.jpg');
           fetch(BASE + '/photos/' + photoId + '/edit', { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: fd, credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
-            .then(function (j) { if (!j.ok) throw new Error(j.error || 'Could not save.'); refreshOnPage(j.v); close(); })
-            .catch(function (er) { save.disabled = false; save.textContent = 'Save photo'; msg.textContent = er.message || 'Could not save. Please try again.'; });
+            .then(function (j) { if (!j.ok) throw new Error(j.error || T('js.could_not_save', 'Could not save.')); refreshOnPage(j.v); close(); })
+            .catch(function (er) { save.disabled = false; save.textContent = T('js.save_photo', 'Save photo'); msg.textContent = er.message || T('js.could_not_save_please_try', 'Could not save. Please try again.'); });
         });
       });
       revert.addEventListener('click', function () {
-        if (!confirm('Go back to the original photo? Your edits will be removed.')) return;
+        if (!confirm(T('js.go_back_to_the_original', 'Go back to the original photo? Your edits will be removed.'))) return;
         var fd = new FormData(); fd.append('_csrf', CSRF);
         fetch(BASE + '/photos/' + photoId + '/revert', { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: fd, credentials: 'same-origin' })
-          .then(function (r) { return r.json(); }).then(function (j) { if (j.ok) { refreshOnPage(j.v); close(); } else msg.textContent = 'Could not revert.'; })
-          .catch(function () { msg.textContent = 'Could not revert.'; });
+          .then(function (r) { return r.json(); }).then(function (j) { if (j.ok) { refreshOnPage(j.v); close(); } else msg.textContent = T('js.could_not_revert', 'Could not revert.'); })
+          .catch(function () { msg.textContent = T('js.could_not_revert', 'Could not revert.'); });
       });
 
       setTab('crop'); rebuildWork(); paintLookThumbs(); render();

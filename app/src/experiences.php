@@ -47,16 +47,16 @@ if ($path === '/experiences/new') {
     $key = (string)($_GET['t'] ?? $_POST['t'] ?? '');
     $tpl = $key !== '' ? resolve_template($key, $uid) : null;
     if ($post) {
-        if (!$tpl) { flash('err', 'Pick a template first.'); redirect(url('/experiences/new')); }
+        if (!$tpl) { flash('err', tt('msg.pick_a_template_first')); redirect(url('/experiences/new')); }
         $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 150);
         $start = (string)($_POST['start_date'] ?? ''); $end = (string)($_POST['end_date'] ?? '');
         $loc = mb_substr(trim((string)($_POST['location'] ?? '')), 0, 150);
         if ($end === '' && valid_date($start)) $end = $start;
         $err = '';
-        if ($title === '') $err = 'Give it a name.';
-        elseif (!valid_date($start) || !valid_date($end)) $err = 'Pick a start and end date.';
-        elseif ($end < $start) $err = 'The end date can\'t be before the start date.';
-        elseif (days_between($start, $end) > 365) $err = 'An experience can run up to a year.';
+        if ($title === '') $err = tt('msg.give_it_a_name');
+        elseif (!valid_date($start) || !valid_date($end)) $err = tt('msg.pick_a_start_and');
+        elseif ($end < $start) $err = tt('msg.the_end_date_can');
+        elseif (days_between($start, $end) > 365) $err = tt('msg.an_experience_can_run');
         if ($err) { flash('err', $err); redirect(url('/experiences/new') . '?t=' . urlencode($key)); }
         db()->beginTransaction();
         db()->prepare('INSERT INTO events (user_id, template_key, title, start_date, end_date, location, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
@@ -75,30 +75,30 @@ if ($path === '/experiences/new') {
 
 if (preg_match('#^/experiences/(\d+)(?:/([a-z-]+)(?:/(\d+))?(?:/([a-z]+))?)?$#', $path, $mm)) {
     $ev = event_for_user((int)$mm[1], $uid);
-    if (!$ev) { http_response_code(404); render('message', ['heading' => 'Experience not found', 'text' => 'It may have been deleted.'], 'Not found'); exit; }
+    if (!$ev) { http_response_code(404); render('message', ['heading' => tt('msg.experience_not_found'), 'text' => tt('msg.it_may_have_been')], 'Not found'); exit; }
     $act = $mm[2] ?? ''; $back = url('/experiences/' . $ev['id']);
     if ($post) {
         if ($act === 'update') {
             $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 150);
             $start = (string)($_POST['start_date'] ?? ''); $end = (string)($_POST['end_date'] ?? '');
             $loc = mb_substr(trim((string)($_POST['location'] ?? '')), 0, 150);
-            if ($title === '' || !valid_date($start) || !valid_date($end) || $end < $start || days_between($start, $end) > 365) { flash('err', 'Check the name and dates.'); redirect($back); }
+            if ($title === '' || !valid_date($start) || !valid_date($end) || $end < $start || days_between($start, $end) > 365) { flash('err', tt('msg.check_the_name_and')); redirect($back); }
             db()->prepare('UPDATE events SET title = ?, start_date = ?, end_date = ?, location = ? WHERE id = ? AND user_id = ?')->execute([$title, $start, $end, $loc, $ev['id'], $uid]);
-            flash('ok', 'Saved.'); redirect($back);
+            flash('ok', tt('msg.saved')); redirect($back);
         }
         if ($act === 'delete') {
             movies_purge_event((int)$ev['id'], $uid);
             db()->prepare('UPDATE entries SET event_id = NULL, section_id = NULL WHERE event_id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
             db()->prepare('DELETE FROM events WHERE id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
-            flash('ok', 'Experience removed. Your entries are still in your journal.'); redirect(url('/experiences'));
+            flash('ok', tt('msg.experience_removed_your_entries')); redirect(url('/experiences'));
         }
         if ($act === 'sections') {
             $sub = $mm[3] ?? ''; /* /sections add */
             $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 80);
             $c = db()->prepare('SELECT COUNT(*) FROM event_sections WHERE event_id = ?'); $c->execute([$ev['id']]);
-            if ($name === '') flash('err', 'Give the section a name.');
-            elseif ((int)$c->fetchColumn() >= 30) flash('err', 'That\'s plenty of sections.');
-            else { db()->prepare('INSERT INTO event_sections (event_id, name, prompt, position) VALUES (?, ?, ?, ?)')->execute([$ev['id'], $name, mb_substr(trim((string)($_POST['prompt'] ?? '')), 0, 200), (int)$c->fetchColumn()]); flash('ok', 'Section added.'); }
+            if ($name === '') flash('err', tt('msg.give_the_section_a'));
+            elseif ((int)$c->fetchColumn() >= 30) flash('err', tt('msg.that_s_plenty_of_2'));
+            else { db()->prepare('INSERT INTO event_sections (event_id, name, prompt, position) VALUES (?, ?, ?, ?)')->execute([$ev['id'], $name, mb_substr(trim((string)($_POST['prompt'] ?? '')), 0, 200), (int)$c->fetchColumn()]); flash('ok', tt('msg.section_added')); }
             redirect($back . '#sections');
         }
         if ($act === 'section' && isset($mm[3])) {
@@ -119,7 +119,7 @@ if (preg_match('#^/experiences/(\d+)(?:/([a-z-]+)(?:/(\d+))?(?:/([a-z]+))?)?$#',
             $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 80) ?: $ev['title'];
             $secs = array_map(fn($s) => ['name' => $s['name'], 'prompt' => $s['prompt']], event_sections((int)$ev['id']));
             db()->prepare('INSERT INTO event_templates (user_id, name, sections, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $name, json_encode($secs), time()]);
-            flash('ok', 'Saved as your template "' . $name . '". You will find it when you start a new experience.'); redirect($back);
+            flash('ok', tt('msg.template_saved', ['name' => $name])); redirect($back);
         }
         redirect($back);
     }
