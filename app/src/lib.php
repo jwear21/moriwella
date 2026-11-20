@@ -234,6 +234,11 @@ function migrate(PDO $p): void {
           );
           PRAGMA user_version = 10;");
     }
+    if ($v < 11) {
+        $p->exec("ALTER TABLE tracker_log ADD COLUMN batch TEXT;
+          ALTER TABLE imports ADD COLUMN moods INTEGER NOT NULL DEFAULT 0;
+          PRAGMA user_version = 11;");
+    }
 }
 
 /* ---------- request setup ---------- */

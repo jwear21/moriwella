@@ -41,7 +41,7 @@
   <h2 class="section-h">Recent imports</h2>
   <ul class="trk-list">
   <?php foreach ($imports as $im): ?>
-    <li><span class="trk-name"><b><?= e($sources[$im['source']]['name'] ?? $im['source']) ?></b><small><?= (int)$im['entries'] ?> <?= (int)$im['entries'] === 1 ? 'entry' : 'entries' ?><?= $im['photos'] ? ', ' . (int)$im['photos'] . ' photos' : '' ?> &middot; <?= e(date('M j, Y', (int)$im['created_at'])) ?></small></span>
+    <li><span class="trk-name"><b><?= e($sources[$im['source']]['name'] ?? $im['source']) ?></b><small><?= (int)$im['entries'] ?> <?= (int)$im['entries'] === 1 ? 'entry' : 'entries' ?><?= $im['photos'] ? ', ' . (int)$im['photos'] . ' photos' : '' ?><?= !empty($im['moods']) ? ', ' . (int)$im['moods'] . ' days of mood' : '' ?> &middot; <?= e(date('M j, Y', (int)$im['created_at'])) ?></small></span>
       <form method="post" action="<?= url('/transfer/undo/' . $im['batch']) ?>" data-confirm="Remove everything that came in with this import? Your other entries are not touched."><?= csrf_field() ?><button class="trk-btn" type="submit">Undo</button></form></li>
   <?php endforeach; ?>
   </ul>

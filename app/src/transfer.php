@@ -11,7 +11,7 @@ function transfer_sources(): array {
     return [
         'moriwella' => ['name' => 'Moriwella archive', 'ready' => true, 'accept' => '.zip',
             'help' => 'The ZIP you get from Export on this page. Good for restoring a backup or moving between accounts.'],
-        'daylio'    => ['name' => 'Daylio', 'ready' => false, 'accept' => '.csv', 'help' => 'In Daylio: More, Export Entries, CSV (table).'],
+        'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods go to Track.'],
         'journey'   => ['name' => 'Journey', 'ready' => false, 'accept' => '.zip', 'help' => 'Journey can archive your entries to a ZIP file.'],
         'diaro'     => ['name' => 'Diaro', 'ready' => false, 'accept' => '.zip', 'help' => 'In Diaro, make a backup and use the ZIP.'],
         'evernote'  => ['name' => 'Evernote', 'ready' => false, 'accept' => '.enex', 'help' => 'In the Evernote desktop app, export a notebook as ENEX.'],
@@ -110,9 +110,50 @@ function transfer_read_moriwella(string $file, string $work): array {
     $zip->close();
     return ['source' => 'moriwella', 'entries' => $entries];
 }
+function transfer_read_daylio(string $file, string $work): array {
+    $h = @fopen($file, 'r'); if (!$h) throw new RuntimeException('That file could not be opened.');
+    $first = fgets($h); if ($first === false) throw new RuntimeException('That file is empty.');
+    $first = preg_replace('/^\xEF\xBB\xBF/', '', $first);
+    $delim = substr_count($first, ';') > substr_count($first, ',') ? ';' : ',';
+    $cols = array_map(fn($c) => strtolower(trim((string)$c)), str_getcsv(trim($first), $delim));
+    $idx = array_flip($cols);
+    $hasDate = isset($idx['full_date']) || (isset($idx['year']) && isset($idx['date']));
+    if (!$hasDate || !isset($idx['time']) || !isset($idx['mood'])) { fclose($h); throw new RuntimeException('This does not look like a Daylio CSV. Export with More, Export Entries, CSV (table).'); }
+    rewind($h); fgets($h);
+    $moodMap = ['rad' => 5, 'good' => 4, 'meh' => 3, 'bad' => 2, 'awful' => 1];
+    $entries = []; $moodSum = []; $noteless = 0; $rows = 0;
+    $get = function (array $r, string $k) use ($idx): string { return isset($idx[$k], $r[$idx[$k]]) ? trim((string)$r[$idx[$k]]) : ''; };
+    while (($r = fgetcsv($h, 0, $delim)) !== false) {
+        if (!$r || (count($r) === 1 && trim((string)$r[0]) === '')) continue;
+        if (++$rows > TRANSFER_MAX_ENTRIES) { fclose($h); throw new RuntimeException('That file has more rows than we can import at once.'); }
+        $time = $get($r, 'time');
+        $ts = 0; $date = '';
+        if (isset($idx['full_date']) && $get($r, 'full_date') !== '') $stamp = strtotime($get($r, 'full_date') . ' ' . $time);
+        else $stamp = strtotime($get($r, 'date') . ', ' . $get($r, 'year') . ' ' . $time);
+        if ($stamp === false || $stamp < 0) { $stamp = strtotime((isset($idx['full_date']) ? $get($r, 'full_date') : $get($r, 'date') . ', ' . $get($r, 'year'))); }
+        if ($stamp === false || $stamp < 0) continue;
+        $ts = (int)$stamp; $date = date('Y-m-d', $ts);
+        $mood = strtolower($get($r, 'mood'));
+        if (isset($moodMap[$mood])) { $moodSum[$date][] = $moodMap[$mood]; }
+        $note = isset($idx['note']) ? str_replace(["\r\n", "\r"], "\n", $get($r, 'note')) : '';
+        $title = mb_substr($get($r, 'note_title'), 0, 200);
+        $acts = $get($r, 'activities');
+        if ($note === '' && $title === '') { $noteless++; continue; }
+        $paras = [];
+        foreach (preg_split('/\n{2,}/', $note) as $i => $t) { $t = trim($t); if ($t !== '') $paras[] = ['ts' => $i === 0 ? $ts : 0, 'text' => $t]; }
+        if (!$paras) $paras[] = ['ts' => $ts, 'text' => $title]; 
+        if ($acts !== '') $paras[] = ['ts' => 0, 'text' => 'Activities: ' . implode(', ', array_map('trim', explode('|', $acts)))];
+        $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => [], 'key' => 'dl:' . sha1($ts . '|' . $note . '|' . $title)];
+    }
+    fclose($h);
+    $moods = [];
+    foreach ($moodSum as $d => $vals) $moods[$d] = (int)round(array_sum($vals) / count($vals));
+    return ['source' => 'daylio', 'entries' => $entries, 'moods' => $moods, 'noteless' => $noteless];
+}
 function transfer_read(string $source, string $file, string $work): array {
     switch ($source) {
         case 'moriwella': return transfer_read_moriwella($file, $work);
+        case 'daylio': return transfer_read_daylio($file, $work);
     }
     throw new RuntimeException('That app is not supported yet.');
 }
@@ -135,8 +176,14 @@ function transfer_commit(int $uid, array $manifest, string $work): array {
             $err ? $photoErrs++ : $nP++;
         }
     }
-    if ($nE > 0) db()->prepare('INSERT INTO imports (user_id, batch, source, entries, photos, created_at) VALUES (?,?,?,?,?,?)')->execute([$uid, $batch, $manifest['source'], $nE, $nP, time()]);
-    return ['entries' => $nE, 'photos' => $nP, 'skipped' => $skipped, 'photoErrors' => $photoErrs];
+    $nM = 0;
+    if (!empty($manifest['moods'])) {
+        $mi = db()->prepare("INSERT OR IGNORE INTO tracker_log (user_id, tkey, day, value, batch) VALUES (?, 'mood', ?, ?, ?)");
+        foreach ($manifest['moods'] as $d => $v) { if (valid_date((string)$d) && $v >= 1 && $v <= 5) { $mi->execute([$uid, $d, $v, $batch]); $nM += $mi->rowCount(); } }
+        if ($nM > 0) db()->prepare("INSERT OR IGNORE INTO tracker_on (user_id, tkey) VALUES (?, 'mood')")->execute([$uid]);
+    }
+    if ($nE > 0 || $nM > 0) db()->prepare('INSERT INTO imports (user_id, batch, source, entries, photos, moods, created_at) VALUES (?,?,?,?,?,?,?)')->execute([$uid, $batch, $manifest['source'], $nE, $nP, $nM, time()]);
+    return ['entries' => $nE, 'photos' => $nP, 'moods' => $nM, 'skipped' => $skipped, 'photoErrors' => $photoErrs];
 }
 
 /* ---------- pages ---------- */
@@ -168,7 +215,7 @@ if ($path === '/transfer/upload' && $post) {
     $token = bin2hex(random_bytes(8)); $work = transfer_tmp($uid, $token);
     try {
         $manifest = transfer_read($src, $f['tmp_name'], $work);
-        if (!$manifest['entries']) throw new RuntimeException('We did not find any entries in that file.');
+        if (!$manifest['entries'] && empty($manifest['moods'])) throw new RuntimeException('We did not find any entries in that file.');
         file_put_contents($work . '/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE));
     } catch (Throwable $e) {
         transfer_rmdir($work); flash('err', $e instanceof RuntimeException ? $e->getMessage() : 'We could not read that file.'); redirect(url('/transfer') . '#import');
@@ -186,7 +233,11 @@ if (preg_match('#^/transfer/(preview|import|cancel)/([a-f0-9]{16})$#', $path, $m
         try { $r = transfer_commit($uid, $manifest, $work); db()->commit(); }
         catch (Throwable $e) { db()->rollBack(); flash('err', 'The import stopped partway and nothing was added. Please try again.'); redirect(url('/transfer/preview/' . $mm[2])); }
         transfer_rmdir($work);
-        $msg = $r['entries'] ? 'Imported ' . $r['entries'] . ($r['entries'] === 1 ? ' entry' : ' entries') . ($r['photos'] ? ' and ' . $r['photos'] . ' photos' : '') . '.' : 'Nothing new to add. Everything in that file was already here.';
+        $bits = [];
+        if ($r['entries']) $bits[] = $r['entries'] . ($r['entries'] === 1 ? ' entry' : ' entries');
+        if ($r['photos']) $bits[] = $r['photos'] . ' photos';
+        if ($r['moods']) $bits[] = $r['moods'] . ' days of mood';
+        $msg = $bits ? 'Imported ' . implode(', ', $bits) . '.' : 'Nothing new to add. Everything in that file was already here.';
         if ($r['skipped'] && $r['entries']) $msg .= ' ' . $r['skipped'] . ' already here, skipped.';
         if ($r['photoErrors']) $msg .= ' ' . $r['photoErrors'] . ' photos could not be read.';
         flash('ok', $msg); redirect(url('/transfer'));
@@ -195,7 +246,7 @@ if (preg_match('#^/transfer/(preview|import|cancel)/([a-f0-9]{16})$#', $path, $m
     $dupes = 0; $photos = 0; $dates = [];
     foreach ($manifest['entries'] as $e) { $has->execute([$uid, $e['key']]); if ($has->fetch()) $dupes++; $photos += count($e['photos']); $dates[] = $e['date']; }
     sort($dates);
-    render('transfer_preview', ['token' => $mm[2], 'source' => transfer_sources()[$manifest['source']]['name'] ?? $manifest['source'], 'entries' => $manifest['entries'], 'photos' => $photos, 'dupes' => $dupes, 'from' => $dates[0] ?? '', 'to' => end($dates) ?: ''], 'Check before importing');
+    render('transfer_preview', ['token' => $mm[2], 'source' => transfer_sources()[$manifest['source']]['name'] ?? $manifest['source'], 'entries' => $manifest['entries'], 'photos' => $photos, 'moods' => count($manifest['moods'] ?? []), 'noteless' => (int)($manifest['noteless'] ?? 0), 'dupes' => $dupes, 'from' => $dates[0] ?? '', 'to' => end($dates) ?: ''], 'Check before importing');
     exit;
 }
 if (preg_match('#^/transfer/undo/([a-f0-9]{12})$#', $path, $mm) && $post) {
@@ -203,6 +254,7 @@ if (preg_match('#^/transfer/undo/([a-f0-9]{12})$#', $path, $mm) && $post) {
     if ($q->fetch()) {
         $es = db()->prepare('SELECT id FROM entries WHERE user_id = ? AND import_batch = ?'); $es->execute([$uid, $mm[1]]);
         foreach ($es->fetchAll(PDO::FETCH_COLUMN) as $eid) { delete_entry_photos((int)$eid, $uid); db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$eid, $uid]); }
+        db()->prepare('DELETE FROM tracker_log WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
         db()->prepare('DELETE FROM imports WHERE batch = ? AND user_id = ?')->execute([$mm[1], $uid]);
         flash('ok', 'That import was undone.');
     }
