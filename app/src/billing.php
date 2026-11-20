@@ -41,9 +41,10 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
 
     if ($post && in_array($path, ['/billing/subscribe', '/billing/credits', '/billing/portal', '/billing/change'], true)) {
         if (!stripe_ready() || stripe_live_blocked()) { flash('err', tt('billing.err_not_ready')); billing_back(); }
-        if (!$isOwner) { flash('err', tt('billing.err_owner_only')); billing_back(); }
+        $isPack = $path === '/billing/credits';
+        if (!$isOwner && !$isPack) { flash('err', tt('billing.err_owner_only')); billing_back(); }   // anyone may buy credits for themselves; the plan is the owner's
         try {
-            $cus = billing_customer($b, $user ?? ['email' => '', 'name' => '']);
+            $cus = $isOwner ? billing_customer($b, $user) : '';
             $hid = (int)$b['household']['id'];
             if ($path === '/billing/portal') {
                 $s = stripe_api('POST', '/v1/billing_portal/sessions', ['customer' => $cus, 'return_url' => billing_abs('/billing')]);
@@ -52,7 +53,7 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
             if ($path === '/billing/credits') {
                 $pack = credit_packs()[$_POST['pack'] ?? ''] ?? null; if (!$pack) billing_back();
                 $price = stripe_price($pack['lookup']); if (!$price) { flash('err', tt('billing.err_not_ready')); billing_back(); }
-                $s = stripe_api('POST', '/v1/checkout/sessions', ['mode' => 'payment', 'customer' => $cus, 'client_reference_id' => $hid,
+                $s = stripe_api('POST', '/v1/checkout/sessions', ['mode' => 'payment', 'customer' => $cus ?: null, 'customer_email' => $cus ? null : $user['email'], 'client_reference_id' => $hid,
                     'line_items' => [['price' => $price, 'quantity' => 1]],
                     'metadata' => ['kind' => 'credit_pack', 'pack' => $_POST['pack'], 'credits' => $pack['credits'], 'user_id' => $uid, 'household_id' => $hid],
                     'payment_intent_data' => ['metadata' => ['kind' => 'credit_pack', 'user_id' => $uid, 'household_id' => $hid]],
