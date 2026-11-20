@@ -486,8 +486,21 @@ function send_mail(string $to, string $subject, string $body, string $replyTo = 
     $from = $clean((string)cfg('mail_from', 'noreply@moriwella.com'));
     $h = ['From: Moriwella <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: Moriwella'];
     if ($replyTo !== '' && filter_var($clean($replyTo), FILTER_VALIDATE_EMAIL)) $h[] = 'Reply-To: ' . $clean($replyTo);
-    $ok = @mail($to, '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=', str_replace("\n", "\r\n", $body), implode("\r\n", $h));
-    $why = $ok ? '' : ' reason=' . preg_replace('/\s+/', ' ', (string)((error_get_last()['message'] ?? 'mail() returned false') . ' disabled=' . (string)ini_get('disable_functions') . ' sendmail=' . (string)ini_get('sendmail_path')));
+    $subj = '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=';
+    $ok = @mail($to, $subj, str_replace("\n", "\r\n", $body), implode("\r\n", $h));
+    $why = $ok ? '' : ' mail()=false';
+    if (!$ok && function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', (string)ini_get('disable_functions'))), true)) {
+        /* talk to the server's mail program directly so its own error message is visible */
+        $msg = 'To: ' . $to . "\n" . 'Subject: ' . $subj . "\n" . 'Date: ' . date('r') . "\n" . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@moriwella.com>' . "\n" . implode("\n", $h) . "\n\n" . $body;
+        $pr = @proc_open('/usr/sbin/sendmail -t -i', [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (is_resource($pr)) {
+            fwrite($pipes[0], $msg); fclose($pipes[0]);
+            $out = trim(stream_get_contents($pipes[1]) . ' ' . stream_get_contents($pipes[2])); fclose($pipes[1]); fclose($pipes[2]);
+            $code = proc_close($pr);
+            $ok = ($code === 0);
+            $why .= ' direct=' . ($ok ? 'ok' : 'exit' . $code . ' ' . preg_replace('/\s+/', ' ', mb_substr($out, 0, 300)));
+        } else { $why .= ' direct=could-not-start'; }
+    }
     @file_put_contents(data_dir() . '/mail.log', date('c') . ' to=' . $to . ' subject=' . $clean($subject) . ' accepted=' . ($ok ? 'yes' : 'no') . $why . "\n", FILE_APPEND);
     return $ok;
 }
