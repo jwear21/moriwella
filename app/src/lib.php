@@ -479,38 +479,69 @@ function make_invite(int $userId): string {
         ->execute([hash('sha256', $token), time() + 7 * 86400, $userId]);
     return rtrim((string)cfg('app_url'), '/') . url('/join/' . $token);
 }
-/** Hand one message to the server's own mail port. Returns [accepted, short log of the conversation]. */
-function smtp_local_send(string $from, string $to, string $data): array {
+/** Hand one message to an SMTP server (the server's own port, or a mailbox login from moriwella_data/mail.php).
+ *  Returns [accepted, short log of the conversation]. */
+function smtp_deliver(string $host, int $port, string $secure, string $user, string $pass, string $from, string $to, string $data): array {
     $log = [];
-    foreach (['127.0.0.1', 'localhost'] as $host) {
-        $errno = 0; $errstr = '';
-        $fp = @fsockopen($host, 25, $errno, $errstr, 6);
-        if (!$fp) { $log[] = "$host:25 $errno $errstr"; continue; }
-        stream_set_timeout($fp, 10);
-        $read = function () use ($fp) { $out = ''; while (($l = fgets($fp, 512)) !== false) { $out .= $l; if (strlen($l) < 4 || $l[3] !== '-') break; } return trim($out); };
-        $send = function (string $c) use ($fp, $read, &$log) { fwrite($fp, $c . "\r\n"); $r = $read(); $log[] = (strpos($c, 'DATA') === 0 || $c === '.' ? $c : preg_replace('/<[^>]*>/', '<..>', $c)) . ' -> ' . mb_substr(preg_replace('/\s+/', ' ', $r), 0, 120); return $r; };
-        $log[] = 'greet ' . mb_substr(preg_replace('/\s+/', ' ', $read()), 0, 80);
+    $errno = 0; $errstr = '';
+    $fp = @stream_socket_client(($secure === 'ssl' ? 'ssl://' : 'tcp://') . $host . ':' . $port, $errno, $errstr, 8, STREAM_CLIENT_CONNECT, stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]]));
+    if (!$fp) return [false, "$host:$port $errno $errstr"];
+    stream_set_timeout($fp, 12);
+    $read = function () use ($fp) { $out = ''; while (($l = fgets($fp, 1024)) !== false) { $out .= $l; if (strlen($l) < 4 || $l[3] !== '-') break; } return trim($out); };
+    $short = fn($t) => mb_substr(preg_replace('/\s+/', ' ', $t), 0, 110);
+    $send = function (string $c, string $label = '') use ($fp, $read, &$log, $short) { fwrite($fp, $c . "\r\n"); $r = $read(); $log[] = ($label ?: preg_replace('/<[^>]*>/', '<..>', $c)) . ' -> ' . $short($r); return $r; };
+    $ok2 = fn($r) => $r !== '' && $r[0] === '2';
+    $bye = function (array $res) use ($fp) { @fwrite($fp, "QUIT\r\n"); @fclose($fp); return $res; };
+    $log[] = 'greet ' . $short($read());
+    $r = $send('EHLO moriwella.com');
+    if ($secure === 'tls') {
+        $r = $send('STARTTLS');
+        if (!$ok2($r) || !@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) return $bye([false, implode(' | ', $log) . ' | tls failed']);
         $send('EHLO moriwella.com');
-        $r = $send('MAIL FROM:<' . $from . '>'); if ($r === '' || $r[0] !== '2') { @fwrite($fp, "QUIT\r\n"); fclose($fp); return [false, implode(' | ', $log)]; }
-        $r = $send('RCPT TO:<' . $to . '>'); if ($r === '' || $r[0] !== '2') { @fwrite($fp, "QUIT\r\n"); fclose($fp); return [false, implode(' | ', $log)]; }
-        $r = $send('DATA'); if ($r === '' || $r[0] !== '3') { @fwrite($fp, "QUIT\r\n"); fclose($fp); return [false, implode(' | ', $log)]; }
-        fwrite($fp, $data . "\r\n"); $r = $send('.');
-        @fwrite($fp, "QUIT\r\n"); fclose($fp);
-        return [$r !== '' && $r[0] === '2', implode(' | ', $log)];
     }
-    return [false, implode(' | ', $log)];
+    if ($user !== '') {
+        $r = $send('AUTH LOGIN');
+        if ($r === '' || $r[0] !== '3') return $bye([false, implode(' | ', $log)]);
+        $r = $send(base64_encode($user), 'user');
+        if ($r === '' || $r[0] !== '3') return $bye([false, implode(' | ', $log)]);
+        $r = $send(base64_encode($pass), 'pass');
+        if (!$ok2($r)) return $bye([false, implode(' | ', $log)]);
+    }
+    if (!$ok2($send('MAIL FROM:<' . $from . '>'))) return $bye([false, implode(' | ', $log)]);
+    if (!$ok2($send('RCPT TO:<' . $to . '>'))) return $bye([false, implode(' | ', $log)]);
+    $r = $send('DATA'); if ($r === '' || $r[0] !== '3') return $bye([false, implode(' | ', $log)]);
+    fwrite($fp, $data . "\r\n"); $r = $send('.', 'end');
+    return $bye([$ok2($r), implode(' | ', $log)]);
+}
+function smtp_local_send(string $from, string $to, string $data): array {
+    $c = @include data_dir() . '/mail.php';
+    if (is_array($c) && !empty($c['host'])) {
+        return smtp_deliver((string)$c['host'], (int)($c['port'] ?? 465), (string)($c['secure'] ?? 'ssl'), (string)($c['user'] ?? ''), (string)($c['pass'] ?? ''), (string)($c['from'] ?? $from), $to, $data);
+    }
+    return smtp_deliver('127.0.0.1', 25, 'none', '', '', $from, $to, $data);
 }
 /** Plain-text email through the server's mail system. Returns true when the server accepted it for delivery (not proof it arrived). */
 function send_mail(string $to, string $subject, string $body, string $replyTo = ''): bool {
     $clean = fn(string $v) => trim(preg_replace('/[\r\n]+/', ' ', $v));
     $to = $clean($to); if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
     $from = $clean((string)cfg('mail_from', 'noreply@moriwella.com'));
+    $mc = @include data_dir() . '/mail.php';
+    $useSmtp = is_array($mc) && !empty($mc['host']);
+    if ($useSmtp && !empty($mc['from'])) $from = $clean((string)$mc['from']);
     $h = ['From: Moriwella <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'X-Mailer: Moriwella'];
     if ($replyTo !== '' && filter_var($clean($replyTo), FILTER_VALIDATE_EMAIL)) $h[] = 'Reply-To: ' . $clean($replyTo);
     $subj = '=?UTF-8?B?' . base64_encode($clean($subject)) . '?=';
-    $ok = @mail($to, $subj, str_replace("\n", "\r\n", $body), implode("\r\n", $h));
-    $why = $ok ? '' : ' mail()=false';
-    if (!$ok && function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', (string)ini_get('disable_functions'))), true)) {
+    $ok = false; $why = '';
+    if ($useSmtp) {
+        $m0 = 'To: ' . $to . "\r\n" . 'Subject: ' . $subj . "\r\n" . 'Date: ' . date('r') . "\r\n" . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@moriwella.com>' . "\r\n" . implode("\r\n", $h) . "\r\n\r\n" . preg_replace('/^\./m', '..', str_replace("\n", "\r\n", str_replace("\r\n", "\n", $body)));
+        [$ok, $slog] = smtp_local_send($from, $to, $m0);
+        $why = ' via=mailbox smtp=' . ($ok ? 'ok' : 'failed ' . $slog);
+        if ($ok) { @file_put_contents(data_dir() . '/mail.log', date('c') . ' to=' . $to . ' subject=' . $clean($subject) . ' accepted=yes' . $why . "\n", FILE_APPEND); return true; }
+    } else {
+        $ok = @mail($to, $subj, str_replace("\n", "\r\n", $body), implode("\r\n", $h));
+        $why = $ok ? '' : ' mail()=false';
+    }
+    if (!$ok && !$useSmtp && function_exists('proc_open') && !in_array('proc_open', array_map('trim', explode(',', (string)ini_get('disable_functions'))), true)) {
         /* talk to the server's mail program directly so its own error message is visible */
         $msg = 'To: ' . $to . "\n" . 'Subject: ' . $subj . "\n" . 'Date: ' . date('r') . "\n" . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@moriwella.com>' . "\n" . implode("\n", $h) . "\n\n" . $body;
         $pr = @proc_open('/usr/sbin/sendmail -t -i', [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
@@ -522,7 +553,7 @@ function send_mail(string $to, string $subject, string $body, string $replyTo = 
             $why .= ' direct=' . ($ok ? 'ok' : 'exit' . $code . ' ' . preg_replace('/\s+/', ' ', mb_substr($out, 0, 300)));
         } else { $why .= ' direct=could-not-start'; }
     }
-    if (!$ok) {
+    if (!$ok && !$useSmtp) {
         /* last route: the server's own mail port, the way any mail program would talk to it */
         $msg2 = 'To: ' . $to . "\r\n" . 'Subject: ' . $subj . "\r\n" . 'Date: ' . date('r') . "\r\n" . 'Message-ID: <' . bin2hex(random_bytes(12)) . '@moriwella.com>' . "\r\n" . implode("\r\n", $h) . "\r\n\r\n" . preg_replace('/^\./m', '..', str_replace("\n", "\r\n", str_replace("\r\n", "\n", $body)));
         [$sok, $slog] = smtp_local_send($from, $to, $msg2);
