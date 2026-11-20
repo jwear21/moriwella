@@ -342,3 +342,21 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('dialog[data-autoshow]').forEach(function (d) { if (d.showModal) { try { d.showModal(); } catch (e) {} } });
 });
+
+/* Keep the reader exactly where they were when a form reloads the page (no jump to the top and back) */
+(function () {
+  var K = 'mw_scroll', y = null;
+  try {
+    var v = sessionStorage.getItem(K);
+    if (v) { sessionStorage.removeItem(K); var p = v.split('|'); if (p[0] === location.pathname) { y = parseInt(p[1], 10) || 0; if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } }
+  } catch (e) {}
+  if (y !== null) {
+    var put = function () { if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, left: 0, behavior: 'instant' }); };
+    put(); document.addEventListener('DOMContentLoaded', put); window.addEventListener('load', function () { put(); setTimeout(put, 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(put);
+  }
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (f && f.hasAttribute && f.hasAttribute('data-keepscroll')) { try { sessionStorage.setItem(K, location.pathname + '|' + Math.round(window.scrollY)); } catch (x) {} }
+  });
+})();

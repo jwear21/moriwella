@@ -54,12 +54,12 @@
   <ul class="members">
   <?php foreach ($members as $m): if ($m['status'] === 'removed' || $m['status'] === 'suspended') continue; ?>
     <li><?= avatar_html((int)$m['user_id'], $m['name'], 'avatar--sm') ?><span><b><?= e($m['name']) ?></b><small><?= e($m['email']) ?><?= $m['role'] === 'owner' ? ' · ' . t('billing.owner') : '' ?></small></span>
-      <?php if ($b['is_owner'] && $m['role'] !== 'owner' && ($m['user_status'] ?? '') === 'invited'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/resend') ?>" data-loader="<?= e(t('billing.sending_invite')) ?>" data-detail="<?= e(t('billing.sending_invite_detail')) ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= t('billing.resend') ?></button></form><?php endif; ?>
-      <?php if ($b['is_owner'] && $m['role'] !== 'owner'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/remove') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit" data-confirm="<?= e(t('billing.confirm_remove')) ?>"><?= t('billing.remove') ?></button></form><?php endif; ?></li>
+      <?php if ($b['is_owner'] && $m['role'] !== 'owner' && ($m['user_status'] ?? '') === 'invited'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/resend') ?>" data-keepscroll data-loader="<?= e(t('billing.sending_invite')) ?>" data-detail="<?= e(t('billing.sending_invite_detail')) ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= t('billing.resend') ?></button></form><?php endif; ?>
+      <?php if ($b['is_owner'] && $m['role'] !== 'owner'): ?><form method="post" action="<?= url('/household/' . (int)$m['user_id'] . '/remove') ?>" data-keepscroll><?= csrf_field() ?><button class="linkbtn" type="submit" data-confirm="<?= e(t('billing.confirm_remove')) ?>"><?= t('billing.remove') ?></button></form><?php endif; ?></li>
   <?php endforeach; ?>
   </ul>
   <?php if ($b['is_owner'] && in_array('family_sharing', $b['features'], true) && $active < (int)$sub['seat_limit']): ?>
-  <form method="post" action="<?= url('/household/add') ?>" class="stack" data-loader="<?= e(t('billing.sending_invite')) ?>" data-detail="<?= e(t('billing.sending_invite_detail')) ?>"><?= csrf_field() ?>
+  <form method="post" action="<?= url('/household/add') ?>" class="stack" data-keepscroll data-loader="<?= e(t('billing.sending_invite')) ?>" data-detail="<?= e(t('billing.sending_invite_detail')) ?>"><?= csrf_field() ?>
     <label><?= t('billing.member_name') ?> <input type="text" name="name" maxlength="100"></label>
     <label><?= t('billing.member_email') ?> <input type="email" name="email" required></label>
     <button class="btn" type="submit"><?= t('billing.add_member') ?></button>
