@@ -23,7 +23,6 @@ function tracker_catalog(): array {
         'weight'    => $c('Weight', 'number', ['unit' => 'lb', 'step' => 0.1]),
       ],
       'Heart and mind' => [
-        'mood'     => $c('Mood', 'scale', ['low' => 'Rough', 'high' => 'Great']),
         'energy'   => $c('Energy', 'scale', ['low' => 'Drained', 'high' => 'Full']),
         'stress'   => $c('Stress', 'scale', ['low' => 'Calm', 'high' => 'Heavy']),
         'meditate' => $c('Meditated or prayed', 'check'),

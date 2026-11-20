@@ -20,7 +20,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <li><b>Lists</b> are for tasks and shopping, and you can share them with family.</li>
     <li><b>Experiences</b> are for trips and big events, with sections to fill in as you go.</li>
   </ul>
-  <p class="subtle">If you like, Track can quietly note little things, like water, sleep or mood.</p>
+  <p class="subtle">If you like, Track can quietly note little things, like water, sleep or a walk.</p>
   <form method="post" action="<?= url('/welcome/dismiss') ?>" class="welcome-acts"><?= csrf_field() ?>
     <button class="btn" type="submit">Start writing</button>
     <a class="btn btn--quiet" href="<?= url('/track') ?>">Choose what to track</a>
@@ -32,6 +32,25 @@ $prompts = ['What\'s on your mind today?', 'What is one small thing you want to 
 $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
 ?>
 <?php $hasDay = count(array_filter($entries, fn($e) => empty($e['event_id']))) > 0; ?>
+<?php $faces = feelings_faces(); $fsel = array_flip($feel['feelings']); ?>
+<section class="card feel" id="feel" data-day="<?= e($day) ?>" data-url="<?= url('/feel') ?>" data-csrf="<?= e(csrf_token()) ?>">
+  <h2 class="feel-h"><?= $isToday ? 'How are you feeling?' : 'How were you feeling?' ?></h2>
+  <div class="feel-faces" role="radiogroup" aria-label="Overall mood for the day">
+    <?php foreach ($faces as $n => $f): ?>
+    <button type="button" class="face" role="radio" aria-checked="<?= $feel['mood'] === $n ? 'true' : 'false' ?>" data-v="<?= $n ?>"><span class="face-e" aria-hidden="true"><?= $f['e'] ?></span><span class="face-l"><?= e($f['l']) ?></span></button>
+    <?php endforeach; ?>
+  </div>
+  <details class="feel-more"<?= $fsel ? ' open' : '' ?>>
+    <summary>More feelings<span class="feel-n"><?= $fsel ? ' (' . count($fsel) . ')' : '' ?></span></summary>
+    <?php foreach (feelings_catalog() as $g => $list): ?>
+    <p class="feel-g"><?= e($g) ?></p>
+    <div class="feel-chips">
+      <?php foreach ($list as $k): ?><button type="button" class="fchip" aria-pressed="<?= isset($fsel[$k]) ? 'true' : 'false' ?>" data-f="<?= e($k) ?>"><?= e(ucfirst($k)) ?></button><?php endforeach; ?>
+    </div>
+    <?php endforeach; ?>
+  </details>
+</section>
+
 <section class="card write">
   <form method="post" action="<?= url('/entries') ?>" id="entry-form" enctype="multipart/form-data">
     <?= csrf_field() ?>
@@ -99,7 +118,7 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
 </section>
 <?php endif; ?>
 <?php if (!$goals && !$waterOn && empty($trackers) && $isToday): ?>
-<p class="subtle goal-nudge"><a class="link" href="<?= url('/track') ?>">Track little things</a> if you like, such as water, sleep, mood or a walk.</p>
+<p class="subtle goal-nudge"><a class="link" href="<?= url('/track') ?>">Track little things</a> if you like, such as water, sleep or a walk.</p>
 <?php endif; ?>
 
 <?php if ($waterOn): ?>

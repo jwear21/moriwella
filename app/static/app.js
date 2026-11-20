@@ -208,6 +208,27 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
     var inp = e.target; if (inp.type !== 'number') return; save(inp.closest('.lt-row'), inp.value);
   });
 })();
+/* how are you feeling */
+(function () {
+  var card = document.getElementById('feel'); if (!card) return;
+  function save(data) {
+    var b = new URLSearchParams(data); b.set('day', card.getAttribute('data-day')); b.set('_csrf', card.getAttribute('data-csrf'));
+    fetch(card.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin', body: b }).catch(function () {});
+  }
+  card.addEventListener('click', function (e) {
+    var f = e.target.closest('.face'), c = e.target.closest('.fchip');
+    if (f) {
+      var was = f.getAttribute('aria-checked') === 'true';
+      card.querySelectorAll('.face').forEach(function (x) { x.setAttribute('aria-checked', 'false'); });
+      if (!was) f.setAttribute('aria-checked', 'true');
+      save({ mood: was ? 0 : f.getAttribute('data-v') });
+    } else if (c) {
+      var on = c.getAttribute('aria-pressed') !== 'true'; c.setAttribute('aria-pressed', on ? 'true' : 'false');
+      var n = card.querySelectorAll('.fchip[aria-pressed=true]').length; card.querySelector('.feel-n').textContent = n ? ' (' + n + ')' : '';
+      save({ feeling: c.getAttribute('data-f'), on: on ? 1 : 0 });
+    }
+  });
+})();
 /* ===== Moriwella loader: the logo floats in the middle with a shadow gliding across it ===== */
 (function () {
   var el = null;

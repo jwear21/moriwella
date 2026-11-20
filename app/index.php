@@ -5,6 +5,7 @@ require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/templates.php';
 require __DIR__ . '/src/achievements.php';
 require __DIR__ . '/src/trackers.php';
+require __DIR__ . '/src/feelings.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -130,7 +131,7 @@ function render_day(array $user, string $day): void {
         'goals' => goals_for_day($uid, $day), 'trackers' => trackers_for_day($uid, $day), 'waterOn' => water_on($uid), 'showWelcome' => $day === date('Y-m-d') && !is_welcomed($uid),
         'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
-        'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day),
+        'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day), 'feel' => feelings_for_day($uid, $day),
     ], $day === date('Y-m-d') ? 'Today' : date('F j, Y', strtotime($day)));
 }
 
@@ -260,7 +261,7 @@ if ($path === '/calendar') {
     $p->execute([$uid, $month . '-01', $month . '-31']);
     $pcounts = []; foreach ($p->fetchAll() as $r) $pcounts[$r['d']] = (int)$r['c'];
     render('calendar', [
-        'month' => $month, 'first' => $first, 'counts' => $counts, 'pcounts' => $pcounts,
+        'month' => $month, 'first' => $first, 'counts' => $counts, 'pcounts' => $pcounts, 'moods' => feelings_moods_between($uid, $month . '-01', $month . '-31'),
         'prev' => date('Y-m', strtotime('-1 month', $first)), 'next' => date('Y-m', strtotime('+1 month', $first)),
     ], 'Calendar');
     exit;

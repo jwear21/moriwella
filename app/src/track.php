@@ -43,3 +43,19 @@ if (preg_match('#^/track/note/(\d+)/delete$#', $path, $mm) && $post) {
     db()->prepare('DELETE FROM tracker_notes WHERE id = ? AND user_id = ?')->execute([(int)$mm[1], $uid]);
     redirect(url('/day/' . ($day ?: date('Y-m-d'))) . '#little');
 }
+if ($path === '/feel' && $post) {
+    $day = (string)($_POST['day'] ?? ''); if (!valid_date($day)) json_out(['ok' => false], 400);
+    if (isset($_POST['mood'])) {
+        $n = (int)$_POST['mood'];
+        if ($n >= 1 && $n <= 5) db()->prepare("INSERT INTO tracker_log (user_id, tkey, day, value) VALUES (?, 'mood', ?, ?) ON CONFLICT(user_id, tkey, day) DO UPDATE SET value = excluded.value")->execute([$uid, $day, $n]);
+        else db()->prepare("DELETE FROM tracker_log WHERE user_id = ? AND tkey = 'mood' AND day = ?")->execute([$uid, $day]);
+    }
+    if (isset($_POST['feeling'])) {
+        $f = (string)$_POST['feeling'];
+        if (feelings_valid($f)) {
+            if (!empty($_POST['on'])) db()->prepare('INSERT OR IGNORE INTO day_feelings (user_id, day, feeling) VALUES (?, ?, ?)')->execute([$uid, $day, $f]);
+            else db()->prepare('DELETE FROM day_feelings WHERE user_id = ? AND day = ? AND feeling = ?')->execute([$uid, $day, $f]);
+        }
+    }
+    json_out(['ok' => true]);
+}

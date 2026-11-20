@@ -239,6 +239,16 @@ function migrate(PDO $p): void {
           ALTER TABLE imports ADD COLUMN moods INTEGER NOT NULL DEFAULT 0;
           PRAGMA user_version = 11;");
     }
+    if ($v < 12) {
+        $p->exec("CREATE TABLE day_feelings (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day TEXT NOT NULL,
+            feeling TEXT NOT NULL,
+            batch TEXT,
+            PRIMARY KEY (user_id, day, feeling)
+          );
+          PRAGMA user_version = 12;");
+    }
 }
 
 /* ---------- request setup ---------- */

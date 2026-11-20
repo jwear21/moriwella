@@ -11,7 +11,7 @@ function transfer_sources(): array {
     return [
         'moriwella' => ['name' => 'Moriwella archive', 'ready' => true, 'accept' => '.zip',
             'help' => 'The ZIP you get from Export on this page. Good for restoring a backup or moving between accounts.'],
-        'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods go to Track.'],
+        'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods become your daily mood faces.'],
         'journey'   => ['name' => 'Journey', 'ready' => true, 'accept' => '.zip', 'help' => 'In Journey, use Settings, Data and Cloud Services, Export/Backup to make a ZIP. Entries, photos, tags and dates come along.'],
         'diaro'     => ['name' => 'Diaro', 'ready' => true, 'accept' => '.zip', 'help' => 'In Diaro, tap Settings, Data, Backup and restore, then make a backup without encryption. Entries, tags and photos come along.'],
         'evernote'  => ['name' => 'Evernote', 'ready' => true, 'accept' => '.enex,.xml', 'help' => 'In the Evernote desktop app, select a notebook or notes, then File, Export, and choose ENEX. Titles, dates, tags and images come along.'],
@@ -554,7 +554,6 @@ function transfer_commit(int $uid, array $manifest, string $work): array {
     if (!empty($manifest['moods'])) {
         $mi = db()->prepare("INSERT OR IGNORE INTO tracker_log (user_id, tkey, day, value, batch) VALUES (?, 'mood', ?, ?, ?)");
         foreach ($manifest['moods'] as $d => $v) { if (valid_date((string)$d) && $v >= 1 && $v <= 5) { $mi->execute([$uid, $d, $v, $batch]); $nM += $mi->rowCount(); } }
-        if ($nM > 0) db()->prepare("INSERT OR IGNORE INTO tracker_on (user_id, tkey) VALUES (?, 'mood')")->execute([$uid]);
     }
     if ($nE > 0 || $nM > 0) db()->prepare('INSERT INTO imports (user_id, batch, source, entries, photos, moods, created_at) VALUES (?,?,?,?,?,?,?)')->execute([$uid, $batch, $manifest['source'], $nE, $nP, $nM, time()]);
     return ['entries' => $nE, 'photos' => $nP, 'moods' => $nM, 'skipped' => $skipped, 'photoErrors' => $photoErrs];

@@ -13,9 +13,10 @@ $todayStr = date('Y-m-d');
     $ds = sprintf('%s-%02d', $month, $d); $c = $counts[$ds] ?? 0; $pc = $pcounts[$ds] ?? 0; ?>
     <a class="cal-c<?= $c ? ' has' : '' ?><?= $ds === $todayStr ? ' today' : '' ?>" href="<?= url('/day/' . $ds) ?>" role="gridcell" aria-label="<?= e(date('F j', strtotime($ds))) ?><?= $c ? ', ' . $c . ' ' . ($c === 1 ? 'entry' : 'entries') : '' ?>">
       <span class="cal-n"><?= $d ?></span>
+      <?php if (!empty($moods[$ds])): $fc = feelings_faces()[$moods[$ds]]; ?><span class="cal-mood" role="img" aria-label="Mood: <?= e($fc['l']) ?>"><?= $fc['e'] ?></span><?php endif; ?>
       <?php if ($c): ?><span class="cal-dot"></span><?php endif; ?>
       <?php if ($pc): ?><span class="cal-ph"><?= $pc ?> &#9635;</span><?php endif; ?>
     </a>
   <?php endfor; ?>
 </div>
-<p class="hint">A dot means you wrote something. Tap any day to see it or add to it.</p>
+<p class="hint">A dot means you wrote something, and a face shows how you felt. Tap any day to see it or add to it.</p>
