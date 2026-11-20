@@ -183,6 +183,18 @@ function migrate(PDO $p): void {
           );
           PRAGMA user_version = 7;");
     }
+    if ($v < 8) {
+        $p->exec("ALTER TABLE user_settings ADD COLUMN welcomed INTEGER NOT NULL DEFAULT 0;
+          UPDATE user_settings SET welcomed = 1;
+          CREATE TABLE feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            message TEXT NOT NULL,
+            page TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL
+          );
+          PRAGMA user_version = 8;");
+    }
 }
 
 /* ---------- request setup ---------- */
@@ -300,6 +312,13 @@ function celebrations_on(int $uid): bool {
 function set_celebrations(int $uid, bool $on): void {
     db()->prepare('INSERT INTO user_settings (user_id, celebrations) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET celebrations = excluded.celebrations')
         ->execute([$uid, $on ? 1 : 0]);
+}
+function is_welcomed(int $uid): bool {
+    $s = db()->prepare('SELECT welcomed FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
+    return (int)$s->fetchColumn() === 1;
+}
+function mark_welcomed(int $uid): void {
+    db()->prepare('INSERT INTO user_settings (user_id, welcomed) VALUES (?, 1) ON CONFLICT(user_id) DO UPDATE SET welcomed = 1')->execute([$uid]);
 }
 function water_on(int $uid): bool {
     $s = db()->prepare('SELECT water_on FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);

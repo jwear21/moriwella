@@ -126,7 +126,7 @@ function upcoming_items(int $uid, string $today): array {
 function render_day(array $user, string $day): void {
     $uid = (int)$user['id'];
     render('day', [
-        'goals' => goals_for_day($uid, $day), 'waterOn' => water_on($uid),
+        'goals' => goals_for_day($uid, $day), 'waterOn' => water_on($uid), 'showWelcome' => $day === date('Y-m-d') && !is_welcomed($uid),
         'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
         'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day),
@@ -450,6 +450,19 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
     exit;
 }
 
+/* ----- welcome and feedback ----- */
+if ($path === '/welcome/dismiss' && $post) { mark_welcomed($uid); redirect(url('/')); }
+if ($path === '/feedback') {
+    if ($post) {
+        $msg = mb_substr(trim((string)($_POST['message'] ?? '')), 0, 4000);
+        if ($msg === '') { flash('err', 'Write a few words first.'); redirect(url('/feedback')); }
+        db()->prepare('INSERT INTO feedback (user_id, message, page, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $msg, mb_substr(trim((string)($_POST['page'] ?? '')), 0, 120), time()]);
+        flash('ok', 'Thank you. Jeff will read this.'); redirect(url('/settings'));
+    }
+    render('feedback', [], 'Send feedback');
+    exit;
+}
+
 /* ----- achievements ----- */
 if ($path === '/achievements') {
     render('achievements', ['groups' => achievements_for_user($uid)], 'Achievements');
@@ -505,7 +518,8 @@ if (strpos($path, '/admin') === 0) {
     }
     if ($path === '/admin') {
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
-        render('admin', ['users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink], 'Administration');
+        $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
+        render('admin', ['users' => db()->query('SELECT * FROM users ORDER BY role DESC, name')->fetchAll(), 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
         exit;
     }
 }

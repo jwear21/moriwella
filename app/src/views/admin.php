@@ -42,3 +42,12 @@
   </tbody>
 </table>
 </div>
+
+<h2 class="section-h">Feedback from testers</h2>
+<?php if (empty($feedback)): ?><p class="subtle">Nothing yet. Testers can send feedback from Me.</p><?php endif; ?>
+<?php foreach ($feedback as $f): ?>
+  <article class="card">
+    <small class="due"><?= e($f['name']) ?> · <?= e(date('M j, g:i a', (int)$f['created_at'])) ?><?= $f['page'] !== '' ? ' · ' . e($f['page']) : '' ?></small>
+    <p class="entry-body"><?= nl2br(e($f['message'])) ?></p>
+  </article>
+<?php endforeach; ?>

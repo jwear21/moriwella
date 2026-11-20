@@ -1,5 +1,6 @@
 <h1 class="page-title">Settings</h1>
 <section class="card"><a class="link" href="<?= url('/achievements') ?>"><b>Achievements</b></a> <span class="subtle">See the milestones you have earned.</span></section>
+<section class="card"><a class="link" href="<?= url('/feedback') ?>"><b>Send feedback</b></a> <span class="subtle">Something confusing or missing? Tell Jeff.</span></section>
 <section class="card write" id="goals">
   <h2 class="section-h">Daily goals</h2>
   <p class="subtle">Pick what you'd like to check off each day. They show up at the top of Today.</p>

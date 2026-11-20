@@ -10,6 +10,22 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <p class="daynav"><a class="link" href="<?= url('/day/' . $prev) ?>">&larr; Previous day</a> <a class="link" href="<?= url('/day/' . $next) ?>">Next day &rarr;</a> <a class="link" href="<?= url('/calendar?m=' . substr($day, 0, 7)) ?>">Calendar</a></p>
 <?php endif; ?>
 
+<?php if (!empty($showWelcome)): ?>
+<section class="card welcome" aria-label="Welcome">
+  <h2>Welcome to Moriwella</h2>
+  <p>This is your private place to keep your days.</p>
+  <ul class="welcome-list">
+    <li><b>Today</b> is for writing, photos and dictation. Each day becomes one page.</li>
+    <li><b>Lists</b> are for tasks and shopping, and you can share them with family.</li>
+    <li><b>Experiences</b> are for trips and big events, with sections to fill in as you go.</li>
+  </ul>
+  <p class="subtle">You can add daily goals, like water or a walk, any time in Me.</p>
+  <form method="post" action="<?= url('/welcome/dismiss') ?>" class="welcome-acts"><?= csrf_field() ?>
+    <button class="btn" type="submit">Start writing</button>
+    <a class="btn btn--quiet" href="<?= url('/settings') ?>#goals">Set up goals</a>
+  </form>
+</section>
+<?php endif; ?>
 <?php if (!empty($upcoming)): $t = date('Y-m-d'); ?>
 <section class="card coming" aria-label="Coming up">
   <div class="water-head"><b>Coming up</b> <span class="water-count">next 7 days</span></div>
