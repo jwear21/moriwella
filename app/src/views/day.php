@@ -33,13 +33,19 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
 ?>
 <?php $hasDay = count(array_filter($entries, fn($e) => empty($e['event_id']))) > 0; ?>
 <?php $faces = feelings_faces(); $fsel = array_flip($feel['feelings']); ?>
-<section class="card feel" id="feel" data-day="<?= e($day) ?>" data-url="<?= url('/feel') ?>" data-csrf="<?= e(csrf_token()) ?>">
+<section class="card feel" id="feel" data-day="<?= e($day) ?>" data-url="<?= url('/feel') ?>" data-csrf="<?= e(csrf_token()) ?>" data-moods="<?= e(json_encode($feel['moods'])) ?>">
   <h2 class="feel-h"><?= $isToday ? 'How are you feeling?' : 'How were you feeling?' ?></h2>
   <div class="feel-faces" role="radiogroup" aria-label="Overall mood for the day">
     <?php foreach ($faces as $n => $f): ?>
     <button type="button" class="face" role="radio" aria-checked="<?= $feel['mood'] === $n ? 'true' : 'false' ?>" data-v="<?= $n ?>"><span class="face-e" aria-hidden="true"><?= $f['e'] ?></span><span class="face-l"><?= e($f['l']) ?></span></button>
     <?php endforeach; ?>
   </div>
+  <p class="hint feel-hint"><?= $isToday ? 'Feelings change through the day. Tap a face again later to add another.' : 'You can add a mood for this day.' ?></p>
+  <ul class="mood-list" id="mood-list"<?= count($feel['moods']) < 2 ? ' hidden' : '' ?>>
+    <?php if (count($feel['moods']) >= 2) foreach ($feel['moods'] as $m): $f = $faces[$m['v']]; ?>
+    <li><span class="ml-e" aria-hidden="true"><?= $f['e'] ?></span><span class="ml-l"><?= e($f['l']) ?></span><?php if ($m['ts']): ?><time class="stamp" data-ts="<?= (int)$m['ts'] ?>"><?= e(date('g:i a', $m['ts'])) ?></time> <span class="ml-part"><?= e(feelings_part($m['ts'])) ?></span><?php endif; ?><button type="button" class="ml-x" data-id="<?= (int)$m['id'] ?>" aria-label="Remove this mood">&times;</button></li>
+    <?php endforeach; ?>
+  </ul>
   <details class="feel-more"<?= $fsel ? ' open' : '' ?>>
     <summary>More feelings<span class="feel-n"><?= $fsel ? ' (' . count($fsel) . ')' : '' ?></span></summary>
     <?php foreach (feelings_catalog() as $g => $list): ?>

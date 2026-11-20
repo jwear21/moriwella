@@ -249,6 +249,21 @@ function migrate(PDO $p): void {
           );
           PRAGMA user_version = 12;");
     }
+    if ($v < 13) {
+        $p->exec("CREATE TABLE mood_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day TEXT NOT NULL,
+            ts INTEGER NOT NULL DEFAULT 0,
+            value INTEGER NOT NULL,
+            batch TEXT
+          );
+          CREATE INDEX mood_log_day ON mood_log (user_id, day);
+          INSERT INTO mood_log (user_id, day, ts, value, batch) SELECT user_id, day, 0, CAST(ROUND(value) AS INTEGER), batch FROM tracker_log WHERE tkey = 'mood';
+          DELETE FROM tracker_log WHERE tkey = 'mood';
+          DELETE FROM tracker_on WHERE tkey = 'mood';
+          PRAGMA user_version = 13;");
+    }
 }
 
 /* ---------- request setup ---------- */

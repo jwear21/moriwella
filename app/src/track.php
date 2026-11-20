@@ -47,9 +47,20 @@ if ($path === '/feel' && $post) {
     $day = (string)($_POST['day'] ?? ''); if (!valid_date($day)) json_out(['ok' => false], 400);
     if (isset($_POST['mood'])) {
         $n = (int)$_POST['mood'];
-        if ($n >= 1 && $n <= 5) db()->prepare("INSERT INTO tracker_log (user_id, tkey, day, value) VALUES (?, 'mood', ?, ?) ON CONFLICT(user_id, tkey, day) DO UPDATE SET value = excluded.value")->execute([$uid, $day, $n]);
-        else db()->prepare("DELETE FROM tracker_log WHERE user_id = ? AND tkey = 'mood' AND day = ?")->execute([$uid, $day]);
+        if ($n >= 1 && $n <= 5) {
+            if ($day === date('Y-m-d')) {
+                /* tapping a different face within ten minutes corrects the last mood instead of adding another */
+                $l = db()->prepare('SELECT id FROM mood_log WHERE user_id = ? AND day = ? AND ts >= ? ORDER BY ts DESC, id DESC LIMIT 1'); $l->execute([$uid, $day, time() - 600]); $last = $l->fetchColumn();
+                if ($last) db()->prepare('UPDATE mood_log SET value = ? WHERE id = ? AND user_id = ?')->execute([$n, $last, $uid]);
+                else db()->prepare('INSERT INTO mood_log (user_id, day, ts, value) VALUES (?, ?, ?, ?)')->execute([$uid, $day, time(), $n]);
+            } else {
+                $l = db()->prepare('SELECT id FROM mood_log WHERE user_id = ? AND day = ? AND ts = 0 ORDER BY id DESC LIMIT 1'); $l->execute([$uid, $day]); $last = $l->fetchColumn();
+                if ($last) db()->prepare('UPDATE mood_log SET value = ? WHERE id = ? AND user_id = ?')->execute([$n, $last, $uid]);
+                else db()->prepare('INSERT INTO mood_log (user_id, day, ts, value) VALUES (?, ?, 0, ?)')->execute([$uid, $day, $n]);
+            }
+        }
     }
+    if (isset($_POST['remove_mood'])) db()->prepare('DELETE FROM mood_log WHERE id = ? AND user_id = ? AND day = ?')->execute([(int)$_POST['remove_mood'], $uid, $day]);
     if (isset($_POST['feeling'])) {
         $f = (string)$_POST['feeling'];
         if (feelings_valid($f)) {
@@ -57,5 +68,5 @@ if ($path === '/feel' && $post) {
             else db()->prepare('DELETE FROM day_feelings WHERE user_id = ? AND day = ? AND feeling = ?')->execute([$uid, $day, $f]);
         }
     }
-    json_out(['ok' => true]);
+    json_out(['ok' => true, 'moods' => feelings_for_day($uid, $day)['moods']]);
 }

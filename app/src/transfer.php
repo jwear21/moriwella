@@ -11,7 +11,7 @@ function transfer_sources(): array {
     return [
         'moriwella' => ['name' => 'Moriwella archive', 'ready' => true, 'accept' => '.zip',
             'help' => 'The ZIP you get from Export on this page. Good for restoring a backup or moving between accounts.'],
-        'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries and moods become your daily mood faces.'],
+        'daylio'    => ['name' => 'Daylio', 'ready' => true, 'accept' => '.csv', 'help' => 'In Daylio, tap More, then Export Entries, then CSV (table). Notes become entries, and every mood keeps its time of day.'],
         'journey'   => ['name' => 'Journey', 'ready' => true, 'accept' => '.zip', 'help' => 'In Journey, use Settings, Data and Cloud Services, Export/Backup to make a ZIP. Entries, photos, tags and dates come along.'],
         'diaro'     => ['name' => 'Diaro', 'ready' => true, 'accept' => '.zip', 'help' => 'In Diaro, tap Settings, Data, Backup and restore, then make a backup without encryption. Entries, tags and photos come along.'],
         'evernote'  => ['name' => 'Evernote', 'ready' => true, 'accept' => '.enex,.xml', 'help' => 'In the Evernote desktop app, select a notebook or notes, then File, Export, and choose ENEX. Titles, dates, tags and images come along.'],
@@ -47,6 +47,10 @@ function transfer_export_moriwella(int $uid, array $user): string {
     $q->execute([$uid]); $rows = $q->fetchAll();
     $photos = photos_for_entries(array_column($rows, 'id'));
     $out = []; $days = []; $nPhotos = 0;
+    $mq = db()->prepare('SELECT day, ts, value FROM mood_log WHERE user_id = ? ORDER BY day, ts, id'); $mq->execute([$uid]);
+    $moodsOut = array_map(fn($m) => ['date' => $m['day'], 'time' => (int)$m['ts'], 'value' => (int)$m['value']], $mq->fetchAll());
+    $fq = db()->prepare('SELECT day, feeling FROM day_feelings WHERE user_id = ? ORDER BY day, rowid'); $fq->execute([$uid]);
+    $feelOut = array_map(fn($f) => ['date' => $f['day'], 'feeling' => $f['feeling']], $fq->fetchAll());
     foreach ($rows as $r) {
         $parts = body_parts($r['body'], (int)$r['created_at']);
         $pj = [];
@@ -65,7 +69,7 @@ function transfer_export_moriwella(int $uid, array $user): string {
         $days[$r['entry_date']][] = rtrim($md);
     }
     foreach ($days as $d => $chunks) $zip->addFromString('journal/' . substr($d, 0, 4) . '/' . $d . '.md', implode("\n\n---\n\n", $chunks) . "\n");
-    $zip->addFromString('moriwella.json', json_encode(['format' => 'moriwella-archive', 'version' => 1, 'exported' => gmdate('c'), 'name' => $user['name'], 'timezone' => date_default_timezone_get(), 'entries' => $out], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+    $zip->addFromString('moriwella.json', json_encode(['format' => 'moriwella-archive', 'version' => 1, 'exported' => gmdate('c'), 'name' => $user['name'], 'timezone' => date_default_timezone_get(), 'entries' => $out, 'moods' => $moodsOut, 'feelings' => $feelOut], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
     $zip->addFromString('README.txt', "Your Moriwella journal\n\nThe journal folder has one readable Markdown file for each day.\nThe photos folder has your original photos.\nmoriwella.json holds everything with exact dates and times; Moriwella can import this ZIP again.\n");
     $zip->close();
     return $zipPath;
@@ -196,7 +200,9 @@ function transfer_read_moriwella(string $file, string $work): array {
                       'key' => 'mw:' . sha1($date . '|' . $ts . '|' . $title . '|' . implode("\n", array_column($paras, 'text')))];
     }
     $zip->close();
-    return ['source' => 'moriwella', 'entries' => $entries];
+    $moods = []; foreach (($j['moods'] ?? []) as $m) { $d = (string)($m['date'] ?? ''); $v = (int)($m['value'] ?? 0); if (valid_date($d) && $v >= 1 && $v <= 5) $moods[] = ['day' => $d, 'ts' => max(0, (int)($m['time'] ?? 0)), 'v' => $v]; }
+    $feel = []; foreach (($j['feelings'] ?? []) as $f) { $d = (string)($f['date'] ?? ''); $k = (string)($f['feeling'] ?? ''); if (valid_date($d) && $k !== '') $feel[] = ['day' => $d, 'feeling' => $k]; }
+    return ['source' => 'moriwella', 'entries' => $entries, 'moods' => $moods, 'feelings' => $feel];
 }
 function transfer_read_daylio(string $file, string $work): array {
     $h = @fopen($file, 'r'); if (!$h) throw new RuntimeException('That file could not be opened.');
@@ -214,7 +220,7 @@ function transfer_read_daylio(string $file, string $work): array {
                 'meh' => 3, 'ok' => 3, 'okay' => 3, 'average' => 3, 'neutral' => 3, 'so-so' => 3, 'so so' => 3, 'normal' => 3, 'mittel' => 3, 'mäßig' => 3, 'regular' => 3, 'moyen' => 3,
                 'bad' => 2, 'sad' => 2, 'down' => 2, 'low' => 2, 'schlecht' => 2, 'mal' => 2, 'mauvais' => 2, 'triste' => 2, 'stressed' => 2,
                 'awful' => 1, 'terrible' => 1, 'horrible' => 1, 'worst' => 1, 'sehr schlecht' => 1, 'muy mal' => 1, 'horrible' => 1];
-    $entries = []; $moodSum = []; $noteless = 0; $rows = 0;
+    $entries = []; $moodLog = []; $noteless = 0; $rows = 0; $timed = isset($idx['time']);
     $get = function (array $r, string $k) use ($idx): string { return isset($idx[$k], $r[$idx[$k]]) ? trim((string)$r[$idx[$k]]) : ''; };
     while (($r = fgetcsv($h, 0, $delim)) !== false) {
         if (!$r || (count($r) === 1 && trim((string)$r[0]) === '')) continue;
@@ -227,7 +233,7 @@ function transfer_read_daylio(string $file, string $work): array {
         if ($stamp === false || $stamp < 0) continue;
         $ts = (int)$stamp; $date = date('Y-m-d', $ts);
         $mood = mb_strtolower(trim(preg_replace('/\s+/', ' ', $get($r, 'mood'))));
-        if (isset($moodMap[$mood])) { $moodSum[$date][] = $moodMap[$mood]; }
+        if (isset($moodMap[$mood])) { $moodLog[] = ['day' => $date, 'ts' => $timed ? $ts : 0, 'v' => $moodMap[$mood]]; }
         $note = isset($idx['note']) ? str_replace(["\r\n", "\r"], "\n", $get($r, 'note')) : '';
         $title = mb_substr($get($r, 'note_title'), 0, 200);
         $acts = $get($r, 'activities');
@@ -239,9 +245,7 @@ function transfer_read_daylio(string $file, string $work): array {
         $entries[] = ['date' => $date, 'ts' => $ts, 'title' => $title, 'paragraphs' => $paras, 'photos' => [], 'key' => 'dl:' . sha1($ts . '|' . $note . '|' . $title)];
     }
     fclose($h);
-    $moods = [];
-    foreach ($moodSum as $d => $vals) $moods[$d] = (int)round(array_sum($vals) / count($vals));
-    return ['source' => 'daylio', 'entries' => $entries, 'moods' => $moods, 'noteless' => $noteless];
+    return ['source' => 'daylio', 'entries' => $entries, 'moods' => $moodLog, 'noteless' => $noteless];
 }
 function transfer_html_to_text(string $html): string {
     $t = preg_replace('#<img\b[^>]*>#i', '', $html);
@@ -552,8 +556,18 @@ function transfer_commit(int $uid, array $manifest, string $work): array {
     }
     $nM = 0;
     if (!empty($manifest['moods'])) {
-        $mi = db()->prepare("INSERT OR IGNORE INTO tracker_log (user_id, tkey, day, value, batch) VALUES (?, 'mood', ?, ?, ?)");
-        foreach ($manifest['moods'] as $d => $v) { if (valid_date((string)$d) && $v >= 1 && $v <= 5) { $mi->execute([$uid, $d, $v, $batch]); $nM += $mi->rowCount(); } }
+        $has = db()->prepare('SELECT 1 FROM mood_log WHERE user_id = ? AND day = ? AND ts = ? AND value = ?');
+        $mi = db()->prepare('INSERT INTO mood_log (user_id, day, ts, value, batch) VALUES (?, ?, ?, ?, ?)');
+        foreach ($manifest['moods'] as $m) {
+            $d = (string)($m['day'] ?? ''); $v = (int)($m['v'] ?? 0); $t = max(0, (int)($m['ts'] ?? 0));
+            if (!valid_date($d) || $v < 1 || $v > 5) continue;
+            $has->execute([$uid, $d, $t, $v]); if ($has->fetch()) continue;
+            $mi->execute([$uid, $d, $t, $v, $batch]); $nM++;
+        }
+    }
+    if (!empty($manifest['feelings'])) {
+        $fi = db()->prepare('INSERT OR IGNORE INTO day_feelings (user_id, day, feeling, batch) VALUES (?, ?, ?, ?)');
+        foreach ($manifest['feelings'] as $f) { $d = (string)($f['day'] ?? ''); $k = (string)($f['feeling'] ?? ''); if (valid_date($d) && feelings_valid($k)) $fi->execute([$uid, $d, $k, $batch]); }
     }
     if ($nE > 0 || $nM > 0) db()->prepare('INSERT INTO imports (user_id, batch, source, entries, photos, moods, created_at) VALUES (?,?,?,?,?,?,?)')->execute([$uid, $batch, $manifest['source'], $nE, $nP, $nM, time()]);
     return ['entries' => $nE, 'photos' => $nP, 'moods' => $nM, 'skipped' => $skipped, 'photoErrors' => $photoErrs];
@@ -614,7 +628,7 @@ if (preg_match('#^/transfer/(preview|import|cancel)/([a-f0-9]{16})$#', $path, $m
         $bits = [];
         if ($r['entries']) $bits[] = $r['entries'] . ($r['entries'] === 1 ? ' entry' : ' entries');
         if ($r['photos']) $bits[] = $r['photos'] . ' photos';
-        if ($r['moods']) $bits[] = $r['moods'] . ' days of mood';
+        if ($r['moods']) $bits[] = $r['moods'] . ' moods';
         $msg = $bits ? 'Imported ' . implode(', ', $bits) . '.' : 'Nothing new to add. Everything in that file was already here.';
         if ($r['skipped'] && $r['entries']) $msg .= ' ' . $r['skipped'] . ' already here, skipped.';
         if ($r['photoErrors']) $msg .= ' ' . $r['photoErrors'] . ' photos could not be read.';
@@ -632,7 +646,8 @@ if (preg_match('#^/transfer/undo/([a-f0-9]{12})$#', $path, $mm) && $post) {
     if ($q->fetch()) {
         $es = db()->prepare('SELECT id FROM entries WHERE user_id = ? AND import_batch = ?'); $es->execute([$uid, $mm[1]]);
         foreach ($es->fetchAll(PDO::FETCH_COLUMN) as $eid) { delete_entry_photos((int)$eid, $uid); db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$eid, $uid]); }
-        db()->prepare('DELETE FROM tracker_log WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
+        db()->prepare('DELETE FROM mood_log WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
+        db()->prepare('DELETE FROM day_feelings WHERE user_id = ? AND batch = ?')->execute([$uid, $mm[1]]);
         db()->prepare('DELETE FROM imports WHERE batch = ? AND user_id = ?')->execute([$mm[1], $uid]);
         flash('ok', 'That import was undone.');
     }

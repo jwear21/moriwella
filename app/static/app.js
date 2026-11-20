@@ -211,17 +211,36 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
 /* how are you feeling */
 (function () {
   var card = document.getElementById('feel'); if (!card) return;
-  function save(data) {
+  var faces = { 1: ['\u{1F61E}', 'Rough'], 2: ['\u{1F641}', 'Low'], 3: ['\u{1F610}', 'Okay'], 4: ['\u{1F642}', 'Good'], 5: ['\u{1F604}', 'Great'] };
+  var moods = []; try { moods = JSON.parse(card.getAttribute('data-moods') || '[]'); } catch (e) {}
+  function part(d) { var h = d.getHours(); return h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : h >= 17 && h < 21 ? 'evening' : 'night'; }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
+  function render() {
+    var last = moods.length ? moods[moods.length - 1].v : 0;
+    card.querySelectorAll('.face').forEach(function (f) { f.setAttribute('aria-checked', String(f.getAttribute('data-v')) === String(last) ? 'true' : 'false'); });
+    var ul = document.getElementById('mood-list'); ul.textContent = ''; ul.hidden = moods.length < 2;
+    if (moods.length < 2) return;
+    moods.forEach(function (m) {
+      var li = el('li'); li.appendChild(el('span', 'ml-e', faces[m.v][0])).setAttribute('aria-hidden', 'true'); li.appendChild(el('span', 'ml-l', faces[m.v][1]));
+      if (m.ts) {
+        var d = new Date(m.ts * 1000), t = el('time', 'stamp', d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); t.dataset.ts = m.ts;
+        li.appendChild(t); li.appendChild(document.createTextNode(' ')); li.appendChild(el('span', 'ml-part', part(d)));
+      }
+      var x = el('button', 'ml-x', '\u00D7'); x.type = 'button'; x.setAttribute('data-id', m.id); x.setAttribute('aria-label', 'Remove this mood'); li.appendChild(x); ul.appendChild(li);
+    });
+  }
+  function save(data, done) {
     var b = new URLSearchParams(data); b.set('day', card.getAttribute('data-day')); b.set('_csrf', card.getAttribute('data-csrf'));
-    fetch(card.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin', body: b }).catch(function () {});
+    fetch(card.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin', body: b })
+      .then(function (r) { return r.json(); }).then(function (j) { if (j && j.moods) { moods = j.moods; render(); } if (done) done(); }).catch(function () {});
   }
   card.addEventListener('click', function (e) {
-    var f = e.target.closest('.face'), c = e.target.closest('.fchip');
+    var f = e.target.closest('.face'), c = e.target.closest('.fchip'), x = e.target.closest('.ml-x');
     if (f) {
-      var was = f.getAttribute('aria-checked') === 'true';
-      card.querySelectorAll('.face').forEach(function (x) { x.setAttribute('aria-checked', 'false'); });
-      if (!was) f.setAttribute('aria-checked', 'true');
-      save({ mood: was ? 0 : f.getAttribute('data-v') });
+      var v = parseInt(f.getAttribute('data-v'), 10), last = moods.length ? moods[moods.length - 1] : null;
+      if (last && last.v === v) save({ remove_mood: last.id }); else save({ mood: v });
+    } else if (x) {
+      save({ remove_mood: x.getAttribute('data-id') });
     } else if (c) {
       var on = c.getAttribute('aria-pressed') !== 'true'; c.setAttribute('aria-pressed', on ? 'true' : 'false');
       var n = card.querySelectorAll('.fchip[aria-pressed=true]').length; card.querySelector('.feel-n').textContent = n ? ' (' + n + ')' : '';

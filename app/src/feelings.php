@@ -14,14 +14,16 @@ function feelings_catalog(): array {
     ];
 }
 function feelings_valid(string $f): bool { foreach (feelings_catalog() as $l) if (in_array($f, $l, true)) return true; return false; }
+function feelings_part(int $ts): string { $h = (int)date('G', $ts); return $h >= 5 && $h < 12 ? 'morning' : ($h < 17 && $h >= 12 ? 'afternoon' : ($h >= 17 && $h < 21 ? 'evening' : 'night')); }
+/* Every mood for a day, oldest first. A mood with ts 0 has no time (an older one, or one added to a past day). */
 function feelings_for_day(int $uid, string $day): array {
-    $q = db()->prepare("SELECT value FROM tracker_log WHERE user_id = ? AND tkey = 'mood' AND day = ?"); $q->execute([$uid, $day]);
-    $mood = (int)round((float)($q->fetchColumn() ?: 0));
+    $q = db()->prepare('SELECT id, value AS v, ts FROM mood_log WHERE user_id = ? AND day = ? ORDER BY ts, id'); $q->execute([$uid, $day]);
+    $moods = array_map(fn($r) => ['id' => (int)$r['id'], 'v' => (int)$r['v'], 'ts' => (int)$r['ts']], $q->fetchAll());
     $q = db()->prepare('SELECT feeling FROM day_feelings WHERE user_id = ? AND day = ? ORDER BY rowid'); $q->execute([$uid, $day]);
-    return ['mood' => ($mood >= 1 && $mood <= 5) ? $mood : 0, 'feelings' => array_column($q->fetchAll(), 'feeling')];
+    return ['moods' => $moods, 'mood' => $moods ? end($moods)['v'] : 0, 'feelings' => array_column($q->fetchAll(), 'feeling')];
 }
+/* The latest mood of each day, for the calendar. */
 function feelings_moods_between(int $uid, string $from, string $to): array {
-    $q = db()->prepare("SELECT day, value FROM tracker_log WHERE user_id = ? AND tkey = 'mood' AND day BETWEEN ? AND ?"); $q->execute([$uid, $from, $to]);
-    $o = []; foreach ($q->fetchAll() as $r) { $v = (int)round((float)$r['value']); if ($v >= 1 && $v <= 5) $o[$r['day']] = $v; } return $o;
+    $q = db()->prepare('SELECT day, value FROM mood_log WHERE user_id = ? AND day BETWEEN ? AND ? ORDER BY ts, id'); $q->execute([$uid, $from, $to]);
+    $o = []; foreach ($q->fetchAll() as $r) { $v = (int)$r['value']; if ($v >= 1 && $v <= 5) $o[$r['day']] = $v; } return $o;
 }
-
