@@ -49,37 +49,32 @@
 
 <h2 class="section-h" id="access">Plans and access</h2>
 <p class="subtle">Give anyone, including yourself, a free plan with as many people as you choose, or put them back on normal billing. Free plans never charge and never expire. Monthly credits of 0 uses the plan's usual number.</p>
-<div class="tablewrap">
-<table class="users">
-  <thead><tr><th>Person</th><th>Now</th><th>Change to</th></tr></thead>
-  <tbody>
-  <?php foreach ($access as $a): $u = $a['u']; $sub = $a['sub'] ?? null; ?>
-    <tr>
-      <td data-l="Person"><?= e($u['name']) ?><br><small><?= e($u['email']) ?></small></td>
-      <?php if (isset($a['member_of'])): ?>
-      <td data-l="Now" colspan="2">Member of <?= e($a['member_of']) ?>'s household. Change the owner's plan instead.</td>
-      <?php else:
-        $comped = $sub && !empty($sub['comped']);
-        $label = $comped ? 'Free ' . (plan_for($sub['plan_key'])['name'] ?? '') . ', ' . (int)$sub['seat_limit'] . ' seat' . ((int)$sub['seat_limit'] === 1 ? '' : 's') : ($sub && in_array($sub['status'], ['active', 'trialing', 'past_due'], true) ? 'Paid ' . (plan_for($sub['plan_key'])['name'] ?? '') : ($sub && (int)$sub['trial_end'] > time() ? 'Free trial' : 'No plan yet')); ?>
-      <td data-l="Now"><?= e($label) ?> · <?= (int)$a['used'] ?> in household</td>
-      <td data-l="Change to">
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="inline-form">
-          <?= csrf_field() ?>
-          <label>Plan <select name="plan">
-            <?php foreach (plans() as $k => $p): ?><option value="<?= e($k) ?>"<?= ($comped ? $sub['plan_key'] : 'individual') === $k ? ' selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
-          </select></label>
-          <label>Seats <input type="number" name="seats" min="1" max="500" value="<?= $comped ? (int)$sub['seat_limit'] : 1 ?>" style="width:5rem"></label>
-          <label>Credits a month each <input type="number" name="credits" min="0" max="100" value="<?= $comped ? (int)($sub['comp_credits'] ?? 0) : 0 ?>" style="width:5rem"></label>
-          <button class="btn" type="submit" name="mode" value="comped">Give free plan</button>
-          <?php if ($comped): ?><button class="btn btn--ghost" type="submit" name="mode" value="standard">Back to normal billing</button><?php endif; ?>
-        </form>
-      </td>
-      <?php endif; ?>
-    </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
-</div>
+<ul class="access">
+<?php foreach ($access as $a): $u = $a['u']; $sub = $a['sub'] ?? null; ?>
+  <li class="card access-item">
+    <div class="access-who"><strong><?= e($u['name']) ?></strong><small><?= e($u['email']) ?></small></div>
+    <?php if (isset($a['member_of'])): ?>
+    <p class="access-now">Member of <?= e($a['member_of']) ?>'s household. Change the owner's plan instead.</p>
+    <?php else:
+      $comped = $sub && !empty($sub['comped']);
+      $label = $comped ? 'Free ' . (plan_for($sub['plan_key'])['name'] ?? '') . ', ' . (int)$sub['seat_limit'] . ' seat' . ((int)$sub['seat_limit'] === 1 ? '' : 's') : ($sub && in_array($sub['status'], ['active', 'trialing', 'past_due'], true) ? 'Paid ' . (plan_for($sub['plan_key'])['name'] ?? '') : ($sub && (int)$sub['trial_end'] > time() ? 'Free trial' : 'No plan yet')); ?>
+    <p class="access-now"><?= e($label) ?> · <?= (int)$a['used'] ?> in household</p>
+    <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form">
+      <?= csrf_field() ?>
+      <label>Plan <select name="plan">
+        <?php foreach (plans() as $k => $p): ?><option value="<?= e($k) ?>"<?= ($comped ? $sub['plan_key'] : 'individual') === $k ? ' selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
+      </select></label>
+      <label>Seats <input type="number" name="seats" min="1" max="500" value="<?= $comped ? (int)$sub['seat_limit'] : 1 ?>"></label>
+      <label>Credits a month each <input type="number" name="credits" min="0" max="100" value="<?= $comped ? (int)($sub['comp_credits'] ?? 0) : 0 ?>"></label>
+      <div class="access-btns">
+        <button class="btn" type="submit" name="mode" value="comped">Give free plan</button>
+        <?php if ($comped): ?><button class="btn btn-quiet" type="submit" name="mode" value="standard">Back to normal billing</button><?php endif; ?>
+      </div>
+    </form>
+    <?php endif; ?>
+  </li>
+<?php endforeach; ?>
+</ul>
 
 <h2 class="section-h">Movie credits</h2>
 <p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
