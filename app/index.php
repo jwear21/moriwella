@@ -113,9 +113,18 @@ function water_oz(int $uid, string $day): int {
     $s = db()->prepare('SELECT oz FROM water_log WHERE user_id = ? AND day = ?'); $s->execute([$uid, $day]);
     return (int)($s->fetchColumn() ?: 0);
 }
+function upcoming_items(int $uid, string $today): array {
+    $s = db()->prepare('SELECT i.id, i.text, i.due_date, l.id list_id, l.name list_name FROM list_items i JOIN lists l ON l.id = i.list_id
+        WHERE i.done_at IS NULL AND i.due_date IS NOT NULL AND i.due_date <= ?
+        AND (l.owner_id = ? OR EXISTS (SELECT 1 FROM list_members m WHERE m.list_id = l.id AND m.user_id = ?))
+        ORDER BY i.due_date, i.id LIMIT 8');
+    $s->execute([date('Y-m-d', strtotime($today . ' +7 days')), $uid, $uid]);
+    return $s->fetchAll();
+}
 function render_day(array $user, string $day): void {
     $uid = (int)$user['id'];
     render('day', [
+        'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
         'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day),
     ], $day === date('Y-m-d') ? 'Today' : date('F j, Y', strtotime($day)));

@@ -151,3 +151,10 @@ html,body{overflow-x:hidden}
   .users td.acts div{display:flex;gap:.5rem;flex-wrap:wrap}
   .users .linkbtn{min-height:44px;padding:.4rem .9rem;border:1.5px solid #A9C5B3;border-radius:999px;background:#FCFAF4}
 }
+
+.coming-list{list-style:none;margin:.5rem 0 0;padding:0}
+.coming-list li+li{border-top:1px solid #E9D8B6}
+.coming-list a{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.6rem 0;min-height:44px;color:inherit;text-decoration:none}
+.coming-text{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+.when{flex:none;font-size:.85rem;font-weight:600;color:#1B4D3E;background:#EAF1E6;border-radius:999px;padding:.2rem .65rem}
+.when.late{color:#a4452c;background:#F8E6DF}

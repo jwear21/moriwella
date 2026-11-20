@@ -10,6 +10,17 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <p class="daynav"><a class="link" href="<?= url('/day/' . $prev) ?>">&larr; Previous day</a> <a class="link" href="<?= url('/day/' . $next) ?>">Next day &rarr;</a> <a class="link" href="<?= url('/calendar?m=' . substr($day, 0, 7)) ?>">Calendar</a></p>
 <?php endif; ?>
 
+<?php if (!empty($upcoming)): $t = date('Y-m-d'); ?>
+<section class="card coming" aria-label="Coming up">
+  <div class="water-head"><b>Coming up</b> <span class="water-count">next 7 days</span></div>
+  <ul class="coming-list">
+  <?php foreach ($upcoming as $u): $late = $u['due_date'] < $t; $when = $u['due_date'] === $t ? 'Today' : ($u['due_date'] === date('Y-m-d', strtotime('+1 day')) ? 'Tomorrow' : ($late ? 'Overdue' : date('D, M j', strtotime($u['due_date'])))); ?>
+    <li><a href="<?= url('/lists/' . $u['list_id']) ?>"><span class="coming-text"><?= e($u['text']) ?><small class="due"><?= e($u['list_name']) ?></small></span><span class="when<?= $late ? ' late' : '' ?>"><?= e($when) ?></span></a></li>
+  <?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
 <section class="card water" data-day="<?= e($day) ?>" data-oz="<?= (int)$water ?>" data-url="<?= url('/water') ?>" data-csrf="<?= e(csrf_token()) ?>">
   <div class="water-head"><b>Water</b> <span class="water-count"><span id="water-oz"><?= (int)$water ?></span> of 64 oz</span></div>
   <div class="water-cups" role="group" aria-label="Water cups, 8 oz each">
