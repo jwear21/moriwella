@@ -20,6 +20,11 @@
     });
   });
 
+  /* Choosing a profile picture sends it straight away */
+  document.querySelectorAll('input[data-autosubmit]').forEach(function (i) {
+    i.addEventListener('change', function () { if (i.files && i.files.length && i.form) i.form.submit(); });
+  });
+
   /* Confirm before delete */
   document.querySelectorAll('form[data-confirm]').forEach(function (f) {
     f.addEventListener('submit', function (e) { if (!confirm(f.getAttribute('data-confirm'))) e.preventDefault(); });
