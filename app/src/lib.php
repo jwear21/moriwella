@@ -195,6 +195,30 @@ function migrate(PDO $p): void {
           );
           PRAGMA user_version = 8;");
     }
+    if ($v < 9) {
+        $p->exec("CREATE TABLE tracker_on (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            tkey TEXT NOT NULL,
+            PRIMARY KEY (user_id, tkey)
+          );
+          CREATE TABLE tracker_log (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            tkey TEXT NOT NULL,
+            day TEXT NOT NULL,
+            value REAL NOT NULL,
+            PRIMARY KEY (user_id, tkey, day)
+          );
+          CREATE TABLE tracker_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            tkey TEXT NOT NULL,
+            day TEXT NOT NULL,
+            text TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX tracker_notes_day ON tracker_notes (user_id, day);
+          PRAGMA user_version = 9;");
+    }
 }
 
 /* ---------- request setup ---------- */

@@ -182,3 +182,29 @@
 document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
   try { t.textContent = new Date(Number(t.dataset.ts) * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) {}
 });
+/* little things (Track) */
+(function () {
+  var card = document.getElementById('little'); if (!card) return;
+  function save(row, value, done) {
+    fetch(card.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin',
+      body: new URLSearchParams({ key: row.getAttribute('data-key'), day: card.getAttribute('data-day'), value: value == null ? '' : value, _csrf: card.getAttribute('data-csrf') }) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (done) done(j); }).catch(function () {});
+  }
+  card.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return; var row = b.closest('.lt-row'); if (!row) return;
+    if (b.classList.contains('lt-check')) {
+      var on = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', on ? 'true' : 'false'); save(row, on ? 1 : 0);
+    } else if (b.classList.contains('lt-inc') || b.classList.contains('lt-dec')) {
+      var st = row.querySelector('.lt-step'), out = st.querySelector('output'), max = parseInt(st.getAttribute('data-max'), 10) || 12;
+      var n = Math.max(0, Math.min(max, (parseInt(out.textContent, 10) || 0) + (b.classList.contains('lt-inc') ? 1 : -1)));
+      out.textContent = n; save(row, n);
+    } else if (b.getAttribute('role') === 'radio') {
+      var was = b.getAttribute('aria-checked') === 'true';
+      row.querySelectorAll('[role=radio]').forEach(function (x) { x.setAttribute('aria-checked', 'false'); });
+      if (!was) b.setAttribute('aria-checked', 'true'); save(row, was ? 0 : b.getAttribute('data-v'));
+    }
+  });
+  card.addEventListener('change', function (e) {
+    var inp = e.target; if (inp.type !== 'number') return; save(inp.closest('.lt-row'), inp.value);
+  });
+})();

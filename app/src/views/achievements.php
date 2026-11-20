@@ -1,4 +1,4 @@
-<p><a class="link" href="<?= url('/settings') ?>">&larr; Me</a></p>
+<p><a class="link" href="<?= url('/settings') ?>">&larr; Account</a></p>
 <h1 class="page-title">Achievements</h1>
 <p class="subtle">Small milestones, kept for good. Nothing here ever goes away if you miss a day.</p>
 <?php $names = ['journaling' => 'Journaling', 'daily-living' => 'Daily goals', 'memories' => 'Memories', 'family' => 'Family'];

@@ -24,17 +24,18 @@
       <a href="<?= url('/calendar') ?>">Calendar</a>
       <a href="<?= url('/lists') ?>">Lists</a>
       <a href="<?= url('/experiences') ?>">Experiences</a>
-      <a href="<?= url('/settings') ?>">Me</a>
+      <a href="<?= url('/track') ?>">Track</a>
       <?php if ($user['role'] === 'admin'): ?><a href="<?= url('/admin') ?>">Admin</a><?php endif; ?>
       <form method="post" action="<?= url('/logout') ?>" class="inline"><?= csrf_field() ?><button type="submit" class="navbtn">Sign out</button></form>
     </nav>
+    <a class="acct-chip" href="<?= url('/settings') ?>" aria-label="Account"><?= e(mb_strtoupper(mb_substr(trim($user['name']) ?: '?', 0, 1))) ?></a>
   </div>
 </header>
 <nav class="tabbar" aria-label="Main">
-  <?php $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); $tabs = [['/', 'Today', 'today'], ['/journal', 'Journal', 'journal'], ['/lists', 'Lists', 'lists'], ['/experiences', 'Experiences', 'experiences'], ['/settings', 'Me', 'settings']];
+  <?php $cur = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH); $tabs = [['/', 'Today', 'today'], ['/journal', 'Journal', 'journal'], ['/lists', 'Lists', 'lists'], ['/experiences', 'Experiences', 'experiences'], ['/track', 'Track', 'track']];
   foreach ($tabs as $t): $href = url($t[0]); $on = $t[0] === '/' ? ($cur === MW_BASE || $cur === MW_BASE . '/' || strpos($cur, MW_BASE . '/day/') === 0) : strpos($cur, $href) === 0; ?>
     <a href="<?= $href ?>"<?= $on ? ' aria-current="page"' : '' ?>><?php
-      echo ['today' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>', 'journal' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v13c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v13"/></svg>', 'calendar' => '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>', 'lists' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>', 'experiences' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>', 'settings' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>'][$t[2]]; ?><span><?= $t[1] ?></span></a>
+      echo ['today' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>', 'journal' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v13c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v13"/></svg>', 'calendar' => '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>', 'lists' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>', 'experiences' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>', 'track' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 017-2.5A4 4 0 0119 10c0 5.500-7 10-7 10z"/></svg>'][$t[2]]; ?><span><?= $t[1] ?></span></a>
   <?php endforeach; ?>
 </nav>
 <?php endif; ?>

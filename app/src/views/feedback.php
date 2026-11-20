@@ -1,4 +1,4 @@
-<p><a class="link" href="<?= url('/settings') ?>">&larr; Me</a></p>
+<p><a class="link" href="<?= url('/settings') ?>">&larr; Account</a></p>
 <h1 class="page-title">Send feedback</h1>
 <p class="subtle">What worked, what confused you, what you wish it did. Short is fine.</p>
 <section class="card write">

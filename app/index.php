@@ -4,6 +4,7 @@ require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/templates.php';
 require __DIR__ . '/src/achievements.php';
+require __DIR__ . '/src/trackers.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -126,7 +127,7 @@ function upcoming_items(int $uid, string $today): array {
 function render_day(array $user, string $day): void {
     $uid = (int)$user['id'];
     render('day', [
-        'goals' => goals_for_day($uid, $day), 'waterOn' => water_on($uid), 'showWelcome' => $day === date('Y-m-d') && !is_welcomed($uid),
+        'goals' => goals_for_day($uid, $day), 'trackers' => trackers_for_day($uid, $day), 'waterOn' => water_on($uid), 'showWelcome' => $day === date('Y-m-d') && !is_welcomed($uid),
         'upcoming' => $day === date('Y-m-d') ? upcoming_items($uid, $day) : [],
         'day' => $day, 'isToday' => $day === date('Y-m-d'),
         'entries' => entries_for_day($uid, $day), 'water' => water_oz($uid, $day),
@@ -303,6 +304,7 @@ if ($path === '/water' && $post) {
 }
 
 require __DIR__ . '/src/experiences.php';
+require __DIR__ . '/src/track.php';
 
 /* ----- daily goals ----- */
 function goals_for_day(int $uid, string $day): array {
@@ -323,12 +325,12 @@ if ($path === '/goals' && $post) {
     if ($name === '') flash('err', 'Give the goal a name.');
     elseif ((int)$c->fetchColumn() >= 12) flash('err', 'That\'s plenty of goals. Remove one before adding another.');
     else { db()->prepare('INSERT INTO goals (user_id, name, created_at) VALUES (?, ?, ?)')->execute([$uid, $name, time()]); flash('ok', 'Goal added.'); }
-    redirect(url('/settings') . '#goals');
+    redirect(url('/track') . '#goals');
 }
 if (preg_match('#^/goals/(\d+)/(toggle|delete)$#', $path, $mm) && $post) {
     $g = db()->prepare('SELECT id FROM goals WHERE id = ? AND user_id = ?'); $g->execute([(int)$mm[1], $uid]);
-    if (!$g->fetch()) { if (wants_json()) json_out(['ok' => false], 404); redirect(url('/settings') . '#goals'); }
-    if ($mm[2] === 'delete') { db()->prepare('DELETE FROM goals WHERE id = ? AND user_id = ?')->execute([(int)$mm[1], $uid]); redirect(url('/settings') . '#goals'); }
+    if (!$g->fetch()) { if (wants_json()) json_out(['ok' => false], 404); redirect(url('/track') . '#goals'); }
+    if ($mm[2] === 'delete') { db()->prepare('DELETE FROM goals WHERE id = ? AND user_id = ?')->execute([(int)$mm[1], $uid]); redirect(url('/track') . '#goals'); }
     $day = (string)($_POST['day'] ?? ''); if (!valid_date($day)) json_out(['ok' => false], 400);
     $q = db()->prepare('SELECT 1 FROM goal_log WHERE goal_id = ? AND day = ?'); $q->execute([(int)$mm[1], $day]);
     if ($q->fetch()) { db()->prepare('DELETE FROM goal_log WHERE goal_id = ? AND day = ?')->execute([(int)$mm[1], $day]); $done = false; }
@@ -477,7 +479,7 @@ if ($path === '/achievements') {
 if ($path === '/settings') {
     if ($post) {
         if (isset($_POST['save_prefs'])) {
-            save_prefs($uid, !empty($_POST['celebrations']), !empty($_POST['water_on']), (string)($_POST['celebrate_size'] ?? 'big'));
+            save_prefs($uid, !empty($_POST['celebrations']), water_on($uid), (string)($_POST['celebrate_size'] ?? 'big'));
             flash('ok', 'Preferences saved.'); redirect(url('/settings'));
         }
         if (isset($_POST['change_password'])) {
@@ -488,7 +490,7 @@ if ($path === '/settings') {
             redirect(url('/settings'));
         }
     }
-    render('settings', ['celebrations' => celebrations_on($uid), 'waterOn' => water_on($uid), 'size' => celebrate_size($uid), 'goals' => goals_for_day($uid, date('Y-m-d'))], 'Settings');
+    render('settings', ['celebrations' => celebrations_on($uid), 'size' => celebrate_size($uid)], 'Account');
     exit;
 }
 

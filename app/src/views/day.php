@@ -20,10 +20,10 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <li><b>Lists</b> are for tasks and shopping, and you can share them with family.</li>
     <li><b>Experiences</b> are for trips and big events, with sections to fill in as you go.</li>
   </ul>
-  <p class="subtle">You can add daily goals, like water or a walk, any time in Me.</p>
+  <p class="subtle">If you like, Track can quietly note little things, like water, sleep or mood.</p>
   <form method="post" action="<?= url('/welcome/dismiss') ?>" class="welcome-acts"><?= csrf_field() ?>
     <button class="btn" type="submit">Start writing</button>
-    <a class="btn btn--quiet" href="<?= url('/settings') ?>#goals">Set up goals</a>
+    <a class="btn btn--quiet" href="<?= url('/track') ?>">Choose what to track</a>
   </form>
 </section>
 <?php endif; ?>
@@ -82,12 +82,12 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   </form>
 <?php endif; ?>
 
-<?php if ($goals || $waterOn || !empty($upcoming)): ?>
-<h2 class="section-h"><?= $isToday ? "Today's checklist" : 'Goals for this day' ?></h2>
+<?php if ($goals || $waterOn || !empty($trackers) || !empty($upcoming)): ?>
+<h2 class="section-h"><?= $isToday ? 'A few small things' : 'Small things from this day' ?></h2>
 <?php endif; ?>
 <?php if ($goals): ?>
 <section class="card goals" id="goals-card" data-day="<?= e($day) ?>" data-csrf="<?= e(csrf_token()) ?>">
-  <div class="water-head"><b>Daily goals</b> <span class="water-count"><span id="goals-done"><?= count(array_filter($goals, fn($g) => $g['done'])) ?></span> of <?= count($goals) ?></span></div>
+  <div class="water-head"><b>Checkmarks</b> <span class="water-count"><span id="goals-done"><?= count(array_filter($goals, fn($g) => $g['done'])) ?></span> of <?= count($goals) ?></span></div>
   <ul class="items goal-list">
   <?php foreach ($goals as $g): ?>
     <li class="item<?= $g['done'] ? ' done' : '' ?>">
@@ -98,8 +98,8 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   </ul>
 </section>
 <?php endif; ?>
-<?php if (!$goals && !$waterOn && $isToday): ?>
-<p class="subtle goal-nudge"><a class="link" href="<?= url('/settings') ?>#goals">Set daily goals</a> to check off each day, like water, a walk, or homework.</p>
+<?php if (!$goals && !$waterOn && empty($trackers) && $isToday): ?>
+<p class="subtle goal-nudge"><a class="link" href="<?= url('/track') ?>">Track little things</a> if you like, such as water, sleep, mood or a walk.</p>
 <?php endif; ?>
 
 <?php if ($waterOn): ?>
@@ -111,6 +111,47 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
     <?php endfor; ?>
   </div>
   <p class="hint">Tap a cup for each 8 oz. Tap the last filled cup again to undo.</p>
+</section>
+<?php endif; ?>
+
+<?php if (!empty($trackers)): ?>
+<section class="card little" id="little" data-day="<?= e($day) ?>" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/track/log') ?>">
+  <div class="water-head"><b>Little things</b> <a class="link" href="<?= url('/track') ?>">Choose</a></div>
+  <?php foreach ($trackers as $t): $k = $t['key']; $v = $t['value']; ?>
+  <div class="lt-row lt-<?= e($t['type']) ?>" data-key="<?= e($k) ?>">
+    <?php if ($t['type'] === 'check'): ?>
+      <button type="button" class="lt-check" role="checkbox" aria-checked="<?= $v ? 'true' : 'false' ?>"><span class="box" aria-hidden="true"></span><?= e($t['label']) ?></button>
+    <?php elseif ($t['type'] === 'count'): ?>
+      <span class="lt-label"><?= e($t['label']) ?></span>
+      <span class="lt-step" data-max="<?= (int)($t['max'] ?? 12) ?>">
+        <button type="button" class="lt-dec" aria-label="One less <?= e($t['label']) ?>">&minus;</button>
+        <output><?= $v ? (int)$v : 0 ?></output>
+        <button type="button" class="lt-inc" aria-label="One more <?= e($t['label']) ?>">+</button>
+      </span>
+    <?php elseif ($t['type'] === 'number'): ?>
+      <label class="lt-label" for="lt-<?= e($k) ?>"><?= e($t['label']) ?></label>
+      <span class="lt-num"><input id="lt-<?= e($k) ?>" type="number" inputmode="decimal" min="0" step="<?= e((string)($t['step'] ?? 1)) ?>" value="<?= $v !== null ? e(fmt_num($v)) : '' ?>" placeholder="&ndash;"> <small><?= e($t['unit'] ?? '') ?></small></span>
+    <?php elseif ($t['type'] === 'scale'): ?>
+      <span class="lt-label"><?= e($t['label']) ?></span>
+      <span class="lt-scale" role="radiogroup" aria-label="<?= e($t['label']) ?>">
+        <small><?= e($t['low']) ?></small>
+        <?php for ($i = 1; $i <= 5; $i++): ?><button type="button" role="radio" aria-checked="<?= (int)$v === $i ? 'true' : 'false' ?>" data-v="<?= $i ?>" aria-label="<?= $i ?> of 5"><?= $i ?></button><?php endfor; ?>
+        <small><?= e($t['high']) ?></small>
+      </span>
+    <?php elseif ($t['type'] === 'note'): ?>
+      <span class="lt-label"><?= e($t['label']) ?></span>
+      <ul class="lt-notes">
+        <?php foreach ($t['notes'] as $n): ?>
+        <li><time class="stamp" data-ts="<?= (int)$n['created_at'] ?>"><?= e(stamp_time((int)$n['created_at'])) ?></time><span><?= e($n['text']) ?></span>
+          <form method="post" action="<?= url('/track/note/' . $n['id'] . '/delete') ?>"><?= csrf_field() ?><button class="textbtn" type="submit" aria-label="Remove this note">Remove</button></form></li>
+        <?php endforeach; ?>
+      </ul>
+      <form method="post" action="<?= url('/track/note') ?>" class="inline-form lt-add"><?= csrf_field() ?><input type="hidden" name="key" value="<?= e($k) ?>"><input type="hidden" name="day" value="<?= e($day) ?>">
+        <label class="sr-only" for="ln-<?= e($k) ?>"><?= e($t['label']) ?></label>
+        <input id="ln-<?= e($k) ?>" name="text" maxlength="300" placeholder="<?= e($t['ph'] ?? '') ?>" class="title-in"><button class="btn btn--quiet" type="submit">Add</button></form>
+    <?php endif; ?>
+  </div>
+  <?php endforeach; ?>
 </section>
 <?php endif; ?>
 
