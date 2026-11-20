@@ -246,7 +246,9 @@ if ($path === '/journal') {
     $rows = $s->fetchAll();
     $ph = photos_for_entries(array_column($rows, 'id'));
     foreach ($rows as &$r) { $r['photos'] = $ph[$r['id']] ?? []; }
-    render('journal', ['entries' => $rows], 'Journal');
+    $moods = $rows ? feelings_moods_between($uid, end($rows)['entry_date'], $rows[0]['entry_date']) : [];
+    $feel = []; if ($rows) { $fq = db()->prepare('SELECT day, feeling FROM day_feelings WHERE user_id = ? AND day BETWEEN ? AND ? ORDER BY rowid'); $fq->execute([$uid, end($rows)['entry_date'], $rows[0]['entry_date']]); foreach ($fq->fetchAll() as $f) $feel[$f['day']][] = $f['feeling']; }
+    render('journal', ['entries' => $rows, 'moods' => $moods, 'feel' => $feel], 'Journal');
     exit;
 }
 

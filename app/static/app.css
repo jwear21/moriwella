@@ -387,3 +387,33 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 /* account buttons line up */
 .acct-actions{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
 .acct-actions .btn,.acct-actions form{margin:0}
+
+/* feelings: journal list and look-back page */
+.entry-mood{font-size:1.05rem;margin-left:.35rem;font-style:normal;vertical-align:-1px}
+.feel-chip{margin:0 0 0 .3rem;font-style:normal;vertical-align:1px}
+.feel-sum{display:flex;align-items:center;gap:1rem}
+.feel-sum p{margin:0}
+.feel-big{font-size:3.2rem;line-height:1}
+.feel-grid{display:grid;gap:4px}
+.feel-grid--md{grid-template-columns:repeat(auto-fill,minmax(34px,1fr))}
+.feel-grid--sm{grid-template-columns:repeat(auto-fill,minmax(14px,1fr))}
+.feel-cell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.95rem;background:#EFEADA}
+.feel-grid--sm .feel-cell{border-radius:3px}
+.mood-0{background:#EFEADA}.mood-1{background:#E3B3A0}.mood-2{background:#EDCFA4}.mood-3{background:#EAE3C6}.mood-4{background:#C9E0BB}.mood-5{background:#93C79E}
+.feel-bars{list-style:none;margin:0;padding:0;display:grid;gap:.55rem}
+.feel-bars li{display:grid;grid-template-columns:1.6rem 3.4rem 1fr 2rem;gap:.5rem;align-items:center}
+.fb-track{height:12px;border-radius:6px;background:#EFEADA;overflow:hidden}
+.fb-fill{display:block;height:100%;border-radius:6px}
+.fb-n{text-align:right;color:var(--moss)}
+
+/* tidy: first heading in a card sits at the top; wrapped chip lists */
+.card > .section-h:first-child{margin-top:0}
+.chips--wrap{flex-wrap:wrap;overflow:visible}
+.chip small{margin-left:.35rem;color:#4F6F62}
+
+/* admin: matching pills, full-width fields */
+.users .linkbtn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.users .acts>div{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.users .acts form{margin:0}
+.inline-form label{flex:1 1 12rem;min-width:0}
+.inline-form label input{width:100%;box-sizing:border-box}

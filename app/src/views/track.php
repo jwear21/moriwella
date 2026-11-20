@@ -1,5 +1,6 @@
 <h1 class="page-title">Track</h1>
 <p class="subtle">Little things worth noticing. Turn on only what feels right. They sit quietly under your journal on Today, so your words always come first.</p>
+<p class="subtle"><a class="link" href="<?= url('/track/feelings') ?>">Look back at how you've been feeling</a></p>
 <?php foreach ($groups as $gname => $items): ?>
 <section class="card write trk-group">
   <h2 class="section-h"><?= e($gname) ?></h2>

@@ -1,14 +1,14 @@
 <h1 class="page-title">Your journal</h1>
-<p class="subtle"><a class="link" href="<?= url('/calendar') ?>">Open the calendar</a></p>
+<p class="subtle"><a class="link" href="<?= url('/calendar') ?>">Open the calendar</a> · <a class="link" href="<?= url('/track/feelings') ?>">How you've been feeling</a></p>
 <?php if (!$entries): ?>
   <p class="subtle">Your entries will appear here. <a class="link" href="<?= url('/') ?>">Write your first one.</a></p>
 <?php else:
-  $month = '';
+  $month = ''; $seenDay = [];
   foreach ($entries as $en):
     $m = date('F Y', strtotime($en['entry_date']));
     if ($m !== $month): $month = $m; ?><h2 class="section-h"><?= e($m) ?></h2><?php endif; ?>
   <a class="card entry-link" href="<?= url('/day/' . $en['entry_date']) ?>">
-    <span class="entry-date"><?= e(date('D, M j', strtotime($en['entry_date']))) ?></span>
+    <span class="entry-date"><?= e(date('D, M j', strtotime($en['entry_date']))) ?><?php if (empty($seenDay[$en['entry_date']]) && !empty($moods[$en['entry_date']])): $fc = feelings_faces()[$moods[$en['entry_date']]]; ?> <span class="entry-mood" role="img" aria-label="Mood: <?= e($fc['l']) ?>"><?= $fc['e'] ?></span><?php foreach (array_slice($feel[$en['entry_date']] ?? [], 0, 3) as $ff): ?><span class="chip chip--static feel-chip"><?= e($ff) ?></span><?php endforeach; endif; $seenDay[$en['entry_date']] = true; ?></span>
     <b><?= e($en['title'] !== '' ? $en['title'] : (body_plain($en['body']) !== '' ? mb_substr(body_plain($en['body']), 0, 60) : 'Photos')) ?></b>
     <?php if ($en['title'] !== '' && body_plain($en['body']) !== ''): ?><span class="snippet"><?= e(mb_substr(body_plain($en['body']), 0, 120)) ?></span><?php endif; ?>
     <?php if ($en['photos']): ?><span class="thumbs thumbs--sm"><?php foreach (array_slice($en['photos'], 0, 4) as $p): ?><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="" loading="lazy"><?php endforeach; ?><?php if (count($en['photos']) > 4): ?><span class="more">+<?= count($en['photos']) - 4 ?></span><?php endif; ?></span><?php endif; ?>

@@ -1,5 +1,10 @@
 <?php
 /* Track routes (functions live in trackers.php) */
+if ($path === '/track/feelings') {
+    $d = (int)($_GET['d'] ?? 30); if (!in_array($d, [30, 90, 365], true)) $d = 30;
+    render('track_feelings', ['sum' => feelings_summary($uid, $d)], 'How you have been feeling');
+    exit;
+}
 if ($path === '/track') {
     render('track', ['groups' => tracker_catalog(), 'on' => array_flip(tracker_enabled($uid)), 'goals' => goals_for_day($uid, date('Y-m-d'))], 'Track');
     exit;
