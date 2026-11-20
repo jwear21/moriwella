@@ -3,6 +3,8 @@
    Safe to include from the web app and from the command-line worker: it defines functions only.
    Copyright (c) JSW Software Designs */
 
+require_once __DIR__ . '/i18n.php';
+
 const MV_W = 1920;
 const MV_H = 1080;
 const MV_FPS = 30;
@@ -21,19 +23,47 @@ function mv_ffmpeg(): string { return (string)cfg('ffmpeg_path', 'ffmpeg'); }
 
 /* ---------- GD helpers ---------- */
 function mv_col($im, array $c, int $alpha = 0): int { return imagecolorallocatealpha($im, $c[0], $c[1], $c[2], $alpha); }
-function mv_w(float $size, string $font, string $t): int { $b = imagettfbbox($size, 0, $font, $t); return (int)($b[2] - $b[0]); }
+/* Japanese and Chinese text: Latin-only fonts have no such glyphs, so each string is drawn with a CJK font chosen by script.
+   Kana means Japanese. Chinese is Simplified or Traditional by the person's language, else by telling the two apart. */
+function mv_is_cjk(string $t): bool { return (bool)preg_match('/[\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}]/u', $t); }
+function mv_cjk_region(string $t): string {
+    if (preg_match('/[\x{3040}-\x{30FF}]/u', $t)) return 'JP';
+    $l = strtolower(current_lang());
+    if (strpos($l, 'ja') === 0) return 'JP';
+    if (in_array($l, ['zh-hk', 'zh-tw', 'zh-hant', 'zh-mo'], true)) return 'TC';
+    if (in_array($l, ['zh', 'zh-cn', 'zh-hans', 'zh-sg'], true)) return 'SC';
+    return preg_match('/[们这个来时会过对说学国发后么书见长门开关车东马鸟鱼风飞电话谢礼爱听让总没经现还为与产业兴师专乐医务华单参历压变员图场声处头实写应带虽乡际该战无张岁气汉龙]/u', $t) ? 'SC' : 'TC';
+}
+function mv_pick(string $font, string $t): string {
+    if (!mv_is_cjk($t)) return $font;
+    $r = mv_cjk_region($t); $b = basename($font, '.ttf');
+    $hand = ['JP' => 'KleeOne', 'TC' => 'Iansui', 'SC' => 'MaShanZheng']; $serif = ['JP' => 'NotoSerifJP', 'TC' => 'NotoSerifTC', 'SC' => 'NotoSerifSC'];
+    return mv_font(strpos($b, 'Caveat') === 0 ? $hand[$r] : $serif[$r]);
+}
+function mv_text($im, float $size, float $angle, int $x, int $y, int $col, string $font, string $t) { return imagettftext($im, $size, $angle, $x, $y, $col, mv_pick($font, $t), $t); }
+
+function mv_w(float $size, string $font, string $t): int { $b = imagettfbbox($size, 0, mv_pick($font, $t), $t); return (int)($b[2] - $b[0]); }
+/* Words are split at spaces; Japanese and Chinese have none, so each character is a break point (never starting a line with closing punctuation). */
 function mv_wrap(string $t, float $size, string $font, int $maxW, int $maxLines = 6): array {
-    $lines = []; $cur = '';
-    foreach (preg_split('/\s+/', trim($t)) as $w) {
-        $try = trim($cur . ' ' . $w);
-        if ($cur !== '' && mv_w($size, $font, $try) > $maxW) { $lines[] = $cur; $cur = $w; } else { $cur = $try; }
+    $lines = []; $cur = ''; $noStart = '、。，．！？）」』】〉》,.!?:;)…・ー';
+    preg_match_all('/[\x{3040}-\x{30FF}\x{3400}-\x{9FFF}\x{F900}-\x{FAFF}\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]|[^\s\x{3040}-\x{30FF}\x{3400}-\x{9FFF}\x{F900}-\x{FAFF}\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]+/u', trim($t), $m);
+    $tokens = $m[0]; $prevCjk = false; $prevEnd = -1; $pos = 0;
+    // re-find spaces: a space between two tokens is kept only between non-CJK tokens
+    $src = trim($t); $offset = 0;
+    foreach ($tokens as $tok) {
+        $at = mb_strpos($src, $tok, $offset); $gap = $at > $offset ? ' ' : ''; $offset = $at + mb_strlen($tok);
+        $isCjk = mv_is_cjk($tok) || preg_match('/^[\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]$/u', $tok);
+        $glue = ($cur === '') ? '' : (($isCjk && $prevCjk && $gap === '') ? '' : ($gap !== '' ? ' ' : ''));
+        $try = $cur . $glue . $tok;
+        if ($cur !== '' && mv_w($size, $font, $try) > $maxW && !(mb_strpos($noStart, $tok) !== false && mb_strlen($tok) === 1)) { $lines[] = $cur; $cur = $tok; } else { $cur = $try; }
+        $prevCjk = $isCjk;
     }
     if ($cur !== '') $lines[] = $cur;
-    if (count($lines) > $maxLines) { $lines = array_slice($lines, 0, $maxLines); $lines[$maxLines - 1] = rtrim($lines[$maxLines - 1], ' ,.;:') . '…'; }
+    if (count($lines) > $maxLines) { $lines = array_slice($lines, 0, $maxLines); $lines[$maxLines - 1] = rtrim($lines[$maxLines - 1], ' ,.;:、。，') . '…'; }
     return $lines;
 }
 function mv_center($im, int $y, string $t, float $size, string $font, int $col, int $w = MV_W): void {
-    imagettftext($im, $size, 0, (int)(($w - mv_w($size, $font, $t)) / 2), $y, $col, $font, $t);
+    mv_text($im, $size, 0, (int)(($w - mv_w($size, $font, $t)) / 2), $y, $col, $font, $t);
 }
 function mv_load(string $path) {
     $d = @file_get_contents($path); if ($d === false) return null;
@@ -80,7 +110,13 @@ function mv_title_card(array $th, $photo, string $by, string $title, string $whe
     $im = mv_canvas($th, $photo); $ink = mv_col($im, $th['ink']); $acc = mv_col($im, $th['accent']);
     $pf = mv_font('PlayfairDisplay'); $lo = mv_font('Lora'); $li = mv_font('Lora-Italic');
     $size = 112; $lines = mv_wrap($title, $size, $pf, MV_W - 360, 3);
-    if (count($lines) > 2) { $size = 84; $lines = mv_wrap($title, $size, $pf, MV_W - 360, 3); }
+    if (mv_is_cjk($title)) {
+        /* CJK glyphs are visually larger and have no spaces: step the size down until it is one or two lines with no lone character at the end */
+        foreach ([96, 84, 72, 60] as $size) {
+            $lines = mv_wrap($title, $size, $pf, MV_W - 360, 3);
+            if (count($lines) === 1 || (count($lines) === 2 && mb_strlen($lines[1]) >= 3)) break;
+        }
+    } elseif (count($lines) > 2) { $size = 84; $lines = mv_wrap($title, $size, $pf, MV_W - 360, 3); }
     $block = count($lines) * ($size + 14);
     $y = (int)(MV_H / 2 - $block / 2 + 10);
     if ($by !== '') mv_center($im, $y - 70, $by, 38, $li, $acc);
@@ -96,7 +132,7 @@ function mv_title_card(array $th, $photo, string $by, string $title, string $whe
 function mv_day_card(array $th, int $dayNo, string $date, string $note, string $path): void {
     $im = mv_canvas($th); $ink = mv_col($im, $th['ink']); $acc = mv_col($im, $th['accent']);
     $pf = mv_font('PlayfairDisplay'); $li = mv_font('Lora-Italic');
-    mv_center($im, 500, 'Day ' . $dayNo, 132, $pf, $acc);
+    mv_center($im, 500, tt('movie.day_n', ['n' => $dayNo]), 132, $pf, $acc);
     mv_rule($im, 548, $th);
     mv_center($im, 628, $date, 48, mv_font('Lora'), $ink);
     $y = 704; foreach (mv_wrap($note, 36, $li, 1300, 2) as $l) { mv_center($im, $y, $l, 36, $li, mv_col($im, $th['ink'], 25)); $y += 50; }
@@ -115,11 +151,11 @@ function mv_quote_card(array $th, string $label, string $text, string $path): vo
 function mv_end_card(array $th, $photo, string $closing, string $stats, string $path): void {
     $im = mv_canvas($th, $photo); $ink = mv_col($im, $th['ink']); $acc = mv_col($im, $th['accent']);
     $y = 470;
-    mv_center($im, $y, 'Until next time', 104, mv_font('PlayfairDisplay-Italic'), $ink); $y += 54;
+    mv_center($im, $y, tt('movie.until_next_time'), 104, mv_font('PlayfairDisplay-Italic'), $ink); $y += 54;
     mv_rule($im, $y, $th); $y += 84;
     if ($closing !== '') foreach (mv_wrap($closing, 42, mv_font('Lora'), 1300, 3) as $l) { mv_center($im, $y, $l, 42, mv_font('Lora'), $ink); $y += 58; }
     if ($stats !== '') { $y += 16; mv_center($im, $y, $stats, 34, mv_font('Lora-Italic'), $acc); }
-    mv_brand($im, $th, 'Remember your life, organize your days, and live well.');
+    mv_brand($im, $th, tt('movie.tagline'));
     mv_save_png($im, $path);
 }
 /* Transparent overlay: dark gradient at the foot of the frame, with the day and a line from the entry. */
@@ -133,8 +169,8 @@ function mv_caption(array $th, string $label, string $line, string $path): void 
     }
     imagealphablending($im, true);
     $acc = mv_col($im, [214, 170, 84]); $cream = mv_col($im, [250, 246, 236]);
-    imagettftext($im, 30, 0, 110, MV_H - 222, $acc, mv_font('Lora'), $label);
-    $y = MV_H - 160; foreach (mv_wrap($line, 46, mv_font('PlayfairDisplay'), MV_W - 260, 2) as $l) { imagettftext($im, 46, 0, 110, $y + 40, $cream, mv_font('PlayfairDisplay'), $l); $y += 64; }
+    mv_text($im, 30, 0, 110, MV_H - 222, $acc, mv_font('Lora'), $label);
+    $y = MV_H - 160; foreach (mv_wrap($line, 46, mv_font('PlayfairDisplay'), MV_W - 260, 2) as $l) { mv_text($im, 46, 0, 110, $y + 40, $cream, mv_font('PlayfairDisplay'), $l); $y += 64; }
     mv_save_png($im, $path);
 }
 
@@ -189,7 +225,7 @@ function mv_polaroid($src, string $note, float $angle, int $scale = 100) {
     imagesetthickness($im, 1); imagerectangle($im, $m + $pad, $m + $pad, $m + $pad + $sq, $m + $pad + $sq, imagecolorallocatealpha($im, 0, 0, 0, 100));
     $ink = imagecolorallocate($im, 52, 44, 38); $f = mv_font('Caveat'); $fs = 40 * $scale / 100;
     $lines = mv_wrap($note, $fs, $f, $sq - 10, 2); $y = $m + $pad + $sq + (int)(62 * $scale / 100);
-    foreach ($lines as $l) { imagettftext($im, $fs, 0, $m + $pad + (int)(($sq - mv_w($fs, $f, $l)) / 2), $y, $ink, $f, $l); $y += (int)(46 * $scale / 100); }
+    foreach ($lines as $l) { mv_text($im, $fs, 0, $m + $pad + (int)(($sq - mv_w($fs, $f, $l)) / 2), $y, $ink, $f, $l); $y += (int)(46 * $scale / 100); }
     $tw = 170; $th = 46; $tx = $m + (int)($pw / 2) - $tw / 2; $ty = $m - 20;
     imagefilledpolygon($im, [$tx, $ty + 3, $tx + $tw, $ty, $tx + $tw - 4, $ty + $th, $tx + 3, $ty + $th - 3], imagecolorallocatealpha($im, 240, 232, 196, 38));
     imagealphablending($im, false);
@@ -199,7 +235,7 @@ function mv_polaroid($src, string $note, float $angle, int $scale = 100) {
 function mv_polaroid_clip(array $th, $kraft, array $group, string $work, string $tag, string $out): float {
     $n = count($group); $dur = 3.6 + 0.9 * $n;
     $bg = imagecreatetruecolor(MV_W, MV_H); imagecopy($bg, $kraft, 0, 0, 0, 0, MV_W, MV_H);
-    imagettftext($bg, 62, -2, 96, 150, imagecolorallocate($bg, 70, 48, 28), mv_font('Caveat'), $group[0]['label']);
+    mv_text($bg, 62, -2, 96, 150, imagecolorallocate($bg, 70, 48, 28), mv_font('Caveat'), $group[0]['label']);
     imagejpeg($bg, "$work/$tag-bg.jpg", 92); imagedestroy($bg);
     $slots = $n === 1 ? [[960, 590, -3, 118]] : ($n === 2 ? [[640, 590, -5, 108], [1280, 570, 4, 108]] : [[420, 600, -6, 100], [1500, 585, 5, 100], [960, 545, -1.5, 100]]);
     if ($n === 3) $slots = [$slots[0], $slots[1], $slots[2]];
@@ -221,7 +257,7 @@ function mv_polaroid_clip(array $th, $kraft, array $group, string $work, string 
 /* ---------- gathering the story ---------- */
 function mv_first_sentence(string $t, int $limit = 96): string {
     $t = trim(preg_replace('/\s+/', ' ', $t)); if ($t === '') return '';
-    $s = preg_split('/(?<=[.!?])\s/', $t)[0];
+    $s = preg_split('/(?<=[.!?])\s|(?<=[。！？])/u', $t)[0];
     return mb_strlen($s) <= $limit ? $s : rtrim(mb_substr($s, 0, $limit - 1), ' ,;:') . '…';
 }
 function mv_story(int $uid, int $eventId, string $length, bool $collage = false): array {
@@ -236,7 +272,7 @@ function mv_story(int $uid, int $eventId, string $length, bool $collage = false)
     foreach ($entries as $en) {
         $parts = body_parts((string)$en['body'], (int)$en['created_at']); $text = trim((string)($parts[0]['text'] ?? ''));
         $day = (int)round((strtotime($en['entry_date']) - strtotime($ev['start_date'])) / 86400) + 1;
-        $label = ($multi ? 'Day ' . $day . '  ·  ' : '') . date('F j', strtotime($en['entry_date'])) . (!empty($en['section_id']) && isset($secs[(int)$en['section_id']]) ? '  ·  ' . $secs[(int)$en['section_id']] : '');
+        $label = ($multi ? tt('movie.day_n', ['n' => $day]) . '  ·  ' : '') . ldate('F j', strtotime($en['entry_date'])) . (!empty($en['section_id']) && isset($secs[(int)$en['section_id']]) ? '  ·  ' . $secs[(int)$en['section_id']] : '');
         $line = trim((string)$en['title']) !== '' ? trim((string)$en['title']) : mv_first_sentence($text);
         $photos = $ph[$en['id']] ?? []; $photoCount += count($photos);
         $base = ['date' => $en['entry_date'], 'day' => $day, 'label' => $label, 'line' => $line, 'dayTitle' => $line];
@@ -263,7 +299,7 @@ function mv_story(int $uid, int $eventId, string $length, bool $collage = false)
 function mv_render(array $mv, callable $progress): array {
     @ini_set('memory_limit', '768M'); @set_time_limit(0);
     $uid = (int)$mv['user_id']; $th = MV_THEMES[$mv['theme']] ?? MV_THEMES['evergreen'];
-    $u = db()->prepare('SELECT name FROM users WHERE id = ?'); $u->execute([$uid]); $name = trim((string)$u->fetchColumn());
+    $u = db()->prepare('SELECT name, lang FROM users WHERE id = ?'); $u->execute([$uid]); $ur = $u->fetch(); $name = trim((string)($ur['name'] ?? '')); lang_force((string)($ur['lang'] ?? '') ?: 'en');
     $collage = ($th['layout'] ?? '') === 'polaroid';
     $story = mv_story($uid, (int)$mv['event_id'], (string)$mv['length'], $collage); $ev = $story['event']; $scenes = $story['scenes'];
     if (count(array_filter($scenes, fn($s) => $s['kind'] === 'photo')) < 3) throw new RuntimeException('Add a few more photos to this experience first.');
@@ -272,8 +308,8 @@ function mv_render(array $mv, callable $progress): array {
         $clips = []; $total = count($scenes) + 3; $done = 0; $lastDay = 0;
         $firstPhoto = null; $lastPhoto = null;
         foreach ($scenes as $s) if ($s['kind'] === 'photo') { $firstPhoto = $firstPhoto ?? $s['file']; $lastPhoto = $s['file']; }
-        $span = date('F j', strtotime($ev['start_date'])) . ($ev['end_date'] !== $ev['start_date'] ? ' – ' . date('F j, Y', strtotime($ev['end_date'])) : ', ' . date('Y', strtotime($ev['start_date'])));
-        $hero = mv_load($firstPhoto); mv_title_card($th, $hero, $name !== '' ? 'A memory by ' . $name : '', $ev['title'], (string)$ev['location'], $span, (string)$mv['subtitle'], "$work/title.png"); imagedestroy($hero);
+        $span = $ev['end_date'] !== $ev['start_date'] ? ldate('F j', strtotime($ev['start_date'])) . ' – ' . ldate('F j, Y', strtotime($ev['end_date'])) : ldate('F j, Y', strtotime($ev['start_date']));
+        $hero = mv_load($firstPhoto); mv_title_card($th, $hero, $name !== '' ? tt('movie.memory_by', ['name' => $name]) : '', $ev['title'], (string)$ev['location'], $span, (string)$mv['subtitle'], "$work/title.png"); imagedestroy($hero);
         mv_still_clip("$work/title.png", "$work/c0.mp4", 4.6); $clips[] = ["$work/c0.mp4", 4.6]; $progress((int)(++$done * 90 / $total));
         $i = 0;
         if ($collage) {
@@ -293,7 +329,7 @@ function mv_render(array $mv, callable $progress): array {
             $i++;
             if ($story['multi'] && $s['day'] !== $lastDay && count($scenes) >= 12) {
                 $lastDay = $s['day']; $dc = "$work/d$i.mp4";
-                mv_day_card($th, $s['day'], date('l, F j', strtotime($s['date'])), $s['dayTitle'], "$work/d$i.png"); mv_still_clip("$work/d$i.png", $dc, 2.6); $clips[] = [$dc, 2.6];
+                mv_day_card($th, $s['day'], ldate('l, F j', strtotime($s['date'])), $s['dayTitle'], "$work/d$i.png"); mv_still_clip("$work/d$i.png", $dc, 2.6); $clips[] = [$dc, 2.6];
             }
             $out = "$work/s$i.mp4";
             if ($s['kind'] === 'photo') {
@@ -306,7 +342,7 @@ function mv_render(array $mv, callable $progress): array {
             }
             @unlink("$work/p$i.jpg"); $progress((int)(++$done * 90 / $total));
         }
-        $stats = ($story['multi'] ? ((int)round((strtotime($ev['end_date']) - strtotime($ev['start_date'])) / 86400) + 1) . ' days  ·  ' : '') . $story['entries'] . ($story['entries'] === 1 ? ' moment' : ' moments') . '  ·  ' . $story['photos'] . ($story['photos'] === 1 ? ' photo' : ' photos');
+        $stats = ($story['multi'] ? tn('movie.stat_days', (int)round((strtotime($ev['end_date']) - strtotime($ev['start_date'])) / 86400) + 1) . '  ·  ' : '') . tn('movie.stat_moments', (int)$story['entries']) . '  ·  ' . tn('msg.n_photos', (int)$story['photos']);
         $endImg = mv_load($lastPhoto); mv_end_card($th, $endImg, (string)$mv['closing'], $stats, "$work/end.png"); imagedestroy($endImg);
         mv_still_clip("$work/end.png", "$work/cz.mp4", 5.0); $clips[] = ["$work/cz.mp4", 5.0];
 

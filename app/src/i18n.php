@@ -35,8 +35,11 @@ function lang_load(string $code): array {
 }
 
 /** Picks the language: the signed-in person's choice, else this browser session's choice, else the phone's language, else English. */
+function lang_force(?string $code): void { $GLOBALS['mw_lang_force'] = $code; }
+
 function current_lang(): string {
     static $c = null;
+    if (!empty($GLOBALS['mw_lang_force'])) return (string)$GLOBALS['mw_lang_force'];
     if ($c !== null) return $c;
     $have = langs_available();
     $u = function_exists('current_user') ? current_user() : null;
