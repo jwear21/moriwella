@@ -1,5 +1,5 @@
 <h1 class="page-title">Administration</h1>
-<p class="subtle">Create free beta accounts for testers. They never see a payment screen.</p>
+<p class="subtle">Create free beta accounts for testers, and manage everyone below.</p>
 
 <?php if ($newLink): ?>
 <section class="card linkbox" role="status">
@@ -19,71 +19,71 @@
   </form>
 </section>
 
-<h2 class="section-h">Accounts</h2>
-<p class="subtle"><a class="link" href="<?= url('/admin/demo') ?>">Demo accounts for testing</a></p>
-<div class="tablewrap">
-<table class="users">
-  <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Last sign-in</th><th><span class="sr-only">Actions</span></th></tr></thead>
-  <tbody>
-  <?php foreach ($users as $u): ?>
-    <tr>
-      <td data-l="Name"><?= e($u['name']) ?></td>
-      <td data-l="Email"><?= e($u['email']) ?></td>
-      <td data-l="Type"><?= $u['role'] === 'admin' ? 'Administrator' : ($u['plan'] === 'demo' ? 'Demo' : ($u['plan'] === 'beta_free' ? 'Free beta' : 'Customer')) ?></td>
-      <td data-l="Status"><?= e(ucfirst($u['status'] === 'invited' ? 'waiting for password' : $u['status'])) ?></td>
-      <td data-l="Last sign-in"><?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'Never' ?></td>
-      <td class="acts"><div>
-        <?php if ($u['role'] !== 'admin' && $u['status'] === 'active'): ?>
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit">Act as</button></form>
-        <?php endif; ?>
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/link') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= $u['status'] === 'invited' ? 'New link' : 'Reset password' ?></button></form>
-        <?php if ((int)$u['id'] !== (int)$user['id']): ?>
-        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/toggle') ?>"><?= csrf_field() ?><button class="linkbtn" type="submit"><?= $u['status'] === 'disabled' ? 'Enable' : 'Disable' ?></button></form>
-        <?php endif; ?>
-      </div></td>
-    </tr>
-  <?php endforeach; ?>
-  </tbody>
-</table>
-</div>
-
-<h2 class="section-h" id="access">Plans and access</h2>
-<p class="subtle">Give anyone, including yourself, a free plan with as many people as you choose, or put them back on normal billing. Free plans never charge and never expire. Monthly credits of 0 uses the plan's usual number.</p>
-<ul class="access">
-<?php foreach ($access as $a): $u = $a['u']; $sub = $a['sub'] ?? null; ?>
-  <li class="card access-item">
-    <div class="access-who"><strong><?= e($u['name']) ?></strong><small><?= e($u['email']) ?></small></div>
-    <?php if (isset($a['member_of'])): ?>
-    <p class="access-now">Member of <?= e($a['member_of']) ?>'s household. Change the owner's plan instead.</p>
-    <?php else:
-      $comped = $sub && !empty($sub['comped']);
-      $label = $comped ? 'Free ' . (plan_for($sub['plan_key'])['name'] ?? '') . ', ' . (int)$sub['seat_limit'] . ' seat' . ((int)$sub['seat_limit'] === 1 ? '' : 's') : ($sub && in_array($sub['status'], ['active', 'trialing', 'past_due'], true) ? 'Paid ' . (plan_for($sub['plan_key'])['name'] ?? '') : ($sub && (int)$sub['trial_end'] > time() ? 'Free trial' : 'No plan yet')); ?>
-    <p class="access-now"><?= e($label) ?> · <?= (int)$a['used'] ?> in household</p>
-    <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form">
-      <?= csrf_field() ?>
-      <label>Plan <select name="plan">
-        <?php foreach (plans() as $k => $p): ?><option value="<?= e($k) ?>"<?= ($comped ? $sub['plan_key'] : 'individual') === $k ? ' selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
-      </select></label>
-      <label>Seats <input type="number" name="seats" min="1" max="500" value="<?= $comped ? (int)$sub['seat_limit'] : 1 ?>"></label>
-      <label>Credits a month each <input type="number" name="credits" min="0" max="100" value="<?= $comped ? (int)($sub['comp_credits'] ?? 0) : 0 ?>"></label>
-      <div class="access-btns">
-        <button class="btn" type="submit" name="mode" value="comped">Give free plan</button>
-        <?php if ($comped): ?><button class="btn btn-quiet" type="submit" name="mode" value="standard">Back to normal billing</button><?php endif; ?>
+<h2 class="section-h" id="access">People</h2>
+<p class="subtle"><?= (int)$total ?> <?= $total === 1 ? 'account' : 'accounts' ?><?= $q !== '' ? ' matching "' . e($q) . '"' : '' ?>. Click a person to manage their plan, role and sign-in. <a class="link" href="<?= url('/admin/demo') ?>">Demo accounts for testing</a></p>
+<form method="get" action="<?= url('/admin') ?>" class="people-search" role="search">
+  <input type="search" name="q" value="<?= e($q) ?>" placeholder="Search by name or email" aria-label="Search people" autocomplete="off">
+  <button class="btn" type="submit">Search</button>
+  <?php if ($q !== ''): ?><a class="btn btn-quiet" href="<?= url('/admin') ?>">Clear</a><?php endif; ?>
+</form>
+<?php if (!$access): ?><p class="subtle">Nobody matches that search.</p><?php endif; ?>
+<div class="people">
+<?php foreach ($access as $a): $u = $a['u']; $sub = $a['sub'] ?? null;
+  $isAdmin = $u['role'] === 'admin'; $isMe = (int)$u['id'] === (int)$user['id'];
+  $type = $isAdmin ? 'Administrator' : ($u['plan'] === 'demo' ? 'Demo' : ($u['plan'] === 'beta_free' ? 'Free beta' : 'Customer'));
+  if (isset($a['member_of'])) { $label = 'In ' . $a['member_of'] . "'s household"; $comped = false; }
+  else {
+    $comped = $sub && !empty($sub['comped']);
+    $label = $comped ? 'Free ' . (plan_for($sub['plan_key'])['name'] ?? '') . ', ' . (int)$sub['seat_limit'] . ' seat' . ((int)$sub['seat_limit'] === 1 ? '' : 's') : ($sub && in_array($sub['status'], ['active', 'trialing', 'past_due'], true) ? 'Paid ' . (plan_for($sub['plan_key'])['name'] ?? '') : ($sub && (int)$sub['trial_end'] > time() ? 'Free trial' : 'No plan yet'));
+  }
+  $hidden = csrf_field() . '<input type="hidden" name="q" value="' . e($q) . '"><input type="hidden" name="page" value="' . (int)$page . '">'; ?>
+  <details class="person">
+    <summary>
+      <span class="person-name"><?= e($u['name']) ?><?php if ($isAdmin): ?> <span class="tag">Admin</span><?php endif; ?><?php if ($u['status'] !== 'active'): ?> <span class="tag tag-warn"><?= e($u['status'] === 'invited' ? 'Invited' : 'Disabled') ?></span><?php endif; ?></span>
+      <span class="person-email"><?= e($u['email']) ?></span>
+      <span class="person-plan"><?= e($label) ?></span>
+    </summary>
+    <div class="person-body">
+      <p class="person-meta"><?= e($type) ?> · Last sign-in <?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'never' ?><?= isset($a['used']) ? ' · ' . (int)$a['used'] . ' in household' : '' ?></p>
+      <?php if (!isset($a['member_of'])): ?>
+      <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form">
+        <?= csrf_field() ?>
+        <label>Plan <select name="plan">
+          <?php foreach (plans() as $k => $p): ?><option value="<?= e($k) ?>"<?= ($comped ? $sub['plan_key'] : 'individual') === $k ? ' selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
+        </select></label>
+        <label>Seats <input type="number" name="seats" min="1" max="500" value="<?= $comped ? (int)$sub['seat_limit'] : 1 ?>"></label>
+        <label>Credits a month each <input type="number" name="credits" min="0" max="100" value="<?= $comped ? (int)($sub['comp_credits'] ?? 0) : 0 ?>"></label>
+        <div class="access-btns">
+          <button class="btn" type="submit" name="mode" value="comped">Give free plan</button>
+          <?php if ($comped): ?><button class="btn btn-quiet" type="submit" name="mode" value="standard">Back to normal billing</button><?php endif; ?>
+        </div>
+      </form>
+      <?php endif; ?>
+      <div class="access-btns person-acts">
+        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/role') ?>"><?= $hidden ?><input type="hidden" name="role" value="<?= $isAdmin ? 'member' : 'admin' ?>">
+          <?php if (!($isAdmin && $isMe)): ?><button class="btn btn-quiet" type="submit"><?= $isAdmin ? 'Remove administrator' : 'Make administrator' ?></button><?php endif; ?></form>
+        <?php if (!$isAdmin && $u['status'] === 'active'): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/act') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit">Act as</button></form><?php endif; ?>
+        <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/link') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button></form>
+        <?php if (!$isMe): ?><form method="post" action="<?= url('/admin/users/' . $u['id'] . '/toggle') ?>"><?= csrf_field() ?><button class="btn btn-quiet" type="submit"><?= $u['status'] === 'disabled' ? 'Let them sign in' : 'Stop sign-in' ?></button></form><?php endif; ?>
       </div>
-    </form>
-    <?php endif; ?>
-  </li>
+    </div>
+  </details>
 <?php endforeach; ?>
-</ul>
+</div>
+<?php if ($pages > 1): $qs = fn($n) => url('/admin?' . http_build_query(array_filter(['q' => $q, 'page' => $n > 1 ? $n : null]))); ?>
+<nav class="pager" aria-label="Pages">
+  <?php if ($page > 1): ?><a class="btn btn-quiet" href="<?= e($qs($page - 1)) ?>">Previous</a><?php endif; ?>
+  <span>Page <?= (int)$page ?> of <?= (int)$pages ?></span>
+  <?php if ($page < $pages): ?><a class="btn btn-quiet" href="<?= e($qs($page + 1)) ?>">Next</a><?php endif; ?>
+</nav>
+<?php endif; ?>
 
 <h2 class="section-h">Movie credits</h2>
 <p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
 <form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
   <?= csrf_field() ?>
-  <label>Who gets them
-    <select name="user_id" required>
-      <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>"<?= (int)$u['id'] === (int)$user['id'] ? ' selected' : '' ?>><?= e($u['name']) ?> (<?= e($u['email']) ?>)</option><?php endforeach; ?>
-    </select>
+  <label>Who gets them (email)
+    <input type="email" name="email" required value="<?= e($user['email']) ?>" autocomplete="off">
   </label>
   <label>How many <input type="number" name="amount" min="1" max="500" value="5" required></label>
   <label>Reason (optional) <input type="text" name="reason" maxlength="120" placeholder="Testing, thank-you, support"></label>
