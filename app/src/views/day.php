@@ -66,7 +66,7 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   <article class="card entry-card">
     <?php if (!empty($en['event_id'])): ?><p class="subtle"><a class="link" href="<?= url('/experiences/' . $en['event_id']) ?>">From an experience</a></p><?php endif; ?>
     <?php if ($en['title'] !== ''): ?><h3><?= e($en['title']) ?></h3><?php endif; ?>
-    <?php if ($en['body'] !== ''): ?><p class="entry-body"><?= nl2br(e($en['body'])) ?></p><?php endif; ?>
+    <?php foreach (body_parts($en['body'], (int)$en['created_at']) as $bp): ?><p class="entry-body"><?php if ($bp['ts']): ?><time class="stamp" data-ts="<?= (int)$bp['ts'] ?>"><?= e(stamp_time($bp['ts'])) ?></time> <?php endif; ?><?= nl2br(e($bp['text'])) ?></p><?php endforeach; ?>
     <?php if ($en['photos']): ?><div class="thumbs"><?php foreach ($en['photos'] as $p): ?>
       <div class="thumb" data-photo="<?= (int)$p['id'] ?>">
         <a href="<?= url('/photo/' . $p['id'] . '/web') . '?v=' . (int)$p['edited_at'] ?>" target="_blank" rel="noopener"><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="Photo from <?= e($day) ?>" loading="lazy"></a>

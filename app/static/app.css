@@ -276,3 +276,4 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .item-edit>summary{padding:0 .2rem}
 .row{padding:.7rem 1.1rem;min-height:0}.row i{line-height:1;font-size:1.5rem}
 @media (max-width:720px){.photo-pick{flex-wrap:wrap}.photo-pick .btn{flex:1 1 0;padding:.5rem .35rem;font-size:.85rem;min-width:0}.photo-pick .hint{flex-basis:100%}}
+.stamp{display:block;font:500 .78rem/1.2 Inter,system-ui,sans-serif;color:var(--sage,#6b8577);margin:0 0 .15rem;letter-spacing:.01em}

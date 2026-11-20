@@ -340,3 +340,19 @@ function json_out(array $d, int $code = 200): never {
     exit;
 }
 function wants_json(): bool { return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch'; }
+
+/* ----- per-paragraph time stamps: a paragraph may start with a marker line "⟦t:EPOCH⟧" ----- */
+function body_parts(string $body, int $fallbackTs = 0): array {
+    $out = [];
+    foreach (preg_split('/\n{2,}/', trim(str_replace(["\r\n", "\r"], "\n", $body))) as $i => $p) {
+        $ts = 0;
+        if (preg_match('/^⟦t:(\d{9,11})⟧\n?/u', $p, $m)) { $ts = (int)$m[1]; $p = substr($p, strlen($m[0])); }
+        elseif ($i === 0) $ts = $fallbackTs;
+        $p = trim($p);
+        if ($p !== '' || $ts) $out[] = ['ts' => $ts, 'text' => $p];
+    }
+    return $out;
+}
+function body_plain(string $body): string { return implode("\n\n", array_column(body_parts($body), 'text')); }
+function stamp_text(int $ts, string $text): string { return $ts ? '⟦t:' . $ts . "⟧\n" . $text : $text; }
+function stamp_time(int $ts): string { return date('g:i a', $ts); }

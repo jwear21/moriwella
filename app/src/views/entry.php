@@ -4,7 +4,7 @@
     <?= csrf_field() ?>
     <label>Date<input type="date" name="entry_date" value="<?= e($entry['entry_date']) ?>" required></label>
     <label>Title<input name="title" maxlength="200" value="<?= e($entry['title']) ?>" class="title-in journal-field"></label>
-    <label>Entry<textarea id="body" name="body" rows="10" class="journal-field"><?= e($entry['body']) ?></textarea></label>
+    <label>Entry<textarea id="body" name="body" rows="10" class="journal-field"><?= e(body_plain($entry['body'])) ?></textarea></label>
     <div class="photo-pick">
       <label class="btn btn--quiet" for="photos">Add photos</label>
       <input id="photos" type="file" name="photos[]" accept="image/*" multiple class="sr-only">

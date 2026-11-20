@@ -140,9 +140,9 @@ if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})/combine$#', $path, $m) && $post) {
     $q = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? AND event_id IS NULL ORDER BY id'); $q->execute([$uid, $d]);
     $rows = $q->fetchAll();
     if (count($rows) > 1) {
-        $keep = array_shift($rows); $title = $keep['title']; $parts = $keep['body'] === '' ? [] : [$keep['body']];
+        $keep = array_shift($rows); $title = $keep['title']; $parts = $keep['body'] === '' ? [] : [implode("\n\n", array_map(fn($b) => stamp_text($b['ts'], $b['text']), body_parts($keep['body'], (int)$keep['created_at'])))];
         foreach ($rows as $r) {
-            $chunk = trim(($r['title'] !== '' && $title !== '' ? $r['title'] . "\n" : '') . $r['body']);
+            $chunk = trim(($r['title'] !== '' && $title !== '' ? $r['title'] . "\n" : '') . implode("\n\n", array_map(fn($b) => stamp_text($b['ts'], $b['text']), body_parts($r['body'], (int)$r['created_at']))));
             if ($title === '' && $r['title'] !== '') $title = $r['title'];
             if ($chunk !== '') $parts[] = $chunk;
         }
@@ -204,6 +204,7 @@ if ($path === '/entries' && $post) {
     $hasPhotos = false; foreach (normalize_files('photos') as $f) { if ($f['error'] !== UPLOAD_ERR_NO_FILE) $hasPhotos = true; }
     if ($title === '' && $body === '' && !$hasPhotos) { flash('err', 'Write something or add a photo first.'); redirect(!empty($_POST['event_id']) ? url('/experiences/' . (int)$_POST['event_id']) : url('/day/' . $date)); }
     $now = time();
+    $body = $body === '' ? '' : stamp_text($now, str_replace(["\r\n", "\r"], "\n", $body));
     $evId = (int)($_POST['event_id'] ?? 0); $ev = null;
     if ($evId) { $eq = db()->prepare('SELECT * FROM events WHERE id = ? AND user_id = ?'); $eq->execute([$evId, $uid]); $ev = $eq->fetch() ?: null; }
     if ($ev) {
@@ -277,7 +278,10 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
         }
         $date = (string)($_POST['entry_date'] ?? ''); if (!valid_date($date)) $date = $entry['entry_date'];
         $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
-        $body = mb_substr(trim((string)($_POST['body'] ?? '')), 0, 50000);
+        $plain = mb_substr(trim((string)($_POST['body'] ?? '')), 0, 50000);
+        $old = body_parts($entry['body'], (int)$entry['created_at']); $new = [];
+        foreach (preg_split('/\n{2,}/', str_replace(["\r\n", "\r"], "\n", $plain)) as $i => $t) { $t = trim($t); if ($t !== '') $new[] = stamp_text((int)($old[$i]['ts'] ?? 0), $t); }
+        $body = implode("\n\n", $new);
         db()->prepare('UPDATE entries SET entry_date = ?, title = ?, body = ?, updated_at = ? WHERE id = ? AND user_id = ?')
             ->execute([$date, $title, $body, time(), $entry['id'], $uid]);
         $errs = save_uploaded_photos((int)$entry['id'], $uid);

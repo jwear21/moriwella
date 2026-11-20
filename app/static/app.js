@@ -178,3 +178,7 @@
     });
   });
 })();
+/* show paragraph times in the device's own local time */
+document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
+  try { t.textContent = new Date(Number(t.dataset.ts) * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) {}
+});
