@@ -85,6 +85,14 @@ function billing_household_by_sub(string $sid): ?array {
 }
 
 /** Copy a Stripe subscription onto our row. Called by several events; each is safe to repeat. A plan change that takes effect now applies any pending seat selection. */
+/** True when the subscription will end at the close of the paid period. Newer Stripe versions (and the customer portal) express this as a cancel_at date rather than the older cancel_at_period_end flag. */
+function stripe_sub_cancelling(array $sub): bool {
+    if (!empty($sub['cancel_at_period_end'])) return true;
+    $at = (int)($sub['cancel_at'] ?? 0);
+    if ($at <= 0) return false;
+    [, $pe] = stripe_sub_period($sub);
+    return $pe <= 0 || $at <= $pe + 86400;
+}
 function billing_sync_subscription(array $sub, ?array $household = null): ?array {
     $h = $household ?? billing_household_by_sub((string)$sub['id']) ?? billing_household_by_customer((string)($sub['customer'] ?? '')) ?? (isset($sub['metadata']['household_id']) ? (function ($id) { $q = db()->prepare('SELECT * FROM households WHERE id = ?'); $q->execute([(int)$id]); return $q->fetch() ?: null; })($sub['metadata']['household_id']) : null);
     if (!$h) { billing_log('subscription ' . ($sub['id'] ?? '?') . ' has no matching household'); return null; }
@@ -101,7 +109,7 @@ function billing_sync_subscription(array $sub, ?array $household = null): ?array
             ON CONFLICT(household_id) DO UPDATE SET stripe_subscription_id = excluded.stripe_subscription_id, plan_key = excluded.plan_key, status = excluded.status, period_start = excluded.period_start,
               period_end = excluded.period_end, cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = excluded.interval_key, updated_at = excluded.updated_at,
               pending_plan_key = CASE WHEN ? THEN '' ELSE pending_plan_key END, pending_keep = CASE WHEN ? THEN '' ELSE pending_keep END")
-            ->execute([$hid, $sub['id'], $planKey, (string)$sub['status'], $ps, $pe, !empty($sub['cancel_at_period_end']) ? 1 : 0, $limit, $iv ?: 'month', (int)$cur['trial_start'], (int)$cur['trial_end'], time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
+            ->execute([$hid, $sub['id'], $planKey, (string)$sub['status'], $ps, $pe, stripe_sub_cancelling($sub) ? 1 : 0, $limit, $iv ?: 'month', (int)$cur['trial_start'], (int)$cur['trial_end'], time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
         // A real paid plan replaces any free (comped) status; admins can re-comp the account later.
         if (in_array((string)$sub['status'], ['active', 'trialing', 'past_due'], true)) db()->prepare('UPDATE subscriptions SET comped = 0 WHERE household_id = ?')->execute([$hid]);
     });
