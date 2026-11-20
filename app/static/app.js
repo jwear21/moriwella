@@ -253,3 +253,11 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
     });
   }
 })();
+/* loader preview page */
+document.querySelectorAll('[data-demo]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var parts = b.getAttribute('data-demo').split('|'); window.mwLoader.show(parts[0] + '…', parts[1] || '');
+    var t = setTimeout(window.mwLoader.hide, 6000);
+    document.querySelector('.mw-loader').onclick = function () { clearTimeout(t); window.mwLoader.hide(); };
+  });
+});

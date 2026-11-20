@@ -187,6 +187,7 @@ function transfer_commit(int $uid, array $manifest, string $work): array {
 }
 
 /* ---------- pages ---------- */
+if ($path === '/loader-demo') { render('loader_demo', [], 'Loader preview'); exit; }
 if ($path === '/transfer') {
     transfer_sweep($uid);
     $q = db()->prepare('SELECT * FROM imports WHERE user_id = ? ORDER BY id DESC LIMIT 10'); $q->execute([$uid]);
