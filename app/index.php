@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/photos.php';
+require __DIR__ . '/src/templates.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -135,7 +136,7 @@ if ($path === '/') { render_day($user, date('Y-m-d')); exit; }
 
 if (preg_match('#^/day/(\d{4}-\d{2}-\d{2})/combine$#', $path, $m) && $post) {
     $d = $m[1]; if (!valid_date($d)) redirect(url('/'));
-    $q = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? ORDER BY id'); $q->execute([$uid, $d]);
+    $q = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? AND event_id IS NULL ORDER BY id'); $q->execute([$uid, $d]);
     $rows = $q->fetchAll();
     if (count($rows) > 1) {
         $keep = array_shift($rows); $title = $keep['title']; $parts = $keep['body'] === '' ? [] : [$keep['body']];
@@ -200,9 +201,21 @@ if ($path === '/entries' && $post) {
     $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
     $body = mb_substr(trim((string)($_POST['body'] ?? '')), 0, 50000);
     $hasPhotos = false; foreach (normalize_files('photos') as $f) { if ($f['error'] !== UPLOAD_ERR_NO_FILE) $hasPhotos = true; }
-    if ($title === '' && $body === '' && !$hasPhotos) { flash('err', 'Write something or add a photo first.'); redirect(url('/day/' . $date)); }
+    if ($title === '' && $body === '' && !$hasPhotos) { flash('err', 'Write something or add a photo first.'); redirect(!empty($_POST['event_id']) ? url('/experiences/' . (int)$_POST['event_id']) : url('/day/' . $date)); }
     $now = time();
-    $mainQ = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? ORDER BY id LIMIT 1'); $mainQ->execute([$uid, $date]);
+    $evId = (int)($_POST['event_id'] ?? 0); $ev = null;
+    if ($evId) { $eq = db()->prepare('SELECT * FROM events WHERE id = ? AND user_id = ?'); $eq->execute([$evId, $uid]); $ev = $eq->fetch() ?: null; }
+    if ($ev) {
+        $secId = (int)($_POST['section_id'] ?? 0);
+        $sq = db()->prepare('SELECT id FROM event_sections WHERE id = ? AND event_id = ?'); $sq->execute([$secId, $ev['id']]);
+        $secId = $sq->fetchColumn() ?: null;
+        db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at, event_id, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$uid, $date, $title, $body, $now, $now, $ev['id'], $secId]);
+        $errs = save_uploaded_photos((int)db()->lastInsertId(), $uid);
+        flash($errs ? 'err' : 'ok', $errs ? 'Saved. ' . implode(' ', $errs) : 'Added to ' . $ev['title'] . '.');
+        redirect(url('/experiences/' . $ev['id']));
+    }
+    $mainQ = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? AND event_id IS NULL ORDER BY id LIMIT 1'); $mainQ->execute([$uid, $date]);
     $main = $mainQ->fetch();
     if ($main && empty($_POST['separate'])) {
         /* Add to the day's page as a new paragraph */
@@ -257,7 +270,7 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
         if (isset($_POST['delete'])) {
             delete_entry_photos((int)$entry['id'], $uid);
             db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$entry['id'], $uid]);
-            flash('ok', 'Entry deleted.'); redirect(url('/journal'));
+            flash('ok', 'Entry deleted.'); redirect($entry['event_id'] ? url('/experiences/' . $entry['event_id']) : url('/journal'));
         }
         $date = (string)($_POST['entry_date'] ?? ''); if (!valid_date($date)) $date = $entry['entry_date'];
         $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
@@ -266,7 +279,7 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
             ->execute([$date, $title, $body, time(), $entry['id'], $uid]);
         $errs = save_uploaded_photos((int)$entry['id'], $uid);
         flash($errs ? 'err' : 'ok', $errs ? 'Changes saved. ' . implode(' ', $errs) : 'Changes saved.');
-        redirect(url('/day/' . $date));
+        redirect($entry['event_id'] ? url('/experiences/' . $entry['event_id']) : url('/day/' . $date));
     }
     $entry['photos'] = photos_for_entries([$entry['id']])[$entry['id']] ?? [];
     render('entry', ['entry' => $entry], 'Edit entry');
@@ -281,6 +294,8 @@ if ($path === '/water' && $post) {
     db()->prepare('INSERT INTO water_log (user_id, day, oz) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET oz = excluded.oz')->execute([$uid, $day, $oz]);
     json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day)]);
 }
+
+require __DIR__ . '/src/experiences.php';
 
 /* ----- daily goals ----- */
 function goals_for_day(int $uid, string $day): array {

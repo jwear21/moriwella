@@ -133,6 +133,13 @@
     });
   }
 
+  /* Experience section prompts */
+  var sp = document.getElementById('section-pick'), bodyEl = document.getElementById('body');
+  if (sp && bodyEl) {
+    var setPrompt = function () { var o = sp.options[sp.selectedIndex]; bodyEl.placeholder = (o && o.getAttribute('data-prompt')) || 'What happened?'; };
+    sp.addEventListener('change', setPrompt); setPrompt();
+  }
+
   /* Daily goals */
   var gc = document.getElementById('goals-card');
   if (gc) {

@@ -50,7 +50,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
 </section>
 <?php endif; ?>
 
-<?php $hasDay = count($entries) > 0; ?>
+<?php $hasDay = count(array_filter($entries, fn($e) => empty($e['event_id']))) > 0; ?>
 <section class="card write">
   <form method="post" action="<?= url('/entries') ?>" id="entry-form" enctype="multipart/form-data">
     <?= csrf_field() ?>
@@ -86,6 +86,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
   <p class="subtle"><?= $isToday ? 'Nothing yet today. Even one sentence counts.' : 'No entries on this day.' ?></p>
 <?php else: foreach ($entries as $en): ?>
   <article class="card entry-card">
+    <?php if (!empty($en['event_id'])): ?><p class="subtle"><a class="link" href="<?= url('/experiences/' . $en['event_id']) ?>">From an experience</a></p><?php endif; ?>
     <?php if ($en['title'] !== ''): ?><h3><?= e($en['title']) ?></h3><?php endif; ?>
     <?php if ($en['body'] !== ''): ?><p class="entry-body"><?= nl2br(e($en['body'])) ?></p><?php endif; ?>
     <?php if ($en['photos']): ?><div class="thumbs"><?php foreach ($en['photos'] as $p): ?>
@@ -97,7 +98,7 @@ $prev = date('Y-m-d', strtotime($day . ' -1 day')); $next = date('Y-m-d', strtot
     <p><a class="link" href="<?= url('/entries/' . $en['id']) ?>">Edit</a></p>
   </article>
 <?php endforeach; endif; ?>
-<?php if (count($entries) > 1): ?>
+<?php if (count(array_filter($entries, fn($e) => empty($e['event_id']))) > 1): ?>
   <form method="post" action="<?= url('/day/' . $day . '/combine') ?>" data-confirm="Combine these into one page? Photos move with them.">
     <?= csrf_field() ?><button class="btn btn--quiet" type="submit">Combine into one page</button>
   </form>

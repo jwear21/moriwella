@@ -1,4 +1,5 @@
 <h1 class="page-title">Your journal</h1>
+<p class="subtle"><a class="link" href="<?= url('/calendar') ?>">Open the calendar</a></p>
 <?php if (!$entries): ?>
   <p class="subtle">Your entries will appear here. <a class="link" href="<?= url('/') ?>">Write your first one.</a></p>
 <?php else:

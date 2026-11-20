@@ -137,6 +137,37 @@ function migrate(PDO $p): void {
           );
           PRAGMA user_version = 4;");
     }
+    if ($v < 5) {
+        $p->exec("CREATE TABLE events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            template_key TEXT NOT NULL DEFAULT 'blank',
+            title TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            location TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX events_user ON events(user_id, start_date);
+          CREATE TABLE event_sections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            prompt TEXT NOT NULL DEFAULT '',
+            position INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE TABLE event_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            sections TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+          );
+          ALTER TABLE entries ADD COLUMN event_id INTEGER;
+          ALTER TABLE entries ADD COLUMN section_id INTEGER;
+          CREATE INDEX entries_event ON entries(event_id);
+          PRAGMA user_version = 5;");
+    }
 }
 
 /* ---------- request setup ---------- */
