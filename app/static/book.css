@@ -322,3 +322,6 @@ html.ts-lg .wface .l{overflow-wrap:normal; hyphens:none}
 html.ts-xl .wface{flex:1 1 calc(33% - 6px)}
 /* the ruled lines grow with the text, so a page holds fewer, larger lines instead of text jammed onto them */
 html.ts-lg .bk{--line:calc(31px*min(var(--ts),2.2))}
+
+/* phone: the bottom tab bar stays visible under the book, so there is always a way to Today, Lists, Experiences and Track */
+@media (max-width:720px){ .bk{bottom:var(--tabbar-h,4.5rem); padding-bottom:0} }

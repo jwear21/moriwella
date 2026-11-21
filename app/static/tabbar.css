@@ -1,0 +1,15 @@
+/* Bottom tab bar on phone-sized screens (same rules as app.css, so pages without app.css, like the journal book, can show it). */
+.tabbar{display:none}
+@media (max-width:720px){
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:#FCFAF4;border-top:1px solid #E9D8B6;padding:.35rem .25rem calc(.35rem + env(safe-area-inset-bottom));box-shadow:0 -4px 16px rgba(33,54,47,.08);font-family:Inter,system-ui,sans-serif}
+  .tabbar a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;min-height:52px;text-decoration:none;color:#6B8F77;font-size:.72rem;border-radius:12px}
+  .tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar a[aria-current=page]{color:#1B4D3E;font-weight:600;background:#F3EAD7}
+  .tabbar a span{font-size:.66rem}
+  .tabbar{padding-inline:.15rem}
+  .tabbar a{min-width:0;padding-inline:.1rem;overflow:hidden}
+  .tabbar a span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:min(.66rem,calc(11px * min(var(--ts,1),1.4)))}
+  html.ts-tabs .tabbar a{flex:1 1 0}
+  html.ts-tabs .tabbar a[aria-current=page]{flex:2.4 1 0}
+  html.ts-tabs .tabbar a:not([aria-current=page]) span{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
