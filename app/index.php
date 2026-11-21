@@ -627,7 +627,7 @@ if (strpos($path, '/admin') === 0) {
             } elseif ((int)$t['id'] !== (int)$admin['id']) {
                 $new = $t['status'] === 'disabled' ? ($t['password_hash'] ? 'active' : 'invited') : 'disabled';
                 db()->prepare('UPDATE users SET status = ? WHERE id = ?')->execute([$new, $t['id']]);
-                flash('ok', $t['name'] . ($new === 'disabled' ? "'s account is turned off. They cannot sign in." : "'s account is turned back on."));
+                flash('ok', $t['name'] . ($new === 'disabled' ? "'s account is disabled. They cannot sign in." : "'s account is enabled again."));
             }
         }
         redirect(url('/admin'));
