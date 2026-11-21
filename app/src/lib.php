@@ -656,8 +656,10 @@ function signup_throttled(): bool {
 function signup_record(): void { db()->prepare('INSERT INTO login_attempts (ip, ts) VALUES (?, ?)')->execute(['s:' . client_ip(), time()]); }
 /** Welcome email for a new sign-up: the link lets them choose a password, which also confirms the address. */
 function signup_email(string $name, string $email, string $link): bool {
+    $ref = false; try { $q = db()->prepare('SELECT 1 FROM referrals r JOIN users u ON u.id = r.friend_id WHERE lower(u.email) = ?'); $q->execute([strtolower($email)]); $ref = (bool)$q->fetchColumn(); } catch (Throwable $e) {}
+    $go = $ref ? "Choose your password and begin your first 30 days here (the link works for 7 days):" : "Choose your password and start your 14-day free trial here (the link works for 7 days):";
     return send_mail($email, 'Welcome to Moriwella: choose your password',
-        "Hi " . $name . ",\n\nWelcome to Moriwella, a private place to remember your life, organize your days, and live well.\n\nChoose your password and start your 14-day free trial here (the link works for 7 days):\n$link\n\nIf you did not sign up, you can ignore this email and nothing will happen.\n\nMoriwella\n", 'support@moriwella.com');
+        "Hi " . $name . ",\n\nWelcome to Moriwella, a private place to remember your life, organize your days, and live well.\n\n" . $go . "\n$link\n\nIf you did not sign up, you can ignore this email and nothing will happen.\n\nMoriwella\n", 'support@moriwella.com');
 }
 /** Password-reset email. */
 function reset_email(string $name, string $email, string $link, bool $existing = false): bool {

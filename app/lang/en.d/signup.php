@@ -3,6 +3,9 @@
 return [
  'signup.title' => 'Start your free trial',
  'signup.intro' => '14 days free and one free Memory Movie. No card needed.',
+ 'signup.title_ref' => 'Start your 30 days',
+ 'signup.intro_ref' => '{name} invited you. Your first 30 days are included on the plan you choose. You will add a credit card to begin, and you will not be charged for 30 days. Cancel before then and you pay nothing.',
+ 'signup.btn_ref' => 'Create my account',
  'signup.name' => 'Your name',
  'signup.email' => 'Email',
  'signup.agree' => 'I agree to the {terms} and the {privacy}.',
