@@ -360,3 +360,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (f && f.hasAttribute && f.hasAttribute('data-keepscroll')) { try { sessionStorage.setItem(K, location.pathname + '|' + Math.round(window.scrollY)); } catch (x) {} }
   });
 })();
+
+/* Lets Android install Moriwella as an app and shows a friendly page when offline. */
+if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); }); }

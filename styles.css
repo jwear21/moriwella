@@ -56,6 +56,10 @@ h1, h2, h3, p { margin: 0; }
 .top nav { display: flex; gap: 1.75rem; font-size: .975rem; }
 .top nav a { text-decoration: none; padding-block: .25rem; border-bottom: 1px solid transparent; }
 .top nav a:hover { border-bottom-color: var(--sun); }
+.top-right { display: flex; align-items: center; gap: 1.75rem; }
+.top .signin { text-decoration: none; font-size: .975rem; font-weight: 600; padding: .45rem 1.1rem; border: 1.5px solid var(--sun); border-radius: 999px; }
+.top .signin:hover { background: var(--sun); color: #1B4D3E; }
+.top .signin:focus-visible { outline: 2px solid var(--sun); outline-offset: 3px; }
 
 .hero { padding-top: clamp(1.5rem, 4vw, 3rem); }
 .spread {
