@@ -574,6 +574,23 @@ function find_by_invite(string $token): ?array {
     $s->execute([hash('sha256', $token), time()]);
     return $s->fetch() ?: null;
 }
+/** Sign-up and password-reset throttle: a few tries per address per 15 minutes, kept apart from sign-in attempts. */
+function signup_throttled(): bool {
+    $s = db()->prepare('SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND ts > ?');
+    $s->execute(['s:' . client_ip(), time() - 900]);
+    return (int)$s->fetchColumn() >= 6;
+}
+function signup_record(): void { db()->prepare('INSERT INTO login_attempts (ip, ts) VALUES (?, ?)')->execute(['s:' . client_ip(), time()]); }
+/** Welcome email for a new sign-up: the link lets them choose a password, which also confirms the address. */
+function signup_email(string $name, string $email, string $link): bool {
+    return send_mail($email, 'Welcome to Moriwella: choose your password',
+        "Hi " . $name . ",\n\nWelcome to Moriwella, a private place to remember your life, organize your days, and live well.\n\nChoose your password and start your 14-day free trial here (the link works for 7 days):\n$link\n\nIf you did not sign up, you can ignore this email and nothing will happen.\n\nMoriwella\n", 'support@moriwella.com');
+}
+/** Password-reset email. */
+function reset_email(string $name, string $email, string $link, bool $existing = false): bool {
+    $lead = $existing ? "Someone (we hope you) tried to sign up with this address, and you already have a Moriwella account. You can sign in at https://moriwella.com/app/login, or choose a new password here (the link works for 7 days):\n" : "Here is your link to choose a new password for Moriwella (it works for 7 days):\n";
+    return send_mail($email, 'Your Moriwella password link', "Hi " . $name . ",\n\n" . $lead . $link . "\n\nIf you did not ask for this, you can ignore this email. Your password has not changed.\n\nMoriwella\n", 'support@moriwella.com');
+}
 function user_count(): int { return (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn(); }
 
 function valid_date(string $d): bool {

@@ -17,7 +17,7 @@
 <a class="skip" href="#main">Skip to content</a>
 
 <div class="desk desk--short">
-  <p class="announce">Moriwella is in development. Early access is coming soon.</p>
+  <p class="announce">Now open: try Moriwella free for 14 days. No card needed.</p>
   <div class="wrap">
     <header class="top">
       <a href="index.html" aria-label="Moriwella home"><img class="logo" src="assets/logo_horizontal_inverse.svg" alt="Moriwella"></a>
@@ -33,51 +33,68 @@
     </header>
     <div class="price-hero">
       <h1>Try Moriwella free for 14 days.</h1>
-      <p>Two weeks of writing, listing and saving is plenty of time to decide if it fits your life. Add a card to start. You won't be charged until the trial ends.</p>
+      <p>Two weeks of writing, listing and saving is plenty of time to decide if it fits your life. No card needed to start.</p>
     </div>
   </div>
 </div>
 
 <main id="main" class="section price-main">
   <div class="wrap">
-    <div class="toggle" role="group" aria-label="Billing period">
-      <button type="button" class="tg is-on" data-period="year" aria-pressed="true">Yearly <small>save about a third</small></button>
-      <button type="button" class="tg" data-period="month" aria-pressed="false">Monthly</button>
-    </div>
-
     <div class="plans">
-      <article class="plan" data-plan="personal">
-        <h2>Personal Plus</h2>
+      <article class="plan" data-plan="individual">
+        <h2>Individual</h2>
         <p class="who">For your own journal, lists and keepsakes.</p>
-        <p class="amount"><span class="num" data-month="$4.99" data-year="$39.99">$39.99</span><span class="per" data-month="per month" data-year="per year">per year</span></p>
-        <p class="alt" data-month="or $39.99 a year" data-year="or $4.99 a month">or $4.99 a month</p>
+        <p class="amount"><span class="num">$4.99</span><span class="per">a month</span></p>
+        <p class="alt">One person</p>
         <ul class="inc">
           <li>Journal with photos, calendar and timeline</li>
           <li>Private lists and goals</li>
           <li>Event pages and templates</li>
           <li>Scrapbook PDFs and Memory Movies</li>
+          <li>2 movies every month</li>
           <li>Import and full export</li>
         </ul>
-        <a class="btn buy" href="#" data-stripe="personal" aria-disabled="true">Start your 14-day free trial</a>
+        <a class="btn buy" href="/app/signup">Start your free trial</a>
       </article>
 
       <article class="plan plan--feature" data-plan="family">
-        <h2>Family Plus</h2>
-        <p class="who">Everything in Personal Plus, shared with your household.</p>
-        <p class="amount"><span class="num" data-month="$8.99" data-year="$69.99">$69.99</span><span class="per" data-month="per month" data-year="per year">per year</span></p>
-        <p class="alt" data-month="or $69.99 a year" data-year="or $8.99 a month">or $8.99 a month</p>
+        <h2>Family</h2>
+        <p class="who">Everything in Individual, shared with your household.</p>
+        <p class="amount"><span class="num">$7.99</span><span class="per">a month</span></p>
+        <p class="alt">Up to 4 people, you included</p>
         <ul class="inc">
-          <li>Everything in Personal Plus</li>
+          <li>Everything in Individual</li>
           <li>Shared family lists and assignments</li>
           <li>Shared albums for your household</li>
           <li>Each person keeps a private journal</li>
+          <li>2 movies every month for every person</li>
         </ul>
-        <a class="btn buy" href="#" data-stripe="family" aria-disabled="true">Start your 14-day free trial</a>
+        <a class="btn buy" href="/app/signup">Start your free trial</a>
+      </article>
+
+      <article class="plan" data-plan="family_pro">
+        <h2>Family Pro</h2>
+        <p class="who">For big families and the people who gather around them.</p>
+        <p class="amount"><span class="num">$14.99</span><span class="per">a month</span></p>
+        <p class="alt">Up to 10 people, you included</p>
+        <ul class="inc">
+          <li>Everything in Family</li>
+          <li>Room for extended family and close friends</li>
+          <li>Private journals for everyone</li>
+          <li>2 movies every month for every person</li>
+        </ul>
+        <a class="btn buy" href="/app/signup">Start your free trial</a>
       </article>
     </div>
 
-    <p class="terms">How the trial works: add a card to begin your 14 days. If you don't cancel before day 14 ends, your card is charged automatically for the plan you chose, then again each month or year until you cancel. You can cancel any time in your account settings, and we'll email you before the trial ends.</p>
-    <p class="buy-note" id="buy-note">Checkout opens when Moriwella launches. These are planned prices in US dollars and may change before then.</p>
+    <section class="credits" aria-labelledby="credits-h">
+      <h2 id="credits-h">Need more movies?</h2>
+      <p>Every person gets two Memory Movies a month. When you want to make more, add movie credits inside your account: <b>$0.99 for one</b>, or <b>$7.99 for ten</b>. Credits you buy don't expire while your account is open.</p>
+      <p class="hint">Credits are added to your account, so you can buy them once you've signed in.</p>
+    </section>
+
+    <p class="terms">How the trial works: every plan starts with 14 days free and one free Memory Movie. No card is needed to begin. If you don't subscribe, nothing is charged and your memories stay yours to read and export. If you add a card during the trial, you are charged only when it ends. Each person gets two movies a month, not two per family. You can cancel any time. Prices are in US dollars.</p>
+    <p class="buy-note"><a class="link" href="/app/signup">Start your 14-day free trial</a> &middot; Already a member? <a class="link" href="/app/login">Sign in</a></p>
   </div>
 </main>
 
@@ -90,40 +107,5 @@
   </div>
 </footer>
 
-<script>
-/* Stripe Payment Links. Paste each link from the Stripe dashboard (Payment Links, with a 14-day trial set on the price).
-   Only public links go here. No secret keys ever belong in this file. */
-var STRIPE_LINKS = {
-  personal: { month: "", year: "" },
-  family:   { month: "", year: "" }
-};
-
-(function () {
-  var period = "year";
-  var nums = document.querySelectorAll("[data-month]");
-  var btns = document.querySelectorAll(".tg");
-  var buys = document.querySelectorAll(".buy");
-  var note = document.getElementById("buy-note");
-  var live = false;
-
-  function paint() {
-    nums.forEach(function (el) { el.textContent = el.getAttribute("data-" + period); });
-    btns.forEach(function (b) {
-      var on = b.getAttribute("data-period") === period;
-      b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on);
-    });
-    live = false;
-    buys.forEach(function (a) {
-      var url = (STRIPE_LINKS[a.getAttribute("data-stripe")] || {})[period];
-      if (url) { a.href = url; a.removeAttribute("aria-disabled"); live = true; }
-      else { a.href = "#"; a.setAttribute("aria-disabled", "true"); }
-    });
-    note.hidden = live;
-  }
-  btns.forEach(function (b) { b.addEventListener("click", function () { period = b.getAttribute("data-period"); paint(); }); });
-  buys.forEach(function (a) { a.addEventListener("click", function (e) { if (a.getAttribute("aria-disabled")) e.preventDefault(); }); });
-  paint();
-})();
-</script>
 </body>
 </html>
