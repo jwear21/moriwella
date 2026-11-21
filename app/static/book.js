@@ -41,7 +41,7 @@
   var labelEl=document.getElementById('label'), prevB=document.getElementById('prev'), nextB=document.getElementById('next'), zoomB=document.getElementById('zoom'), scrub=document.getElementById('scrub');
 
   /* ---------- state ---------- */
-  var DATA=null, pages=[], leaves=[], P=[], cur=0, nLeaf=0, MAXCUR=0, busy=false, isOpen=true, scaleNow=1, focus='both', drag=null;
+  var pendF=null, DATA=null, pages=[], leaves=[], P=[], cur=0, nLeaf=0, MAXCUR=0, busy=false, isOpen=true, scaleNow=1, focus='both', drag=null;
   var castL=el('div','castL'), castR=el('div','castR');
 
   /* ---------- laying text out by ruled lines ---------- */
@@ -147,9 +147,11 @@
     syncWindow(); rigidPose(); clearCast(); setOpen(cur!==0);
     var l=pages[2*cur-1], r=pages[2*cur];
     labelEl.textContent=(cur===0)?L.cover:(cur===1)?L.title_page:(nm(l)&&nm(r)?nm(l)+'  ·  '+nm(r):(nm(r)||nm(l)));
-    prevB.disabled=cur===0; nextB.disabled=cur===MAXCUR; scrub.value=cur;
+    if(pendF&&narrow()&&cur>0){ focus=pendF; } pendF=null; layout(); scrub.value=cur;
   }
-  function setCur(c){ c=Math.max(0,Math.min(MAXCUR,c)); for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0; settle(); }
+  /* On a phone the book is read one page at a time: left page, then right page, then the next spread. */
+  function updateNav(){ var nar=narrow()&&isOpen&&focus!=='both'; prevB.disabled=cur===0; nextB.disabled=cur===MAXCUR&&(!nar||focus==='right'); }
+  function setCur(c){ c=Math.max(0,Math.min(MAXCUR,c)); if(narrow()&&focus!=='both'&&c>0) pendF='left'; for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0; settle(); }
   function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
   function easeOut(t){return 1-Math.pow(1-t,3);}
   function animate(j,target,ms,fn){
@@ -161,7 +163,12 @@
   }
   function go(dir){
     if(busy) return;
-    if(dir>0 && cur<MAXCUR) animate(cur,1,1050,ease);
+    var one=narrow()&&isOpen&&focus!=='both';
+    if(one){
+      if(dir>0){ if(focus==='left'){ focus='right'; layout(); return; } if(cur<MAXCUR){ pendF='left'; animate(cur,1,1050,ease); } return; }
+      if(focus==='right'){ focus='left'; layout(); return; } if(cur>0){ pendF='right'; animate(cur-1,0,1050,ease); } return;
+    }
+    if(dir>0 && cur<MAXCUR){ if(narrow()&&focus!=='both'&&cur===0) pendF='left'; animate(cur,1,1050,ease); }
     else if(dir<0 && cur>0) animate(cur-1,0,1050,ease);
   }
 
@@ -178,7 +185,7 @@
     stage.style.height=PH+'px';
     stage.style.transform='translate('+tx.toFixed(1)+'px,'+ty.toFixed(1)+'px) scale('+s.toFixed(4)+')';
     zoomB.style.display=(narrow()&&isOpen)?'':'none';
-    zoomB.textContent=focus==='both'?L.zoom_page:L.zoom_both;
+    zoomB.textContent=focus==='both'?L.zoom_page:L.zoom_both; updateNav();
   }
 
   /* ---------- building the whole book (again, when text size or style changes) ---------- */
@@ -188,11 +195,11 @@
     pages.push({k:'today'}); pages.push({k:'blank'});
     nLeaf=pages.length/2; MAXCUR=nLeaf-1; leaves=[]; book.innerHTML='';
     book.appendChild(el('div','cover')); book.appendChild(el('div','blockL')); book.appendChild(el('div','blockR')); book.appendChild(castL); book.appendChild(castR);
-    var c=MAXCUR;
-    if(anchorId){ var hit=-1; for(var i=3;i<pages.length;i++){ if(pages[i].k==='day'&&pages[i].e.id===anchorId){ if(last||pages[i].first) hit=i; if(!last&&hit>=0) break; } } if(hit>=0) c=Math.max(1,Math.min(MAXCUR,Math.ceil(hit/2))); }
+    var c=MAXCUR, fo='right';
+    if(anchorId){ var hit=-1; fo='right'; for(var i=3;i<pages.length;i++){ if(pages[i].k==='day'&&pages[i].e.id===anchorId){ if(last||pages[i].first) hit=i; if(!last&&hit>=0) break; } } if(hit>=0){ c=Math.max(1,Math.min(MAXCUR,Math.ceil(hit/2))); fo=(hit%2===0)?'right':'left'; } }
     P=[]; for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0;
     scrub.max=MAXCUR; isOpen=true; book.classList.remove('closed'); cur=c; busy=false;
-    focus=narrow()?'right':'both'; settle(); layout();
+    focus=narrow()?fo:'both'; settle(); layout();
   }
   function anchorNow(){ var r=pages[2*cur], l=pages[2*cur-1], p=(r&&r.k==='day')?r:((l&&l.k==='day')?l:null); return p?p.e.id:0; }
 
@@ -210,22 +217,27 @@
     var span=Math.max(160,PW*scaleNow*(focus==='both'?1.5:1.25));
     if(!drag.mode){
       if(Math.abs(dx)>8 && Math.abs(dx)>Math.abs(dy)*1.15){
-        if(dx>0 && cur>0) drag.mode={j:cur-1,back:true};
-        else if(dx<0 && cur<MAXCUR) drag.mode={j:cur,back:false};
+        var one=narrow()&&focus!=='both';
+        if(one&&isOpen&&dx<0&&focus==='left') drag.mode={pan:1};
+        else if(one&&isOpen&&dx>0&&focus==='right') drag.mode={pan:-1};
+        else if(dx>0 && cur>0) drag.mode={j:cur-1,back:true,pf:one?'right':null};
+        else if(dx<0 && cur<MAXCUR) drag.mode={j:cur,back:false,pf:one?'left':null};
         else drag.mode={rubber:true};
         if(drag.mode.j!==undefined) startFlex(drag.mode.j);
         try{book.setPointerCapture(drag.id);}catch(_){}
       } else if(Math.abs(dy)>10){ drag=null; return; } else return;
     }
     var dt=Math.max(1,now-drag.lt); drag.vx=(e.clientX-drag.lx)/dt; drag.lx=e.clientX; drag.lt=now;
-    var mm=drag.mode; if(mm.rubber) return;
+    drag.dx=dx; var mm=drag.mode; if(mm.rubber||mm.pan) return;
     P[mm.j]=mm.back?Math.min(1,Math.max(0,1-dx/span)):Math.min(1,Math.max(0,-dx/span));
     show(mm.j);
   });
   function endDrag(){
-    if(!drag) return; var mm=drag.mode, vx=drag.vx; drag=null; if(!mm||mm.rubber) return;
+    if(!drag) return; var mm=drag.mode, vx=drag.vx, tdx=drag.dx||0; drag=null; if(!mm||mm.rubber) return;
+    if(mm.pan){ if(Math.abs(tdx)>40||Math.abs(vx)>.35) go(mm.pan); return; }
     var p=P[mm.j], t;
     if(mm.back) t=(vx>.5||(p<.6&&vx>-.3))?0:1; else t=(vx<-.5||(p>.4&&vx<.3))?1:0;
+    if(mm.pf&&((mm.back&&t===0)||(!mm.back&&t===1))) pendF=mm.pf;
     animate(mm.j,t,820,easeOut);
   }
   book.addEventListener('pointerup',endDrag); book.addEventListener('pointercancel',endDrag);
@@ -439,5 +451,5 @@
     var ready=document.fonts?Promise.all(['400','500'].map(function(w){ return document.fonts.load(w+' 20px "'+f+'"'); })):Promise.resolve();
     ready.then(function(){ rebuild(0); afterStart(); },function(){ rebuild(0); afterStart(); });
   }).catch(function(){ root.innerHTML='<p class="nobook"><a href="'+esc(C.home)+'">'+esc(L.home)+'</a></p>'; });
-  window.__book={setCur:function(c){setCur(c);},go:go,pages:function(){return pages;},cur:function(){return cur;},open:openWrite,pending:function(){return pending;},flush:flush};
+  window.__book={setCur:function(c){setCur(c);},go:go,pages:function(){return pages;},cur:function(){return cur;},open:openWrite,focus:function(){return focus;},pending:function(){return pending;},flush:flush};
 })();
