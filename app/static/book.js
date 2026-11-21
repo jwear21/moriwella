@@ -243,8 +243,7 @@
     if(!drag.mode){
       if(Math.abs(dx)>8 && Math.abs(dx)>Math.abs(dy)*1.15){
         var one=narrow()&&focus!=='both';
-        if(one&&isOpen&&dx<0&&focus==='left') drag.mode={pan:1};
-        else if(one&&isOpen&&dx>0&&focus==='right') drag.mode={pan:-1};
+        if(one&&isOpen) drag.mode={pan:dx<0?1:-1};   /* phone: a swipe turns to the next or previous page with the same fade, no dragged page flip */
         else if(dx>0 && cur>0) drag.mode={j:cur-1,back:true,pf:one?'right':null};
         else if(dx<0 && cur<MAXCUR) drag.mode={j:cur,back:false,pf:one?'left':null};
         else drag.mode={rubber:true};
