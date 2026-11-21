@@ -515,6 +515,16 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
             }
             redirect(url('/lists/' . $listId));
         }
+        if ($sub === 'share_family' && $isOwner) {
+            /* tick the people in your household who should see this list; unticked household members lose access. People outside the household are left as they are. */
+            $want = array_map('intval', (array)($_POST['people'] ?? []));
+            foreach (list_family($uid) as $f) {
+                if (in_array((int)$f['id'], $want, true)) db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, added_at) VALUES (?, ?, ?)')->execute([$listId, $f['id'], time()]);
+                else db()->prepare('DELETE FROM list_members WHERE list_id = ? AND user_id = ?')->execute([$listId, $f['id']]);
+            }
+            flash('ok', tt('msg.sharing_saved')); queue_unlocked(achievements_eval($uid));
+            redirect(url('/lists/' . $listId));
+        }
         if (preg_match('#^members/(\d+)/remove$#', $sub, $mm)) {
             $mid = (int)$mm[1];
             if ($isOwner || $mid === $uid) db()->prepare('DELETE FROM list_members WHERE list_id = ? AND user_id = ?')->execute([$listId, $mid]);
@@ -529,7 +539,7 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
     $mem = db()->prepare('SELECT u.id, u.name, u.email FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ? ORDER BY u.name');
     $mem->execute([$listId]);
     $ow = db()->prepare('SELECT name FROM users WHERE id = ?'); $ow->execute([$list['owner_id']]);
-    render('list', ['list' => $list, 'items' => $items->fetchAll(), 'members' => $mem->fetchAll(), 'ownerName' => $ow->fetchColumn(), 'isOwner' => $isOwner, 'people' => list_people($list), 'mine' => $mine], $list['name']);
+    render('list', ['list' => $list, 'items' => $items->fetchAll(), 'members' => $mem->fetchAll(), 'ownerName' => $ow->fetchColumn(), 'isOwner' => $isOwner, 'people' => list_people($list), 'mine' => $mine, 'family' => $isOwner ? list_family($uid) : []], $list['name']);
     exit;
 }
 

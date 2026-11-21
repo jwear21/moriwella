@@ -251,3 +251,11 @@ function credits_admin_grant(int $adminId, int $uid, int $n, string $reason): ?s
 function credits_reconcile_after_stale(): void {
     db()->exec("UPDATE credit_ledger SET status = 'void', note = 'Movie did not finish: credit returned' WHERE status = 'reserved' AND movie_id IN (SELECT id FROM movies WHERE status = 'rendering' AND started_at < " . (time() - 3600) . ")");
 }
+
+/** The other active people in this person's household who can sign in (used to tick who sees a list). */
+function list_family(int $uid): array {
+    $h = household_of($uid); if (!$h) return [];
+    $out = [];
+    foreach (household_members((int)$h['id']) as $m) if ($m['status'] === 'active' && (int)$m['user_id'] !== $uid && $m['user_status'] === 'active') $out[] = ['id' => (int)$m['user_id'], 'name' => $m['name'], 'email' => $m['email']];
+    return $out;
+}
