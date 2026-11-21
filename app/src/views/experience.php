@@ -153,3 +153,4 @@
   </form>
   <form method="post" action="<?= url('/experiences/' . $ev['id'] . '/delete') ?>" class="danger" data-confirm="<?= t('experience.remove_this_experience_your') ?>"><?= csrf_field() ?><button class="btn btn--quiet" type="submit"><?= t('experience.remove_experience') ?></button></form>
 </section>
+<?php require __DIR__ . "/keepsakes.php"; ?>

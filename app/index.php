@@ -9,6 +9,8 @@ require __DIR__ . '/src/templates.php';
 require __DIR__ . '/src/achievements.php';
 require __DIR__ . '/src/trackers.php';
 require __DIR__ . '/src/feelings.php';
+require __DIR__ . '/src/albums.php';
+require __DIR__ . '/src/scrapbooks.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -154,6 +156,9 @@ if (preg_match('#^/join/([a-f0-9]{48})$#', $path, $m)) {
     render('join', ['err' => $err, 'target' => $target], 'Choose your password', true);
     exit;
 }
+
+/* ---------- shared album links: no sign-in needed ---------- */
+if (preg_match('#^/a/([a-f0-9]{32})(?:/p/(\d+)/(thumb|web|orig))?$#', $path, $albumM)) { album_public($albumM); }
 
 /* ---------- signed-in pages ---------- */
 $user = require_login();
@@ -371,6 +376,8 @@ if ($path === '/water' && $post) {
 
 require __DIR__ . '/src/billing.php';
 require __DIR__ . '/src/movies.php';
+albums_member_routes($uid, $user, $post, $path);
+scrapbooks_member_routes($uid, $user, $post, $path);
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
 require __DIR__ . '/src/transfer.php';

@@ -7,6 +7,8 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/movie_render.php';
+require __DIR__ . '/src/albums.php';
+require __DIR__ . '/src/scrapbooks.php';
 
 if (in_array('--selftest', $argv ?? [], true)) {
     $t0 = microtime(true); $dir = sys_get_temp_dir() . '/mw-selftest-' . getmypid(); @mkdir($dir, 0700, true);
@@ -30,3 +32,4 @@ if (in_array('--selftest', $argv ?? [], true)) {
     foreach (glob("$dir/*") ?: [] as $f) @unlink($f); @rmdir($dir); exit;
 }
 mv_worker_run();
+sb_worker_run();

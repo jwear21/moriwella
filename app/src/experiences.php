@@ -87,7 +87,7 @@ if (preg_match('#^/experiences/(\d+)(?:/([a-z-]+)(?:/(\d+))?(?:/([a-z]+))?)?$#',
             flash('ok', tt('msg.saved')); redirect($back);
         }
         if ($act === 'delete') {
-            movies_purge_event((int)$ev['id'], $uid);
+            movies_purge_event((int)$ev['id'], $uid); scrapbooks_purge_event((int)$ev['id'], $uid);
             db()->prepare('UPDATE entries SET event_id = NULL, section_id = NULL WHERE event_id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
             db()->prepare('DELETE FROM events WHERE id = ? AND user_id = ?')->execute([$ev['id'], $uid]);
             flash('ok', tt('msg.experience_removed_your_entries')); redirect(url('/experiences'));
