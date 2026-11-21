@@ -35,3 +35,8 @@
 .fb--single .fb-front { border-radius: 4px; }
 
 @media (prefers-reduced-motion: reduce) { .fb-sheet { transition: none; } }
+
+/* kitten walk-on */
+.mw-kit { background: rgba(7,59,43,.35); align-items: start; justify-items: center; }
+.mw-kit .mw-kitimg { position: fixed; left: 0; z-index: 101; height: auto; pointer-events: none; will-change: transform; filter: drop-shadow(0 8px 10px rgba(0,0,0,.35)); }
+.mw-kit .mw-card { margin-top: 12vh; position: relative; z-index: 102; }

@@ -1,6 +1,8 @@
 (function () {
   var celebOn = document.body.getAttribute('data-celebrate-on') !== '0';
   function celebrate(o) { if (celebOn && window.Moriwella) Moriwella.celebrate(o); }
+  window.mwCelebrate = celebrate;
+  window.mwShowUnlocked = function (l, d) { showUnlocked(l, d); };
   function showUnlocked(list, delay) {
     list.forEach(function (u, i) { setTimeout(function () { celebrate(u.level === 'small' ? { level: 'small' } : { level: 'milestone', title: u.title, sub: u.sub }); }, (delay || 0) + i * 6700); });
   }
@@ -146,11 +148,13 @@
   if (w) {
     var oz = parseInt(w.getAttribute('data-oz'), 10) || 0;
     var cups = w.querySelectorAll('.cup'), label = document.getElementById('water-oz');
-    var paint = function () { cups.forEach(function (b, i) { var on = oz >= (i + 1) * 8; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); label.textContent = oz; };
+    var per = parseFloat(w.getAttribute('data-per')) || 8, cap = parseFloat(w.getAttribute('data-cap')) || 64;
+    var thr = function (i) { return Math.min(i * per, cap); };
+    var paint = function () { cups.forEach(function (b, i) { var on = oz >= thr(i + 1); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); label.textContent = oz; };
     cups.forEach(function (b) {
       b.addEventListener('click', function () {
-        var n = parseInt(b.getAttribute('data-cup'), 10) * 8;
-        var prevOz = oz; oz = (oz === n) ? n - 8 : n; paint(); if (oz > prevOz && oz < 64) celebrate({ level: 'splash', origin: b });
+        var k = parseInt(b.getAttribute('data-cup'), 10), n = thr(k);
+        var prevOz = oz; oz = (oz === n) ? thr(k - 1) : n; paint(); if (oz > prevOz && oz < cap) celebrate({ level: 'splash', origin: b });
         var body = new URLSearchParams({ day: w.getAttribute('data-day'), oz: oz, _csrf: w.getAttribute('data-csrf') });
         fetch(w.getAttribute('data-url'), { method: 'POST', headers: { 'X-Requested-With': 'fetch' }, body: body, credentials: 'same-origin' })
           .then(function (r) { return r.json(); })
@@ -229,7 +233,30 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
   });
   card.addEventListener('change', function (e) {
     var inp = e.target; if (inp.type !== 'number') return; save(inp.closest('.lt-row'), inp.value);
+    var gb = inp.closest('.lt-row') && inp.closest('.lt-row').querySelector('.goal-bullets'); if (gb) paintBullets(gb, parseFloat(inp.value) || 0);
   });
+  function paintBullets(box, val) {
+    var per = parseFloat(box.getAttribute('data-per')) || 1, target = parseFloat(box.getAttribute('data-target')) || per;
+    box.setAttribute('data-val', val);
+    box.querySelectorAll('.gb').forEach(function (g) { var on = val >= Math.min(parseInt(g.getAttribute('data-i'), 10) * per, target); g.classList.toggle('on', on); g.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var out = box.parentNode.querySelector('.lt-goalcount output'); if (out) out.textContent = val % 1 ? val : String(val);
+    var num = box.parentNode.querySelector('input[type=number]'); if (num && document.activeElement !== num) num.value = val;
+  }
+  /* tapping a bullet sets the day's number to that many milestones; tapping the last filled one again undoes it */
+  card.addEventListener('click', function (e) {
+    var g = e.target.closest('.goal-bullets .gb'); if (!g) return; e.stopPropagation();
+    var box = g.parentNode, row = box.closest('.lt-row'), per = parseFloat(box.getAttribute('data-per')) || 1, target = parseFloat(box.getAttribute('data-target')) || per;
+    var i = parseInt(g.getAttribute('data-i'), 10), cur = parseFloat(box.getAttribute('data-val')) || 0, n = Math.min(i * per, target);
+    var val = cur === n ? Math.min((i - 1) * per, target) : n;
+    paintBullets(box, val);
+    var celebrate = window.mwCelebrate || function () {}, showUnlocked = window.mwShowUnlocked || function () {};
+    if (val > cur) celebrate({ level: 'small', origin: g });
+    save(row, val, function (j) {
+      if (!j) return;
+      if (j.unlocked && j.unlocked.length) showUnlocked(j.unlocked, 150);
+      else if (j.reached) { var lab = row.querySelector('.lt-label'); celebrate({ level: 'milestone', title: j.allDone ? T('js.all_your_goals_are_done', 'All your goals are done') : T('js.goal_reached', 'Goal reached'), sub: T('js.goal_reached_sub', 'You hit {what}.').replace('{what}', lab ? lab.textContent.trim() : '') }); }
+    });
+  }, true);
 })();
 /* how are you feeling */
 (function () {
@@ -363,3 +390,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /* Lets Android install Moriwella as an app and shows a friendly page when offline. */
 if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); }); }
+
+/* settings: preview the chosen goal celebration */
+(function () {
+  var b = document.getElementById('style-preview'); if (!b) return;
+  b.addEventListener('click', function () {
+    var r = document.querySelector('input[name=celebrate_style]:checked');
+    if (window.Moriwella) Moriwella.celebrate({ level: 'milestone', style: r ? r.value : 'fireworks', title: T('js.goal_reached', 'Goal reached'), sub: T('js.goal_reached_sub', 'You hit {what}.').replace('{what}', '8 glasses of water') });
+  });
+})();

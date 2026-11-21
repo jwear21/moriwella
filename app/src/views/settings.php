@@ -34,6 +34,12 @@
       <label class="check-row"><input type="radio" name="celebrate_size" value="big"<?= $size === 'big' ? ' checked' : '' ?>> <?= t('settings.big_splashes_confetti_and') ?></label>
       <label class="check-row"><input type="radio" name="celebrate_size" value="gentle"<?= $size === 'gentle' ? ' checked' : '' ?>> <?= t('settings.gentle_smaller_and_quieter') ?></label>
     </fieldset>
+    <fieldset class="size-pick">
+      <legend><?= t('settings.celebration_style') ?></legend>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="fireworks"<?= ($style ?? 'fireworks') === 'fireworks' ? ' checked' : '' ?>> <?= t('settings.style_fireworks') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="kitten"<?= ($style ?? '') === 'kitten' ? ' checked' : '' ?>> <?= t('settings.style_kitten') ?></label>
+      <button type="button" class="textbtn" id="style-preview"><?= t('settings.preview_celebration') ?></button>
+    </fieldset>
     <p class="hint"><?= t('settings.phones_and_computers_set') ?></p>
     <button class="btn" type="submit"><?= t('common.save') ?></button>
   </form>

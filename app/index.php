@@ -492,10 +492,11 @@ if (preg_match('#^/entries/(\d+)$#', $path, $m)) {
 /* ----- water tracker ----- */
 if ($path === '/water' && $post) {
     $day = (string)($_POST['day'] ?? ''); if (!valid_date($day)) json_out(['ok' => false], 400);
-    $oz = max(0, min(64, (int)($_POST['oz'] ?? 0)));
+    $wg = tracker_goals($uid)['water']; $cap = (int)round($wg['target']);
+    $oz = max(0, min($cap, (int)($_POST['oz'] ?? 0)));
     $before = water_oz($uid, $day);
     db()->prepare('INSERT INTO water_log (user_id, day, oz) VALUES (?, ?, ?) ON CONFLICT(user_id, day) DO UPDATE SET oz = excluded.oz')->execute([$uid, $day, $oz]);
-    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= 64 && $before < 64, 'allDone' => $oz >= 64 && $before < 64 && all_goals_done($uid, $day), 'unlocked' => $oz >= 64 ? achievements_eval($uid, ['day' => $day]) : []]);
+    json_out(['ok' => true, 'oz' => $oz, 'goal' => $oz >= $cap && $before < $cap, 'allDone' => $oz >= $cap && $before < $cap && all_goals_done($uid, $day), 'unlocked' => $oz >= $cap ? achievements_eval($uid, ['day' => $day]) : []]);
 }
 
 require __DIR__ . '/src/billing.php';
@@ -516,10 +517,10 @@ function goals_for_day(int $uid, string $day): array {
 }
 function all_goals_done(int $uid, string $day): bool {
     $gs = goals_for_day($uid, $day);
-    $waterDone = !water_on($uid) || water_oz($uid, $day) >= 64;
-    if (!$gs && !water_on($uid)) return false;
+    $waterDone = !water_on($uid) || water_oz($uid, $day) >= tracker_goals($uid)['water']['target'];
+    if (!$gs && !water_on($uid) && !tracker_has_goals($uid)) return false;
     foreach ($gs as $g) if (!$g['done']) return false;
-    return $waterDone;
+    return $waterDone && tracker_goals_done($uid, $day);
 }
 if ($path === '/goals' && $post) {
     $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
@@ -681,6 +682,7 @@ if ($path === '/settings') {
     if ($post) {
         if (isset($_POST['save_prefs'])) {
             save_prefs($uid, !empty($_POST['celebrations']), water_on($uid), (string)($_POST['celebrate_size'] ?? 'big'));
+            save_celebrate_style($uid, (string)($_POST['celebrate_style'] ?? 'fireworks'));
             flash('ok', tt('msg.preferences_saved')); redirect(url('/settings'));
         }
         if (isset($_POST['save_avatar'])) {
@@ -709,7 +711,7 @@ if ($path === '/settings') {
             redirect(url('/settings'));
         }
     }
-    render('settings', ['celebrations' => celebrations_on($uid), 'size' => celebrate_size($uid)], 'Account');
+    render('settings', ['celebrations' => celebrations_on($uid), 'size' => celebrate_size($uid), 'style' => celebrate_style($uid)], 'Account');
     exit;
 }
 
