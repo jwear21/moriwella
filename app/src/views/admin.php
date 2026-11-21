@@ -68,7 +68,7 @@
         <?php if (!($isAdmin && $isMe)): ?><button class="btn btn-quiet" type="submit" form="role-<?= $id ?>"><?= $isAdmin ? 'Remove admin' : 'Make admin' ?></button><?php endif; ?>
         <?php if (!$isMe && $u['status'] === 'active'): ?><button class="btn btn-quiet" type="submit" form="act-<?= $id ?>">Act as <?= e(strtok((string)$u['name'], ' ')) ?></button><?php endif; ?>
         <button class="btn btn-quiet" type="submit" form="lnk-<?= $id ?>"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button>
-        <?php if (!$isMe): ?><button class="btn btn-quiet" type="submit" form="tog-<?= $id ?>"><?= $u['status'] === 'disabled' ? 'Let them sign in' : 'Stop sign-in' ?></button><?php endif; ?>
+        <?php if (!$isMe): ?><button class="btn btn-quiet" type="submit" form="tog-<?= $id ?>"><?= $u['status'] === 'disabled' ? 'Turn account back on' : 'Turn account off' ?></button><?php endif; ?>
       </div>
     </div>
   </details>
