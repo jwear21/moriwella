@@ -63,6 +63,7 @@
         <a href="pricing.html">Pricing</a>
       </nav>
         <a class="signin" href="/app/login">Sign in</a>
+        <a class="signup" href="/app/signup">Start free</a>
       </div>
     </header>
 
@@ -73,7 +74,8 @@
           <p class="lede">Life moves quickly. Between the everyday responsibilities and the moments you'll never forget, there's a lot worth keeping.</p>
           <p class="lede lede--2">Moriwella brings your journals, family plans, and favorite memories together in one beautiful place.</p>
           <div class="actions">
-            <a class="btn" href="#inside">Explore Moriwella</a>
+            <a class="btn" href="/app/signup">Start your free trial</a>
+            <a class="link" href="/app/login">Sign in</a>
             <a class="link" href="pricing.html">Plans and pricing</a>
           </div>
         </div>
@@ -153,6 +155,23 @@
     <h2 class="section-title">Your memories deserve a beautiful ending.</h2>
     <p class="section-intro">Turn the moments you've captured into stunning digital albums, printable scrapbooks, and animated memory movies, complete with your photos, videos, stories, and music. You review and rearrange everything before anything is made.</p>
 
+    <div class="movie-demo">
+      <figure class="movie-player">
+        <video controls preload="metadata" playsinline poster="assets/movie/sample-wedding-poster.jpg" aria-describedby="movie-cap">
+          <source src="assets/movie/sample-wedding.mp4" type="video/mp4">
+          Your browser can't play this video. <a href="assets/movie/sample-wedding.mp4">Download it.</a>
+        </video>
+        <figcaption id="movie-cap">A real Memory Movie from a wedding weekend. About a minute long.</figcaption>
+      </figure>
+      <div class="movie-copy">
+        <h3>Watch what a weekend becomes.</h3>
+        <p>Moriwella gathers the photos, captions and days you already saved, lays them out as scrapbook pages, and adds a title and a closing card. You choose the length and the look, and you review it before it is made.</p>
+        <p>Your first movie is free. After that, every person on a plan gets two a month, and you can add more any time.</p>
+        <p><a class="btn btn--sun" href="/app/signup">Start free for 14 days</a></p>
+      </div>
+    </div>
+
+    <p class="also">The same memories can become a printable scrapbook or a shared album.</p>
     <div class="formats">
       <figure class="fmt">
         <div class="frame frame--page" role="img" aria-label="Sample scrapbook page with two photos and a caption">
@@ -167,22 +186,6 @@
         <figcaption>Scrapbook page, ready to print</figcaption>
       </figure>
       <figure class="fmt">
-        <div class="frame frame--wide movie" role="img" aria-label="Sample widescreen memory movie title frame">
-          <svg><use href="#coast" width="100%" height="100%"/></svg>
-          <div class="movie-title"><b>Our week in Lisbon</b><span>October 2026</span></div>
-          <div class="movie-bar"><i></i></div>
-        </div>
-        <figcaption>Memory Movie, widescreen</figcaption>
-      </figure>
-      <figure class="fmt">
-        <div class="frame frame--tall movie" role="img" aria-label="Sample vertical memory movie frame with caption">
-          <svg><use href="#dusk" width="100%" height="100%"/></svg>
-          <div class="movie-cap">Day 3: the tram up the hill</div>
-          <div class="movie-bar"><i></i></div>
-        </div>
-        <figcaption>Vertical, for phones</figcaption>
-      </figure>
-      <figure class="fmt">
         <div class="frame frame--sq album" role="img" aria-label="Sample shared album cover">
           <svg><use href="#hills" width="100%" height="100%"/></svg>
           <div class="album-t"><b>Summer at the lake</b><span>42 photos</span></div>
@@ -190,31 +193,13 @@
         <figcaption>Shared album</figcaption>
       </figure>
     </div>
-    <p class="sample-note">Sample pages and frames, drawn for this preview.</p>
+    <p class="sample-note">The movie is real. The scrapbook page and album cover are drawn samples.</p>
 
     <div class="keeps">
       <div><h3>Print-ready scrapbooks</h3><p>A PDF with covers, captions and dates. Moriwella warns you when a photo is too small to print well.</p></div>
       <div><h3>Memory Movies</h3><p>A short recap with gentle motion, titles and your choice of music, or none at all.</p></div>
       <div><h3>Albums you can share</h3><p>Send a private link, set when it expires, and turn it off any time.</p></div>
     </div>
-  </div>
-</section>
-
-<section id="movie" class="section band-sand">
-  <div class="wrap movie-demo">
-    <div class="movie-copy">
-      <h2 class="section-title">See a Memory Movie.</h2>
-      <p>This is a real Moriwella Memory Movie, made from a wedding weekend in a few taps. Moriwella gathers the photos, captions and days you already saved, lays them out as scrapbook pages, and adds a title and a closing card. You choose the length and the theme, and you can review it before it is made.</p>
-      <p>Every person on a plan gets two movies a month, and you can add more any time.</p>
-      <p><a class="link" href="/app/signup">Make your first one free</a></p>
-    </div>
-    <figure class="movie-player">
-      <video controls preload="metadata" playsinline poster="assets/movie/sample-wedding-poster.jpg" aria-describedby="movie-cap">
-        <source src="assets/movie/sample-wedding.mp4" type="video/mp4">
-        Your browser can't play this video. <a href="assets/movie/sample-wedding.mp4">Download it.</a>
-      </video>
-      <figcaption id="movie-cap">A Memory Movie, one minute long. Sample content.</figcaption>
-    </figure>
   </div>
 </section>
 
