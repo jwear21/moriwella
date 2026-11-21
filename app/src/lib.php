@@ -379,6 +379,54 @@ function migrate(PDO $p): void {
     if ($v < 17) {
         $p->exec("ALTER TABLE subscriptions ADD COLUMN comp_credits INTEGER NOT NULL DEFAULT 0; PRAGMA user_version = 17;");
     }
+    if ($v < 18) {
+        /* Keepsakes: shared albums (a private link to chosen photos) and printable scrapbooks (PDF). */
+        $p->exec("
+          CREATE TABLE albums (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+            title TEXT NOT NULL DEFAULT '',
+            note TEXT NOT NULL DEFAULT '',
+            token TEXT NOT NULL UNIQUE,
+            expires_at INTEGER NOT NULL DEFAULT 0,
+            revoked_at INTEGER NOT NULL DEFAULT 0,
+            allow_download INTEGER NOT NULL DEFAULT 1,
+            views INTEGER NOT NULL DEFAULT 0,
+            last_view INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+          );
+          CREATE INDEX albums_user ON albums (user_id, id);
+          CREATE INDEX albums_event ON albums (event_id);
+          CREATE TABLE album_photos (
+            album_id INTEGER NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
+            photo_id INTEGER NOT NULL REFERENCES entry_photos(id) ON DELETE CASCADE,
+            pos INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (album_id, photo_id)
+          );
+          CREATE TABLE scrapbooks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+            status TEXT NOT NULL DEFAULT 'queued',
+            progress INTEGER NOT NULL DEFAULT 0,
+            style TEXT NOT NULL DEFAULT 'classic',
+            size TEXT NOT NULL DEFAULT 'letter',
+            text_mode TEXT NOT NULL DEFAULT 'captions',
+            subtitle TEXT NOT NULL DEFAULT '',
+            closing TEXT NOT NULL DEFAULT '',
+            file TEXT NOT NULL DEFAULT '',
+            bytes INTEGER NOT NULL DEFAULT 0,
+            pages INTEGER NOT NULL DEFAULT 0,
+            soft INTEGER NOT NULL DEFAULT 0,
+            error TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL,
+            started_at INTEGER NOT NULL DEFAULT 0,
+            finished_at INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE INDEX scrapbooks_event ON scrapbooks (event_id, id);
+          PRAGMA user_version = 18;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

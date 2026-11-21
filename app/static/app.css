@@ -529,3 +529,21 @@ textarea.journal-field{font-family:var(--serif);font-size:1.12rem;line-height:1.
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 label.check { display: flex; gap: .6rem; align-items: flex-start; font-weight: 400; }
 label.check input { width: auto; margin-top: .3rem; }
+/* shared albums and printable scrapbooks */
+.keep-card{display:grid;gap:.9rem}
+.album-row,.scrap-row{border:1px solid var(--line,#dcd6c4);border-radius:10px;padding:.8rem .9rem;display:grid;gap:.5rem}
+.album-head{display:flex;justify-content:space-between;gap:.6rem;align-items:center;flex-wrap:wrap}
+.album-tag--on{background:#dcebd9;color:#1d4a2a}.album-tag--off,.album-tag--expired{background:#efe3c8;color:#6a4a10}
+.album-link{display:flex;gap:.5rem;flex-wrap:wrap}.album-link input{flex:1 1 14rem;min-width:0}
+.album-acts{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}.album-acts form{display:inline-flex;gap:.4rem;align-items:center}
+.album-exp select{width:auto}
+.keep-new summary{cursor:pointer;font-weight:600}
+.pick-head{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;margin:.4rem 0 0}
+.linkbtn{background:none;border:0;padding:0;color:var(--forest,#1B4D3E);font:inherit;text-decoration:underline;cursor:pointer}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;max-height:340px;overflow:auto;padding:4px;border:1px solid var(--line,#dcd6c4);border-radius:8px}
+.pick{position:relative;display:block;cursor:pointer}.pick img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px;opacity:.45;transition:opacity .15s}
+.pick input{position:absolute;top:6px;left:6px;width:20px;height:20px;z-index:1;accent-color:#1B4D3E}
+.pick input:checked + img{opacity:1;outline:3px solid #1B4D3E;outline-offset:-3px}
+.warn-text{color:#7a4f10;background:#f6ebd0;border-radius:8px;padding:.55rem .75rem;margin:.2rem 0}
+.keep-acts{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}.keep-acts form{display:inline}
+.keep-new label.check{display:flex;gap:.6rem;align-items:center;margin:.4rem 0}.keep-new label.check input{width:auto;flex:none}
