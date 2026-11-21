@@ -26,7 +26,7 @@
       '<label class="sr" for="wTitle">'+esc(L.w_title)+'</label><input id="wTitle" class="wtitle" maxlength="200" placeholder="'+esc(L.w_title)+'" autocomplete="off">'+
       '<label class="sr" for="wBody">'+esc(L.write_title)+'</label><textarea id="wBody" class="wbody" rows="8"></textarea>'+
       '<div class="wtools" id="wPhotoBox"><label class="wbtn" for="wPhotos">'+esc(L.w_photos)+'</label><input id="wPhotos" class="sr" type="file" accept="image/*" multiple>'+
-        '<label class="wbtn" for="wCam">'+esc(L.w_camera)+'</label><input id="wCam" class="sr" type="file" accept="image/*" capture="environment"></div>'+
+        '<label class="wbtn" for="wCam">'+esc(L.w_camera)+'</label><input id="wCam" class="sr" type="file" accept="image/*" capture="environment"><button type="button" class="wbtn" id="wDict" aria-pressed="false" hidden>'+esc(L.w_dictate)+'</button></div>'+
       '<div class="wthumbs" id="wThumbs"></div>'+
       '<div class="wrow" id="wTripRow"><label for="wTrip">'+esc(L.w_trip)+'</label><select id="wTrip"></select></div>'+
       '<p class="wmsg" id="wMsg" role="status" aria-live="polite"></p>'+
@@ -371,7 +371,7 @@
     }
     setTimeout(function(){ try{ wBody.focus(); }catch(e){} },60);
   }
-  function closeWrite(){ saveDraft(); W.open=false; wsheet.hidden=true; document.body.style.overflow=''; setMsg(''); }
+  function closeWrite(){ if(typeof dictStop==='function') dictStop(); saveDraft(); W.open=false; wsheet.hidden=true; document.body.style.overflow=''; setMsg(''); }
   function doSave(){
     if(W.busy) return; var body=wBody.value.replace(/\s+$/,''), title=wTitle.value.trim();
     if(W.mode==='edit'){
@@ -380,6 +380,7 @@
       post(C.edit+W.eid,fd).then(function(r){return r.json();}).then(function(j){ W.busy=false; wSave.disabled=false; if(!j.ok){ setMsg(j.error||L.w_fail,true); return; } var id=W.eid; closeWrite(); reload(id); },function(){ W.busy=false; wSave.disabled=false; setMsg(L.w_fail,true); });
       return;
     }
+    dictStop();
     var feelings=Object.keys(W.feel), mood=(W.mood&&W.mood!==W.mood0)?W.mood:0;
     if(!body&&!title&&!W.files.length&&!mood&&!W.feelDirty){ setMsg(L.w_empty,true); return; }
     var rec={cid:cid(),date:wDate.value||DATA.today,title:title,body:body,ts:Math.floor(Date.now()/1000),mood:mood,feelings:feelings,feelDirty:W.feelDirty,trip:wTrip.value||'',files:W.files.slice()};
@@ -391,6 +392,17 @@
       return oDel(rec.cid).then(function(){ setMsg(r.error||L.w_fail,true); });
     });
   }
+
+  /* Dictation: speech recognition where the browser has it (Chrome and Android). Words are added to the page as they are heard. */
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition, dBtn=$w('wDict'), dRec=null, dOn=false;
+  function dictStop(){ dOn=false; dBtn.setAttribute('aria-pressed','false'); dBtn.textContent=L.w_dictate; if(dRec){ try{dRec.stop();}catch(e){} dRec=null; } }
+  if(SR){ dBtn.hidden=false; dBtn.onclick=function(){
+    if(dOn){ dictStop(); return; }
+    var rec=new SR(), base=wBody.value&&!/\s$/.test(wBody.value)?wBody.value+' ':wBody.value, fin=''; rec.lang=navigator.language||'en-US'; rec.continuous=true; rec.interimResults=true;
+    rec.onresult=function(ev){ var interim=''; for(var i=ev.resultIndex;i<ev.results.length;i++){ var t=ev.results[i][0].transcript; if(ev.results[i].isFinal) fin+=t+' '; else interim+=t; } wBody.value=base+fin+interim; draftSoon(); };
+    rec.onerror=function(ev){ if(ev.error==='not-allowed') setMsg(L.w_mic,true); dictStop(); };
+    rec.onend=function(){ if(dOn){ try{ rec.start(); }catch(e){ dictStop(); } } };
+    try{ rec.start(); dRec=rec; dOn=true; dBtn.setAttribute('aria-pressed','true'); dBtn.textContent=L.w_dictate_stop; setMsg(''); }catch(e){ dictStop(); } }; }
   var toastT=null; function toast(t){ var b=$w('wToast'); if(!b){ b=el('div','wtoast'); b.id='wToast'; b.setAttribute('role','status'); root.appendChild(b); } b.textContent=t; b.hidden=false; clearTimeout(toastT); toastT=setTimeout(function(){ b.hidden=true; },6000); }
   wSave.onclick=doSave; wDel.onclick=function(){ if(!W.eid) return; if(!confirm(L.w_delete_ask)) return; var fd=new FormData(); fd.append('_csrf',C.csrf); fd.append('delete','1');
     post(C.edit+W.eid,fd).then(function(r){return r.json();}).then(function(j){ if(j.ok){ closeWrite(); reload(0); } else setMsg(j.error||L.w_fail,true); },function(){ setMsg(L.w_fail,true); }); };
