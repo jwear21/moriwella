@@ -167,12 +167,23 @@
     (function step(t){ var k=Math.min(1,(t-t0)/ms); P[j]=from+(target-from)*fn(k); show(j);
       if(k<1) requestAnimationFrame(step); else{ P[j]=target; endFlex(j); busy=false; settle(); } })(t0);
   }
+  /* Phone page change without sliding: fade out, jump the camera with no transition, fade in. */
+  function swapPage(fn){
+    busy=true; stage.style.transition='opacity .1s'; stage.style.opacity='0';
+    setTimeout(function(){
+      stage.style.transition='none'; fn(); void stage.offsetWidth;
+      stage.style.transition='opacity .14s'; stage.style.opacity='1';
+      setTimeout(function(){ stage.style.transition=''; busy=false; },160);
+    },110);
+  }
+  function turnTo(c,f){ c=Math.max(0,Math.min(MAXCUR,c)); for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0; pendF=f; settle(); }
   function go(dir){
     if(busy) return;
     var one=narrow()&&isOpen&&focus!=='both';
     if(one){
-      if(dir>0){ if(focus==='left'){ focus='right'; layout(); return; } if(cur<MAXCUR){ pendF='left'; animate(cur,1,1050,ease); } return; }
-      if(focus==='right'){ focus='left'; layout(); return; } if(cur>0){ pendF='right'; animate(cur-1,0,1050,ease); } return;
+      /* One page at a time on a phone: the page stays put on screen and the next one fades in, instead of sliding between the left and right pages. */
+      if(dir>0){ if(focus==='left'){ swapPage(function(){ focus='right'; layout(); }); return; } if(cur<MAXCUR) swapPage(function(){ turnTo(cur+1,'left'); }); return; }
+      if(focus==='right'){ swapPage(function(){ focus='left'; layout(); }); return; } if(cur>0) swapPage(function(){ turnTo(cur-1,'right'); }); return;
     }
     if(dir>0 && cur<MAXCUR){ if(narrow()&&focus!=='both'&&cur===0) pendF='left'; animate(cur,1,1050,ease); }
     else if(dir<0 && cur>0) animate(cur-1,0,1050,ease);
