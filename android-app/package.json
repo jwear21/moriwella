@@ -1,0 +1,19 @@
+{
+  "name": "moriwella-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Moriwella Android app (Capacitor 8). Copyright (c) JSW Software Designs",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@capgo/native-purchases": "^8.9.17"
+  }
+}
