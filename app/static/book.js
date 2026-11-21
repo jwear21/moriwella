@@ -79,7 +79,7 @@
     var no='<div class="pno">'+(idx>2?idx-2:'')+'</div>';
     if(pg.k==='cover') return '<div class="cvr"><i class="stitch"></i><div class="label"><div class="emb"></div><div class="t1">'+esc(L.cover_t1)+'</div><div class="t2">'+esc(L.cover_t2)+'</div><div class="nm">'+esc(C.name)+'</div><div class="cap">'+esc(L.cover_cap)+'</div></div><div class="band"></div><div class="shine"></div></div>';
     if(pg.k==='endpaper') return '<div class="endp"><div class="own"><small>'+esc(L.belongs)+'</small><div class="nm">'+esc(C.name)+'</div><small>'+esc(String(L.started||'').replace('{month}',DATA.started))+'</small></div></div>';
-    if(pg.k==='title') return '<div class="page"><div class="ttl"><div class="orn">&#10086;</div><h1>'+esc(L.my_journal)+'</h1><p>'+esc(L.tagline)+'</p><div class="orn">&#10086;</div></div></div>';
+    if(pg.k==='title') return '<div class="page"><div class="ttl"><div class="orn">&#10086;</div><h1>'+esc(L.my_journal)+'</h1><p>'+esc(L.tagline)+'</p><div class="orn">&#10086;</div>'+(DATA.more>0?'<button type="button" class="earlierb" id="earlierB">'+esc(L.earlier)+'</button>':'')+'</div></div>';
     if(pg.k==='blank') return '<div class="page"><div class="head"></div>'+no+'</div>';
     if(pg.k==='today') return '<div class="page"><div class="head"><div class="date">'+esc(DATA.todayMd)+'<small>'+esc(DATA.todayDow)+' &middot; '+esc(L.today)+'</small></div></div><div class="tdy"><p>'+esc(L.today_hint)+'</p><button type="button" class="tdyb" data-w="'+esc(DATA.today)+'">'+esc(L.write_open)+'</button>'+pendingHtml()+'</div>'+no+'</div>';
     var e=pg.e;
@@ -207,6 +207,14 @@
     scrub.max=MAXCUR; isOpen=true; book.classList.remove('closed'); cur=c; busy=false;
     focus=narrow()?fo:'both'; settle(); layout();
   }
+  /* journals longer than 200 entries: the newest 200 open first, older ones load on request */
+  book.addEventListener('click',function(e){
+    var b=e.target.closest('.earlierb'); if(!b||b.disabled) return; b.disabled=true; b.textContent=L.earlier_wait;
+    var first=DATA.entries.length?DATA.entries[0].id:0;
+    fetch(C.data+'?skip='+DATA.entries.length,{credentials:'same-origin',cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+      DATA.entries=d.entries.concat(DATA.entries); DATA.more=d.more; DATA.started=d.started; rebuild(first);
+    }).catch(function(){ b.disabled=false; b.textContent=L.earlier; toast(L.w_fail); });
+  });
   function anchorNow(){ var r=pages[2*cur], l=pages[2*cur-1], p=(r&&r.k==='day')?r:((l&&l.k==='day')?l:null); return p?p.e.id:0; }
 
   /* ---------- input ---------- */
@@ -447,6 +455,7 @@
   }
 
   /* ---------- start ---------- */
+  (function(){ var l=document.createElement('div'); l.id='bkLd'; l.className='bkld'; l.setAttribute('role','status'); l.innerHTML='<i></i>'; root.appendChild(l); })();
   var t0=store('mw-theme'), f0=store('mw-font'), s0=store('mw-size');
   if(f0&&FONTS.some(function(f){return f[0]===f0;})) fsel=f0;
   if(s0&&PHS[s0]) szSel=s0;
@@ -459,7 +468,8 @@
     else{ prefsOn=true; sendPrefs(); }
     var f=FONTFACE[effFont()]||'Newsreader';
     var ready=document.fonts?Promise.all(['400','500'].map(function(w){ return document.fonts.load(w+' 20px "'+f+'"'); })):Promise.resolve();
-    ready.then(function(){ rebuild(0); afterStart(); },function(){ rebuild(0); afterStart(); });
+    function go0(){ rebuild(0); afterStart(); var l=document.getElementById('bkLd'); if(l){ l.classList.add('out'); setTimeout(function(){ if(l.parentNode) l.parentNode.removeChild(l); },400); } }
+    ready.then(go0,go0);
   }).catch(function(){ root.innerHTML='<p class="nobook"><a href="'+esc(C.home)+'">'+esc(L.home)+'</a></p>'; });
   window.__book={setCur:function(c){setCur(c);},go:go,pages:function(){return pages;},cur:function(){return cur;},open:openWrite,focus:function(){return focus;},pending:function(){return pending;},flush:flush};
 })();

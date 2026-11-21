@@ -8,6 +8,8 @@ return [
  'book.cover_cap' => 'Volume 1',
  'book.belongs' => 'This journal belongs to',
  'book.started' => 'Started {month}',
+ 'book.earlier' => 'Load earlier entries',
+ 'book.earlier_wait' => 'Loading…',
  'book.my_journal' => 'My Journal',
  'book.tagline' => 'Remember your life, organize your days, and live well.',
  'book.today' => 'Today',
