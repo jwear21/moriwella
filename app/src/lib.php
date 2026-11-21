@@ -591,6 +591,8 @@ function reset_email(string $name, string $email, string $link, bool $existing =
     $lead = $existing ? "Someone (we hope you) tried to sign up with this address, and you already have a Moriwella account. You can sign in at https://moriwella.com/app/login, or choose a new password here (the link works for 7 days):\n" : "Here is your link to choose a new password for Moriwella (it works for 7 days):\n";
     return send_mail($email, 'Your Moriwella password link', "Hi " . $name . ",\n\n" . $lead . $link . "\n\nIf you did not ask for this, you can ignore this email. Your password has not changed.\n\nMoriwella\n", 'support@moriwella.com');
 }
+/** True inside the Android app (its web view adds MoriwellaApp to the user agent). The Play Store does not allow selling subscriptions or credits from inside the app, so purchases are only offered on the website. */
+function in_app(): bool { return stripos((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 'MoriwellaApp') !== false; }
 function user_count(): int { return (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn(); }
 
 function valid_date(string $d): bool {

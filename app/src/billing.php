@@ -30,6 +30,7 @@ function stripe_webhook(): never {
 if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/household') === 0) {
     $uid = (int)$user['id']; $b = billing_for($uid); $isOwner = $b['is_owner'];
 
+    if ($path === '/pricing' && in_app()) { billing_back(); }
     if ($path === '/pricing') { render('pricing', ['b' => $b, 'packs' => credit_packs(), 'ready' => stripe_ready()], 'Plans'); exit; }
 
     if ($path === '/billing') {
@@ -39,6 +40,7 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
         unset($_SESSION['new_link']); exit;
     }
 
+    if ($post && in_app() && in_array($path, ['/billing/subscribe', '/billing/credits', '/billing/portal', '/billing/change'], true)) { billing_back(); }
     if ($post && in_array($path, ['/billing/subscribe', '/billing/credits', '/billing/portal', '/billing/change'], true)) {
         if (!stripe_ready() || stripe_live_blocked()) { flash('err', tt('billing.err_not_ready')); billing_back(); }
         $isPack = $path === '/billing/credits';

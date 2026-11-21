@@ -11,10 +11,12 @@
     <p class="hint"><?= !empty($sub['cancel_at_period_end']) ? t('billing.ends_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) : t('billing.renews_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) ?></p>
     <?php if ($sub['pending_plan_key']): ?><p class="hint"><?= t('billing.switching_to', ['plan' => (plan_for($sub['pending_plan_key'])['name'] ?? ''), 'date' => ldate('F j', (int)$sub['period_end'])]) ?></p><?php endif; ?>
   <?php else: ?><p><?= t('billing.state_limited') ?></p><?php endif; ?>
+  <?php if (in_app()): ?><p class="hint"><?= t('billing.in_app_note') ?></p><?php else: ?>
   <p class="actions"><a class="btn" href="<?= url('/pricing') ?>"><?= $state === 'active' ? t('billing.change_plan') : t('billing.see_plans') ?></a>
   <?php if ($b['is_owner'] && !empty($sub['stripe_subscription_id'])): ?>
     <form method="post" action="<?= url('/billing/portal') ?>" style="display:inline"><?= csrf_field() ?><button class="btn btn--ghost" type="submit"><?= t('billing.manage_billing') ?></button></form>
   <?php endif; ?></p>
+  <?php endif; ?>
 </section>
 
 <section class="card" id="credits">
@@ -25,7 +27,8 @@
     <div><dt><?= t('billing.purchased_left') ?></dt><dd><?= (int)$bal['purchased'] ?></dd></div>
   </dl>
   <?php if ($bal['renews'] && in_array($state, ['active', 'comped'], true)): ?><p class="hint"><?= t('billing.monthly_resets', ['date' => ldate('F j', (int)$bal['renews'])]) ?></p><?php endif; ?>
-  <?php if ($b['is_owner'] || true): ?>
+  <?php if (in_app()): ?>
+  <?php elseif ($b['is_owner'] || true): ?>
   <div class="packs">
     <?php foreach ($packs as $k => $c): ?>
     <form method="post" action="<?= url('/billing/credits') ?>"><?= csrf_field() ?><input type="hidden" name="pack" value="<?= e($k) ?>">
