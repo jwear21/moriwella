@@ -758,6 +758,7 @@ return [
  'join.hello' => 'Hello, {name}. You\'ll sign in with {email}.',
  'join.save_password_and_sign' => 'Save password and sign in',
  'journal.open_the_calendar' => 'Open the calendar',
+ 'journal.open_book' => 'Read as a book',
  'journal.write_your_first_one' => 'Write your first one.',
  'journal.your_entries_will_appear' => 'Your entries will appear here.',
  'journal.your_journal' => 'Your journal',
