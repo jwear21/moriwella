@@ -304,3 +304,88 @@ section { position: relative; }
 .also { margin-top: clamp(2.5rem, 5vw, 3.5rem); color: #EEF3EF; }
 .also + .formats { margin-top: 1.25rem; }
 @media (max-width: 40rem) { .top .signup { display: none; } }
+
+/* ====== Landing polish (Nov 21): calm alternating bands, centered headings, plan cards ====== */
+:root { --mist: #E4EEE7; --mist2: #D3E3D8; }
+.head { text-align: center; max-width: 46rem; margin: 0 auto; }
+.head .section-title { max-width: none; margin-inline: auto; }
+.head .section-intro { margin-inline: auto; }
+.eyebrow { font-family: var(--sans); font-size: .82rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--moss); margin: 0 0 .85rem; display: flex; align-items: center; justify-content: center; gap: .75rem; }
+.eyebrow::before, .eyebrow::after { content: ""; width: 2rem; height: 2px; background: var(--gold); border-radius: 2px; }
+.band-deep .eyebrow { color: #F2D58F; }
+.band-sage .eyebrow, .band-sand .eyebrow { color: var(--forest); }
+
+.wave { position: absolute; left: 0; width: 100%; height: clamp(2rem, 5vw, 4.5rem); display: block; pointer-events: none; }
+.wave--top { top: -1px; }
+.band-deep, .band-sage, .closer { position: relative; }
+.band-deep { padding-top: clamp(6rem, 11vw, 9rem); }
+.band-deep .head { text-align: center; }
+.band-deep .section-intro { color: #EEF3EF; }
+
+/* inside: breathe, and give the three feature rows a soft look */
+.band-cream { background: var(--cream); }
+.rows { max-width: 62rem; margin-inline: auto; }
+.row-text h3 { font-size: clamp(1.45rem, 2.4vw, 1.8rem); }
+.mock { border: 1px solid rgba(107,143,119,.18); }
+.xcard { border: 1px solid rgba(107,143,119,.18); }
+
+/* movies band: centre the extras */
+.also { text-align: center; }
+.formats { justify-content: center; align-items: flex-end; }
+.sample-note { text-align: center; }
+.keeps { max-width: 62rem; margin-inline: auto; }
+.keeps > div { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 1.4rem 1.5rem; }
+.keeps h3 { color: #F6E3B0; }
+.band-deep .movie-demo { max-width: 66rem; margin-inline: auto; }
+.band-deep .movie-player video { box-shadow: 0 26px 50px -18px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.12); }
+
+/* celebrate: soft sage tint with the kitten */
+.band-sage { background: linear-gradient(180deg, var(--mist2), var(--mist) 60%, #EEF3EA); padding-top: clamp(6rem, 11vw, 9rem); }
+.cele-stage { margin-top: clamp(2.25rem, 5vw, 3.5rem); display: flex; flex-wrap: wrap; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; justify-content: center; }
+.cele-stage .cele { background: #FCFAF4; padding: 1.75rem 2rem; border-radius: 14px; max-width: 29rem; }
+.kitty { margin: 0; text-align: center; }
+.kitty img { width: clamp(9rem, 18vw, 12.5rem); height: auto; display: block; margin-inline: auto; filter: drop-shadow(0 14px 14px rgba(33,54,47,.22)); }
+.kitty figcaption { margin-top: .4rem; font-family: var(--serif); font-style: italic; color: var(--moss); }
+
+/* how it works as cards */
+.steps { max-width: 62rem; margin-inline: auto; }
+.steps li { background: #fff; border: 1px solid rgba(107,143,119,.25); border-top: 4px solid var(--sage); border-radius: 10px; padding: 1.4rem 1.5rem 1.6rem; box-shadow: 0 16px 28px -22px rgba(33,54,47,.5); }
+.steps li::before { width: 2.7rem; height: 2.7rem; border-radius: 50%; background: var(--forest); color: var(--cream); display: grid; place-content: center; font-size: 1.35rem; margin-bottom: .9rem; }
+
+/* privacy */
+.band-ivory { background: var(--ivory); }
+.two { max-width: 62rem; margin-inline: auto; }
+.pcard { background: var(--paper); border-radius: 12px; padding: 1.75rem 1.9rem 2rem; border: 1px solid rgba(107,143,119,.22); box-shadow: 0 18px 30px -22px rgba(33,54,47,.5); }
+.pico { width: 3rem; height: 3rem; margin-bottom: .9rem; fill: none; stroke: var(--forest); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; padding: .55rem; background: var(--mist); border-radius: 50%; box-sizing: content-box; }
+.pico circle { fill: var(--forest); stroke: none; }
+
+/* plans */
+.band-sand { background: linear-gradient(180deg, #EBDCBC, var(--sand)); }
+.band-sand .section-intro { color: var(--ink); }
+.plan-cards { margin: clamp(2rem, 5vw, 3rem) auto 0; max-width: 62rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; align-items: stretch; }
+.plan { background: var(--paper); border-radius: 14px; padding: 1.75rem 1.6rem 1.9rem; text-align: center; border: 1px solid rgba(33,54,47,.1); box-shadow: 0 18px 30px -22px rgba(33,54,47,.55); display: flex; flex-direction: column; }
+.plan h3 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; color: var(--deep); }
+.plan .price { margin: .6rem 0 .1rem; color: var(--moss); }
+.plan .price b { font-family: var(--serif); font-weight: 400; font-size: 2.7rem; color: var(--forest); letter-spacing: -.02em; }
+.plan .who { font-weight: 700; font-size: .92rem; color: var(--forest); text-transform: uppercase; letter-spacing: .08em; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(107,143,119,.3); }
+.plan .inc { color: var(--ink); font-size: 1rem; line-height: 1.55; }
+.plan--feat { background: var(--forest); color: var(--cream); transform: translateY(-.6rem); box-shadow: 0 26px 40px -22px rgba(7,59,43,.8); }
+.plan--feat h3, .plan--feat .price b { color: var(--cream); }
+.plan--feat .price { color: #D9E6DD; }
+.plan--feat .who { color: #F6E3B0; border-color: rgba(255,255,255,.25); }
+.plan--feat .inc { color: #EEF3EF; }
+.plans-note { text-align: center; margin: 1.6rem auto 0; max-width: 40rem; }
+.plans-cta { text-align: center; margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem 1.75rem; align-items: center; justify-content: center; }
+.plans-cta .btn { text-decoration: none; display: inline-block; }
+@media (max-width: 52rem) { .plan-cards { grid-template-columns: 1fr; max-width: 26rem; } .plan--feat { transform: none; } }
+
+/* closing invitation */
+.closer { background: var(--forest); color: var(--cream); text-align: center; padding: clamp(6rem, 11vw, 9rem) 0 clamp(4rem, 8vw, 6rem); }
+.closer h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(2rem, 4.4vw, 3.2rem); line-height: 1.15; }
+.closer p { margin: 1rem auto 0; max-width: 34rem; color: #E4ECE7; font-size: 1.15rem; }
+.closer .btn--sun { margin-top: .6rem; font-size: 1.05rem; padding: .85rem 1.8rem; }
+.foot { background: var(--deep); }
+@media (max-width: 52rem) {
+  .keeps > div { padding: 1.2rem 1.3rem; }
+  .cele-stage .cele { padding: 1.4rem; }
+}
