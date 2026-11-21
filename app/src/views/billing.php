@@ -10,6 +10,7 @@
   <?php elseif ($state === 'active'): ?><p><b><?= e($plan['name']) ?></b> · <?= money($plan['monthly_cents']) ?> <?= t('billing.per_month') ?><?= $sub['status'] === 'past_due' ? ' · ' . t('billing.payment_problem') : '' ?></p>
     <p class="hint"><?= !empty($sub['cancel_at_period_end']) ? t('billing.ends_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) : t('billing.renews_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) ?></p>
     <?php if ($sub['pending_plan_key']): ?><p class="hint"><?= t('billing.switching_to', ['plan' => (plan_for($sub['pending_plan_key'])['name'] ?? ''), 'date' => ldate('F j', (int)$sub['period_end'])]) ?></p><?php endif; ?>
+  <?php elseif ($refPending = referral_pending_start((int)$b['household']['id'])): ?><p><?= t('referral.friend_note', ['name' => $refPending['referrer_name']]) ?> <a class="link" href="<?= url('/pricing') ?>"><?= t('referral.pick_plan') ?></a></p>
   <?php else: ?><p><?= t('billing.state_limited') ?></p><?php endif; ?>
   <?php if (in_app()): ?><p class="hint"><?= t('billing.in_app_note') ?></p><?php else: ?>
   <p class="actions"><a class="btn" href="<?= url('/pricing') ?>"><?= $state === 'active' ? t('billing.change_plan') : t('billing.see_plans') ?></a>

@@ -1,6 +1,6 @@
 <?php $cur = $b['sub']['plan_key']; $paid = $b['state'] === 'active'; $ref = referral_pending_start((int)$b['household']['id']); ?>
 <h1 class="page-title"><?= t('billing.plans_title') ?></h1>
-<p class="subtle"><?= t('billing.plans_intro') ?></p>
+<p class="subtle"><?= $ref ? t('referral.friend_intro') : t('billing.plans_intro') ?></p>
 <?php if ($ref): ?><p class="notice"><?= t('referral.friend_note', ['name' => $ref['referrer_name']]) ?></p><?php endif; ?>
 <?php if ($b['state'] === 'trial'): ?><p class="notice"><?= t('billing.trial_note', ['date' => ldate('F j', (int)$b['sub']['trial_end'])]) ?></p><?php endif; ?>
 <div class="plans">
