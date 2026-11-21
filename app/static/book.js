@@ -10,6 +10,12 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
   function store(k,v){try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);}catch(_){} return null;}
 
+  /* The look of the book is kept on the account so it follows the person to every device. */
+  var prefsOn=false, prefsTimer=null;
+  function sendPrefs(){ clearTimeout(prefsTimer); prefsTimer=setTimeout(function(){ var fd=new FormData(); fd.append('_csrf',C.csrf); fd.append('theme',curTheme); fd.append('font',fsel); fd.append('size',szSel);
+    try{ fetch(C.prefs,{method:'POST',body:fd,credentials:'same-origin'}).catch(function(){}); }catch(e){} },600); }
+  function prefsChanged(){ if(prefsOn) sendPrefs(); }
+
   /* ---------- shell ---------- */
   root.innerHTML='<main class="desk"><div class="bookwrap" id="wrap"><div class="stage" id="stage"><div class="book" id="book"></div></div></div>'+
     '<div class="controls"><button class="arrow" id="prev" type="button" aria-label="'+esc(L.back_page)+'">&#8249;</button><div class="label" id="label" aria-live="polite"></div>'+
@@ -269,13 +275,13 @@
     },30);
   }
   function applyFont(){ root.setAttribute('data-font',effFont()); pressed(fw,fsel); }
-  function setFont(k){ fsel=k; store('mw-font',k); applyFont(); relayout(); }
+  function setFont(k){ fsel=k; store('mw-font',k); applyFont(); relayout(); prefsChanged(); }
   function setSize(k,noRelayout){
     szSel=k; if(k==='m') root.removeAttribute('data-size'); else root.setAttribute('data-size',k); PH=PHS[k];
-    document.getElementById('szName').textContent='· '+L['size_'+k]; pressed(sizesEl,k); store('mw-size',k); if(!noRelayout) relayout(); }
+    document.getElementById('szName').textContent='· '+L['size_'+k]; pressed(sizesEl,k); store('mw-size',k); if(!noRelayout) relayout(); prefsChanged(); }
   function setTheme(k,noRelayout){
     var before=effFont(); if(k==='classic') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',k); curTheme=k; applyFont();
-    document.getElementById('thName').textContent='· '+L['theme_'+k]; pressed(tw,k); store('mw-theme',k); if(!noRelayout&&before!==effFont()) relayout(); }
+    document.getElementById('thName').textContent='· '+L['theme_'+k]; pressed(tw,k); store('mw-theme',k); if(!noRelayout&&before!==effFont()) relayout(); prefsChanged(); }
   FONTS.forEach(function(f){ var b=el('button',null,(f[1]?'<b style="font-family:'+f[1]+'">Aa</b> ':'')+esc(L['font_'+f[0]])); b.type='button'; b.dataset.k=f[0]; b.onclick=function(){setFont(f[0]);}; fw.appendChild(b); });
   SZ.forEach(function(z){ var b=el('button',null,'<b style="font-size:'+z[1]+'">A</b> '+esc(L['size_'+z[0]])); b.type='button'; b.dataset.k=z[0]; b.onclick=function(){setSize(z[0]);}; sizesEl.appendChild(b); });
   THEMES.forEach(function(t){ var b=el('button',null,'<i style="background:'+t[1]+'"></i>'+esc(L['theme_'+t[0]])); b.type='button'; b.dataset.k=t[0]; b.setAttribute('aria-label',L['theme_'+t[0]]); b.title=L['theme_'+t[0]]; b.onclick=function(){setTheme(t[0]);}; tw.appendChild(b); });
@@ -446,7 +452,11 @@
   if(s0&&PHS[s0]) szSel=s0;
   setSize(szSel,true); setTheme(t0&&THEMES.some(function(t){return t[0]===t0;})?t0:'classic',true);
   fetch(C.data,{credentials:'same-origin',cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
-    DATA=d;
+    DATA=d; if(d.csrf) C.csrf=d.csrf;
+    /* the account's saved look wins; a look picked before this existed is sent up once */
+    var sp=d.prefs;
+    if(sp&&THEMES.some(function(t){return t[0]===sp.theme;})&&PHS[sp.size]&&FONTS.some(function(f){return f[0]===sp.font;})){ fsel=sp.font; setSize(sp.size,true); setTheme(sp.theme,true); prefsOn=true; }
+    else{ prefsOn=true; sendPrefs(); }
     var f=FONTFACE[effFont()]||'Newsreader';
     var ready=document.fonts?Promise.all(['400','500'].map(function(w){ return document.fonts.load(w+' 20px "'+f+'"'); })):Promise.resolve();
     ready.then(function(){ rebuild(0); afterStart(); },function(){ rebuild(0); afterStart(); });

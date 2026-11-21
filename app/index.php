@@ -383,6 +383,16 @@ if (preg_match('#^/journal/book/edit/(\d+)$#', $path, $m) && $post) {
     json_out(['ok' => true, 'id' => (int)$entry['id'], 'notes' => $errs]);
 }
 
+/* The journal book's look, saved on the account. */
+const BOOK_THEMES = ['classic','antique','midnight','garden','sea','notebook','blush','lavender','zen','sunrise','cabin'];
+const BOOK_FONTS = ['auto','newsreader','garamond','merri','nunito','elite','fell','caveat','kalam'];
+const BOOK_SIZES = ['s','m','l'];
+if ($path === '/journal/book/prefs' && $post) {
+    $t = (string)($_POST['theme'] ?? ''); $f = (string)($_POST['font'] ?? ''); $z = (string)($_POST['size'] ?? '');
+    if (!in_array($t, BOOK_THEMES, true) || !in_array($f, BOOK_FONTS, true) || !in_array($z, BOOK_SIZES, true)) json_out(['ok' => false], 400);
+    db()->prepare('INSERT INTO book_prefs (user_id, theme, font, size, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET theme = excluded.theme, font = excluded.font, size = excluded.size, updated_at = excluded.updated_at')->execute([$uid, $t, $f, $z, time()]);
+    json_out(['ok' => true]);
+}
 /* The journal as an open book: a standalone page, plus the entries as JSON. */
 if ($path === '/journal/book/data') {
     $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? ORDER BY entry_date DESC, id DESC LIMIT 200'); $s->execute([$uid]);
@@ -399,19 +409,20 @@ if ($path === '/journal/book/data') {
     }
     $first = $rows ? ldate('F Y', strtotime($rows[0]['entry_date'])) : ldate('F Y', time());
     header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+    $bq = db()->prepare('SELECT theme, font, size FROM book_prefs WHERE user_id = ?'); $bq->execute([$uid]); $bp = $bq->fetch(PDO::FETCH_ASSOC) ?: null;
     $fl = []; foreach ($faces as $n => $f) $fl[] = ['v' => $n, 'e' => $f['e'], 'l' => $f['l']];
     $cat = []; foreach (feelings_catalog() as $g => $list) { $items = []; foreach ($list as $k) { $w = tl($k); $items[] = ['k' => $k, 'l' => mb_strtoupper(mb_substr($w, 0, 1)) . mb_substr($w, 1)]; } $cat[] = ['g' => tl($g), 'items' => $items]; }
     $tf = feelings_for_day($uid, date('Y-m-d'));
     $trips = []; foreach (db()->query('SELECT id, title FROM events WHERE user_id = ' . (int)$uid . ' ORDER BY start_date DESC LIMIT 40')->fetchAll() as $ev) $trips[] = ['id' => (int)$ev['id'], 'title' => (string)$ev['title']];
     echo json_encode(['entries' => $out, 'started' => $first, 'today' => date('Y-m-d'), 'todayMd' => ldate('F j', time()), 'todayDow' => ldate('l', time()),
-        'csrf' => csrf_token(), 'faces' => $fl, 'catalog' => $cat, 'mood' => $tf['mood'], 'feelings' => $tf['feelings'], 'trips' => $trips], JSON_UNESCAPED_UNICODE);
+        'csrf' => csrf_token(), 'prefs' => $bp, 'faces' => $fl, 'catalog' => $cat, 'mood' => $tf['mood'], 'feelings' => $tf['feelings'], 'trips' => $trips], JSON_UNESCAPED_UNICODE);
     exit;
 }
 if ($path === '/journal/book') {
     $keys = ['title','home','cover_t1','cover_t2','cover_cap','belongs','started','my_journal','tagline','today','write_today','today_hint','continued','untitled','cover','title_page','back_page','next_page','zoom_page','zoom_both','scrub','customize','cust_cover','cust_style','cust_size','close','size_s','size_m','size_l','font_auto','font_newsreader','font_garamond','font_merri','font_nunito','font_elite','font_fell','font_caveat','font_kalam','theme_classic','theme_antique','theme_midnight','theme_garden','theme_sea','theme_notebook','theme_blush','theme_lavender','theme_zen','theme_sunrise','theme_cabin','empty','empty_link'];
     $keys = array_merge($keys, ['write','write_open','write_title','w_today','w_day','w_edit','w_ph','w_ph_more','w_title','w_feel','w_more_feel','w_less_feel','w_photos','w_camera','w_trip','w_trip_none','w_save','w_save_edit','w_saving','w_saved','w_wait','w_offline_saved','w_draft','w_delete','w_delete_ask','w_cancel','w_empty','w_date','w_remove_photo','w_fail','w_edit_hint','edit_page','list_view','w_pending','w_photos_n','w_dictate','w_dictate_stop','w_mic']);
     $L = []; foreach ($keys as $k) $L[$k] = tt('book.' . $k);
-    $cfg = ['L' => $L, 'name' => (string)$user['name'], 'data' => url('/journal/book/data'), 'day' => url('/day/'), 'photo' => url('/photo/'), 'home' => url('/'), 'save' => url('/journal/book/save'), 'edit' => url('/journal/book/edit/'), 'feel' => url('/journal/book/feel'), 'csrf' => csrf_token(), 'list' => url('/journal'), 'exp' => url('/experiences/')];
+    $cfg = ['L' => $L, 'name' => (string)$user['name'], 'data' => url('/journal/book/data'), 'day' => url('/day/'), 'photo' => url('/photo/'), 'home' => url('/'), 'save' => url('/journal/book/save'), 'edit' => url('/journal/book/edit/'), 'prefs' => url('/journal/book/prefs'), 'feel' => url('/journal/book/feel'), 'csrf' => csrf_token(), 'list' => url('/journal'), 'exp' => url('/experiences/')];
     echo '<!DOCTYPE html><html lang="' . e(current_lang()) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#153a2f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><title>' . e(t('book.title')) . ' | Moriwella</title>'
        . '<link rel="stylesheet" href="/app/static/book-fonts.css?v=' . asset_v('static/book-fonts.css') . '"><link rel="stylesheet" href="/app/static/book.css?v=' . asset_v('static/book.css') . '"></head>'
        . '<body style="margin:0"><div class="bk" id="bk" data-config="' . e(json_encode($cfg, JSON_UNESCAPED_UNICODE)) . '"></div><script src="/app/static/book.js?v=' . asset_v('static/book.js') . '"></script></body></html>';
