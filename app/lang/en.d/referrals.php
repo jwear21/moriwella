@@ -36,5 +36,5 @@ return [
  'referral.friend_intro' => 'Pick the plan you want. Your first 30 days are included, then each person gets two movies a month.',
  'referral.pick_plan' => 'Choose your plan',
  'referral.start_plan' => 'Start 30 days on {plan}',
- 'referral.friend_terms' => 'Your credit card is saved now and is not charged for 30 days. Cancel any time before then and you pay nothing. After that, your plan renews monthly.',
+ 'referral.friend_terms' => 'You will add a credit card to begin. It is not charged for 30 days. Cancel any time before then and you pay nothing. After that, your plan renews monthly.',
 ];
