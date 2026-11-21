@@ -24,7 +24,7 @@
             <label class="goal-icon"><input type="radio" name="icon" value="<?= e($ik) ?>"<?= ($gg['icon'] ?? ($k === 'water' ? 'glass' : 'star')) === $ik ? ' checked' : '' ?>><span aria-hidden="true"><?= e($iv) ?></span><small><?= e(tt('icon.' . $ik)) ?></small></label>
             <?php endforeach; ?>
           </fieldset>
-          <div class="goal-acts"><button class="btn" type="submit"><?= t('track.goal_save') ?></button><?php if ($gg && $k !== 'water'): ?><button class="textbtn" type="submit" name="clear" value="1" formnovalidate><?= t('track.goal_remove') ?></button><?php endif; ?></div>
+          <div class="goal-acts"><button class="btn" type="submit"><?= t('track.goal_save') ?></button><?php if (!empty($t['custom'])): ?><button class="textbtn" type="submit" formaction="<?= url('/track/custom/delete') ?>" formnovalidate onclick="return confirm('<?= e(tt('track.t_delete')) ?>?')"><?= t('track.t_delete') ?></button><?php endif; ?><?php if ($gg && $k !== 'water'): ?><button class="textbtn" type="submit" name="clear" value="1" formnovalidate><?= t('track.goal_remove') ?></button><?php endif; ?></div>
         </form>
       </details>
       <?php endif; ?>
@@ -33,6 +33,23 @@
   </ul>
 </section>
 <?php endforeach; ?>
+<section class="card write" id="make">
+  <h2 class="section-h"><?= t('track.make_tracker') ?></h2>
+  <p class="subtle"><?= t('track.make_hint') ?></p>
+  <form method="post" action="<?= url('/track/custom') ?>" class="goal-form"><?= csrf_field() ?>
+    <label><?= t('track.t_name') ?> <input name="label" maxlength="60" required placeholder="<?= t('track.t_name_ph') ?>" class="title-in"></label>
+    <label><?= t('track.t_unit') ?> <input name="unit" maxlength="20" placeholder="<?= t('track.t_unit_ph') ?>"></label>
+    <label><?= t('track.t_target') ?> <input type="number" name="target" min="1" step="any" inputmode="decimal" required></label>
+    <label><?= t('track.t_bullets') ?> <input type="number" name="bullets" min="1" max="24" step="1" inputmode="numeric" value="4"></label>
+    <p class="hint"><?= t('track.t_bullets_note') ?></p>
+    <fieldset class="goal-icons"><legend><?= t('track.goal_icon') ?></legend>
+      <?php foreach ($iconsT as $ik => $iv): ?>
+      <label class="goal-icon"><input type="radio" name="icon" value="<?= e($ik) ?>"<?= $ik === 'star' ? ' checked' : '' ?>><span aria-hidden="true"><?= e($iv) ?></span><small><?= e(tt('icon.' . $ik)) ?></small></label>
+      <?php endforeach; ?>
+    </fieldset>
+    <div class="goal-acts"><button class="btn" type="submit"><?= t('track.t_make') ?></button></div>
+  </form>
+</section>
 <section class="card write" id="goals">
   <h2 class="section-h"><?= t('track.your_own_checkmarks') ?></h2>
   <p class="subtle"><?= t('track.anything_you_want_to') ?></p>

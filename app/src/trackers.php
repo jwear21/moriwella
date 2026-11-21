@@ -50,7 +50,16 @@ function tracker_catalog_en(): array {
       ],
     ];
 }
-function tracker_flat(): array { $o = []; foreach (tracker_catalog() as $g) foreach ($g as $k => $v) $o[$k] = $v; return $o; }
+/** The signed-in person's own trackers, shaped like catalog items (number type, so any amount can be counted). */
+function tracker_custom_defs(?int $uid = null): array {
+    if ($uid === null) { $u = function_exists('current_user') ? current_user() : null; $uid = $u ? (int)$u['id'] : 0; }
+    if ($uid <= 0) return [];
+    $q = db()->prepare('SELECT id, label, unit FROM tracker_custom WHERE user_id = ? ORDER BY id'); $q->execute([$uid]);
+    $o = [];
+    foreach ($q->fetchAll() as $r) $o['c' . $r['id']] = ['label' => $r['label'], 'type' => 'number', 'unit' => $r['unit'], 'step' => 1, 'custom' => true];
+    return $o;
+}
+function tracker_flat(): array { $o = []; foreach (tracker_catalog() as $g) foreach ($g as $k => $v) $o[$k] = $v; return $o + tracker_custom_defs(); }
 function tracker_enabled(int $uid): array {
     $q = db()->prepare('SELECT tkey FROM tracker_on WHERE user_id = ?'); $q->execute([$uid]);
     $on = $q->fetchAll(PDO::FETCH_COLUMN);

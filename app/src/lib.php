@@ -467,6 +467,11 @@ function migrate(PDO $p): void {
     if ($v < 24) {
         $p->exec("ALTER TABLE user_settings ADD COLUMN celebrate_style TEXT NOT NULL DEFAULT 'fireworks'; PRAGMA user_version = 24;");
     }
+    if ($v < 25) {
+        /* A tracker the person makes themselves (for example "Poops today"); its goal and icon live in tracker_goal under the key "c<id>". */
+        $p->exec("CREATE TABLE tracker_custom (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, label TEXT NOT NULL, unit TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
+          CREATE INDEX tracker_custom_user ON tracker_custom(user_id); PRAGMA user_version = 25;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

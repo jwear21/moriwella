@@ -6,7 +6,8 @@ if ($path === '/track/feelings') {
     exit;
 }
 if ($path === '/track') {
-    render('track', ['groups' => tracker_catalog(), 'on' => array_flip(tracker_enabled($uid)), 'goals' => goals_for_day($uid, date('Y-m-d')), 'goalsT' => tracker_goals($uid), 'iconsT' => tracker_icons()], 'Track');
+    $grp = tracker_catalog(); if ($mine = tracker_custom_defs($uid)) $grp = [tt('track.my_trackers') => $mine] + $grp;
+    render('track', ['groups' => $grp, 'on' => array_flip(tracker_enabled($uid)), 'goals' => goals_for_day($uid, date('Y-m-d')), 'goalsT' => tracker_goals($uid), 'iconsT' => tracker_icons()], 'Track');
     exit;
 }
 if ($path === '/track/toggle' && $post) {
@@ -19,7 +20,7 @@ if ($path === '/track/toggle' && $post) {
             else db()->prepare('INSERT INTO tracker_on (user_id, tkey) VALUES (?, ?)')->execute([$uid, $k]);
         }
     }
-    redirect(url('/track') . '#t-' . preg_replace('/[^a-z]/', '', $k));
+    redirect(url('/track') . '#t-' . preg_replace('/[^a-z0-9]/', '', $k));
 }
 if ($path === '/track/log' && $post) {
     $k = (string)($_POST['key'] ?? ''); $day = (string)($_POST['day'] ?? ''); $flat = tracker_flat();
@@ -57,7 +58,36 @@ if ($path === '/track/goal' && $post) {
         db()->prepare('INSERT INTO tracker_goal (user_id, tkey, target, per, icon) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id, tkey) DO UPDATE SET target = excluded.target, per = excluded.per, icon = excluded.icon')->execute([$uid, $k, round($target, 2), round($per, 2), $icon]);
         flash('ok', tt('msg.goal_saved'));
     }
-    redirect(url('/track') . '#t-' . preg_replace('/[^a-z]/', '', $k));
+    redirect(url('/track') . '#t-' . preg_replace('/[^a-z0-9]/', '', $k));
+}
+if ($path === '/track/custom' && $post) {
+    /* make your own tracker: a name, what it counts, a daily target, how many bullets to split it into, and an icon */
+    $label = mb_substr(trim((string)($_POST['label'] ?? '')), 0, 60); $unit = mb_substr(trim((string)($_POST['unit'] ?? '')), 0, 20);
+    $target = (float)($_POST['target'] ?? 0); $n = (int)($_POST['bullets'] ?? 0); $icons = tracker_icons(); $icon = (string)($_POST['icon'] ?? 'star');
+    if (!isset($icons[$icon])) $icon = 'star';
+    $cnt = db()->prepare('SELECT COUNT(*) FROM tracker_custom WHERE user_id = ?'); $cnt->execute([$uid]);
+    if ($label === '' || $target <= 0) { flash('err', tt('msg.tracker_needs_name')); redirect(url('/track') . '#make'); }
+    if ((int)$cnt->fetchColumn() >= 30) { flash('err', tt('msg.tracker_limit')); redirect(url('/track') . '#make'); }
+    $target = min($target, 1000000.0); if ($n < 1) $n = 1; if ($n > 24) $n = 24; $per = round($target / $n, 2); if ($per <= 0) $per = $target;
+    db()->prepare('INSERT INTO tracker_custom (user_id, label, unit, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $label, $unit, time()]);
+    $k = 'c' . db()->lastInsertId();
+    db()->prepare('INSERT INTO tracker_on (user_id, tkey) VALUES (?, ?)')->execute([$uid, $k]);
+    db()->prepare('INSERT INTO tracker_goal (user_id, tkey, target, per, icon) VALUES (?, ?, ?, ?, ?)')->execute([$uid, $k, round($target, 2), $per, $icon]);
+    flash('ok', tt('msg.tracker_made')); redirect(url('/track') . '#t-' . $k);
+}
+if ($path === '/track/custom/delete' && $post) {
+    $k = (string)($_POST['key'] ?? '');
+    if (preg_match('/^c(\d+)$/', $k, $m)) {
+        $own = db()->prepare('SELECT 1 FROM tracker_custom WHERE id = ? AND user_id = ?'); $own->execute([(int)$m[1], $uid]);
+        if ($own->fetch()) {
+            foreach (['tracker_custom WHERE id = ' . (int)$m[1] . ' AND user_id = ?', 'tracker_on WHERE tkey = ? AND user_id = ?', 'tracker_goal WHERE tkey = ? AND user_id = ?', 'tracker_log WHERE tkey = ? AND user_id = ?', 'tracker_notes WHERE tkey = ? AND user_id = ?'] as $sql) {
+                $st = db()->prepare('DELETE FROM ' . $sql);
+                if (strpos($sql, 'tkey') !== false) $st->execute([$k, $uid]); else $st->execute([$uid]);
+            }
+            flash('ok', tt('msg.tracker_removed'));
+        }
+    }
+    redirect(url('/track'));
 }
 if ($path === '/track/note' && $post) {
     $k = (string)($_POST['key'] ?? ''); $day = (string)($_POST['day'] ?? ''); $flat = tracker_flat();
