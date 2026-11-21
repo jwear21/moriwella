@@ -1,5 +1,5 @@
 <h1 class="page-title"><?= t('journal.your_journal') ?></h1>
-<p class="subtle"><a class="link" href="<?= url('/calendar') ?>"><?= t('journal.open_the_calendar') ?></a> · <a class="link" href="<?= url('/track/feelings') ?>"><?= t('common.how_you_ve_been') ?></a></p>
+<p class="subtle"><a class="link" href="<?= url('/journal/book') ?>"><?= t('journal.open_book') ?></a> · <a class="link" href="<?= url('/calendar') ?>"><?= t('journal.open_the_calendar') ?></a> · <a class="link" href="<?= url('/track/feelings') ?>"><?= t('common.how_you_ve_been') ?></a></p>
 <?php if (!$entries): ?>
   <p class="subtle"><?= t('journal.your_entries_will_appear') ?> <a class="link" href="<?= url('/') ?>"><?= t('journal.write_your_first_one') ?></a></p>
 <?php else:

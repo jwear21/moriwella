@@ -310,6 +310,33 @@ if ($path === '/entries' && $post) {
     redirect(url('/day/' . $date));
 }
 
+/* The journal as an open book: a standalone page, plus the entries as JSON. */
+if ($path === '/journal/book/data') {
+    $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? ORDER BY entry_date DESC, id DESC LIMIT 200'); $s->execute([$uid]);
+    $rows = array_reverse($s->fetchAll());
+    $ph = photos_for_entries(array_column($rows, 'id'));
+    $moods = $rows ? feelings_moods_between($uid, $rows[0]['entry_date'], end($rows)['entry_date']) : [];
+    $faces = feelings_faces(); $out = []; $seen = [];
+    foreach ($rows as $r) {
+        $ts = strtotime($r['entry_date']); $d = $r['entry_date'];
+        $mood = (empty($seen[$d]) && !empty($moods[$d])) ? $faces[$moods[$d]]['e'] : ''; $seen[$d] = true;
+        $out[] = ['id' => (int)$r['id'], 'date' => $d, 'md' => ldate('F j', $ts), 'dow' => ldate('l', $ts), 'mood' => $mood, 'title' => (string)$r['title'], 'body' => body_plain((string)$r['body']),
+                  'photos' => array_map(fn($p) => ['id' => (int)$p['id'], 'v' => (int)$p['edited_at']], $ph[$r['id']] ?? [])];
+    }
+    $first = $rows ? ldate('F Y', strtotime($rows[0]['entry_date'])) : ldate('F Y', time());
+    header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+    echo json_encode(['entries' => $out, 'started' => $first, 'today' => date('Y-m-d'), 'todayMd' => ldate('F j', time()), 'todayDow' => ldate('l', time())], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+if ($path === '/journal/book') {
+    $keys = ['title','home','cover_t1','cover_t2','cover_cap','belongs','started','my_journal','tagline','today','write_today','today_hint','continued','untitled','cover','title_page','back_page','next_page','zoom_page','zoom_both','scrub','customize','cust_cover','cust_style','cust_size','close','size_s','size_m','size_l','font_auto','font_newsreader','font_garamond','font_merri','font_nunito','font_elite','font_fell','font_caveat','font_kalam','theme_classic','theme_antique','theme_midnight','theme_garden','theme_sea','theme_notebook','theme_blush','theme_lavender','theme_zen','theme_sunrise','theme_cabin','empty','empty_link'];
+    $L = []; foreach ($keys as $k) $L[$k] = tt('book.' . $k);
+    $cfg = ['L' => $L, 'name' => (string)$user['name'], 'data' => url('/journal/book/data'), 'day' => url('/day/'), 'photo' => url('/photo/'), 'home' => url('/')];
+    echo '<!DOCTYPE html><html lang="' . e(current_lang()) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#153a2f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><title>' . e(t('book.title')) . ' | Moriwella</title>'
+       . '<link rel="stylesheet" href="/app/static/book-fonts.css?v=' . asset_v('static/book-fonts.css') . '"><link rel="stylesheet" href="/app/static/book.css?v=' . asset_v('static/book.css') . '"></head>'
+       . '<body style="margin:0"><div class="bk" id="bk" data-config="' . e(json_encode($cfg, JSON_UNESCAPED_UNICODE)) . '"></div><script src="/app/static/book.js?v=' . asset_v('static/book.js') . '"></script></body></html>';
+    exit;
+}
 if ($path === '/journal') {
     $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? ORDER BY entry_date DESC, id DESC LIMIT 500');
     $s->execute([$uid]);
