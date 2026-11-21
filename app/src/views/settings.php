@@ -41,6 +41,10 @@
       <label class="check-row"><input type="radio" name="celebrate_style" value="baboon"<?= ($style ?? '') === 'baboon' ? ' checked' : '' ?>> <?= t('settings.style_baboon') ?></label>
       <label class="check-row"><input type="radio" name="celebrate_style" value="rocket"<?= ($style ?? '') === 'rocket' ? ' checked' : '' ?>> <?= t('settings.style_rocket') ?></label>
       <label class="check-row"><input type="radio" name="celebrate_style" value="balloons"<?= ($style ?? '') === 'balloons' ? ' checked' : '' ?>> <?= t('settings.style_balloons') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="puppy"<?= ($style ?? '') === 'puppy' ? ' checked' : '' ?>> <?= t('settings.style_puppy') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="bunny"<?= ($style ?? '') === 'bunny' ? ' checked' : '' ?>> <?= t('settings.style_bunny') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="owl"<?= ($style ?? '') === 'owl' ? ' checked' : '' ?>> <?= t('settings.style_owl') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="penguin"<?= ($style ?? '') === 'penguin' ? ' checked' : '' ?>> <?= t('settings.style_penguin') ?></label>
       <button type="button" class="textbtn" id="style-preview"><?= t('settings.preview_celebration') ?></button>
     </fieldset>
     <p class="hint"><?= t('settings.phones_and_computers_set') ?></p>

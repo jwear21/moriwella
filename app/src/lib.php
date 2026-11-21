@@ -727,7 +727,7 @@ function celebrate_size(int $uid): string {
     $s = db()->prepare('SELECT celebrate_size FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
     return $s->fetchColumn() === 'gentle' ? 'gentle' : 'big';
 }
-function celebrate_styles(): array { return ['fireworks', 'kitten', 'baboon', 'rocket', 'balloons']; }
+function celebrate_styles(): array { return ['fireworks', 'kitten', 'baboon', 'rocket', 'balloons', 'puppy', 'bunny', 'owl', 'penguin']; }
 function celebrate_style(int $uid): string {
     $s = db()->prepare('SELECT celebrate_style FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
     $v = (string)$s->fetchColumn();

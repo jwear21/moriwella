@@ -432,7 +432,103 @@
     return b.close;
   }
 
+  /* Four animal friends from artwork poses (puppy, bunny, owl, penguin). Same recipe: poses swap while the whole figure moves; sounds synthesized. */
+  function tone(at, dur, f0, f1, type, vol) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + (at || 0), o = a.createOscillator(), g = a.createGain(), v = (vol || .1) * (scale() < 1 ? .35 : 1);
+    o.type = type || "sine"; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1 || f0), t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + Math.min(.02, dur / 4)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .03);
+  }
+  function bark(at) { tone(at, .13, 520, 300, "sawtooth", .09); tone(at + .01, .13, 780, 450, "square", .03); }
+  function hopBlip(at) { tone(at, .14, 300, 640, "sine", .1); }
+  function hoot(at) { tone(at, .22, 340, 300, "sine", .12); tone(at + .3, .3, 330, 270, "sine", .12); }
+  function flap(at) { whoosh(at, .22); }
+  function slideWhistle(at) { tone(at, .8, 1400, 260, "sine", .09); }
+  function sparkleStars(b, cx, cy, n) {
+    for (var k = 0; k < n; k++) {
+      var st = document.createElement("div"), a = Math.random() * 6.283, r = 40 + Math.random() * 90;
+      st.textContent = "✦"; st.style.cssText = "position:absolute;left:" + cx + "px;top:" + cy + "px;color:#DDA12F;font-size:" + (14 + Math.random() * 18) + "px";
+      b.stage.appendChild(st);
+      b.anim(st, [{ opacity: 0, transform: "translate(0,0) scale(.2)" }, { opacity: 1, transform: "translate(" + Math.cos(a) * r * .6 + "px," + Math.sin(a) * r * .6 + "px) scale(1.1)", offset: .4 }, { opacity: 0, transform: "translate(" + Math.cos(a) * r + "px," + Math.sin(a) * r + "px) scale(.4)" }], { duration: 900 + Math.random() * 500, delay: Math.random() * 200, fill: "forwards" });
+    }
+  }
+  function confettiRain(b, n) {
+    var cols = ["#DDA12F", "#C95C5C", "#6BA3BE", "#8FB59A", "#B58CC9", "#F2C94C"], W = innerWidth, H = innerHeight;
+    for (var k = 0; k < n; k++) {
+      var c = document.createElement("div"), x = Math.random() * W;
+      c.style.cssText = "position:absolute;left:" + x + "px;top:-20px;width:" + (6 + Math.random() * 6) + "px;height:" + (10 + Math.random() * 8) + "px;background:" + cols[k % cols.length] + ";border-radius:2px";
+      b.stage.appendChild(c);
+      b.anim(c, [{ transform: "translate(0,0) rotate(0)", opacity: 1 }, { transform: "translate(" + (Math.random() - .5) * 120 + "px," + (H + 30) + "px) rotate(" + (360 + Math.random() * 540) + "deg)", opacity: 1 }], { duration: 1800 + Math.random() * 1400, delay: Math.random() * 500, easing: "ease-in", fill: "forwards" });
+    }
+  }
+  var CRIT_POSES = { puppy: ["bound", "trot", "spin", "jump"], bunny: ["hop", "air", "idle", "sparkle"], owl: ["up", "flap", "cheer", "confetti"], penguin: ["left", "right", "flipper", "slide"] }, critLoaded = {};
+  function critter(dir, o, script) {
+    if (!critLoaded[dir]) { critLoaded[dir] = 1; CRIT_POSES[dir].forEach(function (n) { (new Image()).src = "/kit/" + dir + "/" + n + ".webp"; }); }
+    var b = objBox(o), W = innerWidth, H = innerHeight, size = Math.min(W * .5, 260), top = Math.max(8, H - size - 8);
+    var d = document.createElement("div"), img = document.createElement("img");
+    d.style.cssText = "position:absolute;left:0;top:" + top + "px;width:" + size + "px;will-change:transform"; img.alt = ""; img.style.cssText = "display:block;width:100%;height:auto";
+    img.src = "/kit/" + dir + "/" + CRIT_POSES[dir][2] + ".webp"; d.appendChild(img); b.stage.appendChild(d);
+    var xc = W / 2 - size / 2, api = {
+      b: b, W: W, H: H, size: size, xc: xc, x0: -size, x1: W + 10,
+      pose: function (n) { img.src = "/kit/" + dir + "/" + n + ".webp"; },
+      tf: function (x, y, r, sc, flip) { return "translate(" + x + "px," + (y || 0) + "px) rotate(" + (r || 0) + "deg) scale(" + (flip ? -(sc || 1) : (sc || 1)) + "," + (sc || 1) + ")"; },
+      go: function (kf, dur, easing) { return b.anim(d, kf, { duration: dur, easing: easing || "ease-in-out", fill: "forwards" }); },
+      set: function (x, y, r, sc) { d.style.transform = api.tf(x, y, r, sc); },
+      /* an arc from x to x2 with height h; pose a on the way up and b on the way down */
+      arc: function (x, x2, h, dur, pa, pb, restPose) {
+        api.pose(pa); api.go([{ transform: api.tf(x) }, { transform: api.tf((x + x2) / 2, -h), offset: .5 }, { transform: api.tf(x2) }], dur, "ease-in-out");
+        b.at(dur * .5, function () { api.pose(pb); }); b.at(dur, function () { api.pose(restPose || pa); });
+      },
+      wobble: function (x, deg, cycles, dur) { var kf = []; for (var i = 0; i <= cycles * 2; i++) kf.push({ transform: api.tf(x, 0, i % 2 ? -deg : deg) }); kf.push({ transform: api.tf(x) }); return api.go(kf, dur, "linear"); },
+      at: b.at, close: b.close
+    };
+    if (calm()) { api.pose(script.restPose); api.set(xc); chime([660, 880, 1100]); b.at(o.duration || 5000, b.close); return b.close; }
+    api.set(api.x0); script.run(api); b.at(o.duration || script.length, b.close); return b.close;
+  }
+  function puppy(o) {
+    return critter("puppy", o, { restPose: "jump", length: 7000, run: function (c) {
+      var x0 = c.x0, xc = c.xc, step = (xc - x0) / 2;
+      c.at(0, function () { c.arc(x0, x0 + step, 60, 700, "bound", "trot", "trot"); hopBlip(0); });
+      c.at(700, function () { c.arc(x0 + step, xc, 60, 700, "bound", "trot", "trot"); hopBlip(0); buzz([15, 30, 15]); });
+      c.at(1500, function () { c.pose("spin"); c.wobble(xc, 6, 5, 1300); bark(0); bark(.4); buzz([30, 40, 30]); });
+      c.at(2900, function () { c.pose("jump"); c.go([{ transform: c.tf(xc) }, { transform: c.tf(xc, -150), offset: .5 }, { transform: c.tf(xc) }], 650, "ease-out"); bark(.05); sparkleStars(c.b, c.xc + c.size / 2, c.H - c.size, 10); chime([660, 880, 1100]); });
+      c.at(3700, function () { c.go([{ transform: c.tf(xc) }, { transform: c.tf(xc, -150), offset: .5 }, { transform: c.tf(xc) }], 650, "ease-out"); bark(.05); });
+      c.at(4800, function () { var x1 = c.x1, st = (x1 - xc) / 2; c.arc(xc, xc + st, 60, 600, "bound", "trot", "trot"); c.at(600, function () { c.arc(xc + st, x1, 60, 600, "bound", "trot", "trot"); }); });
+    } });
+  }
+  function bunny(o) {
+    return critter("bunny", o, { restPose: "sparkle", length: 7600, run: function (c) {
+      var x0 = c.x0, xc = c.xc, step = (xc - x0) / 3;
+      for (var i = 0; i < 3; i++) (function (i) { c.at(i * 620, function () { c.arc(x0 + step * i, x0 + step * (i + 1), 90, 620, "hop", "air", "hop"); hopBlip(.28); }); })(i);
+      c.at(1900, function () { c.pose("idle"); c.wobble(xc, 3, 4, 900); chime([784, 988]); });
+      c.at(3000, function () { c.pose("sparkle"); c.go([{ transform: c.tf(xc) }, { transform: c.tf(xc, -200), offset: .5 }, { transform: c.tf(xc) }], 800, "ease-out"); sparkleStars(c.b, c.xc + c.size / 2, c.H - c.size * .8, 16); chime([523, 659, 784, 1047]); buzz([30, 40, 60]); });
+      c.at(4200, function () { c.pose("idle"); c.wobble(xc, 3, 3, 700); });
+      c.at(5000, function () { var x1 = c.x1, st = (x1 - xc) / 3; for (var i = 0; i < 3; i++) (function (i) { c.at(i * 600, function () { c.arc(xc + st * i, xc + st * (i + 1), 90, 600, "hop", "air", "hop"); hopBlip(.26); }); })(i); });
+    } });
+  }
+  function owl(o) {
+    return critter("owl", o, { restPose: "confetti", length: 8200, run: function (c) {
+      var x0 = c.x0, xc = c.xc, hi = -(c.H - c.size) * .55, flapN = 0;
+      c.go([{ transform: c.tf(x0, hi) }, { transform: c.tf(c.W * .25, hi * 1.15), offset: .45 }, { transform: c.tf(xc, hi * .4) }], 2000, "ease-in-out");
+      for (var i = 0; i < 10; i++) (function (i) { c.at(i * 200, function () { c.pose(i % 2 ? "flap" : "up"); if (i % 2 === 0) flap(0); }); })(i);
+      c.at(2000, function () { c.pose("cheer"); c.go([{ transform: c.tf(xc, hi * .4) }, { transform: c.tf(xc, 0) }], 450, "cubic-bezier(.3,1.5,.5,1)"); hoot(.35); buzz([30, 40, 30]); });
+      c.at(3300, function () { c.pose("confetti"); confettiRain(c.b, 34); tone(0, .1, 700, 200, "square", .1); chime([523, 659, 784, 1047]); c.wobble(xc, 3, 4, 900); buzz([20, 30, 20, 30, 60]); });
+      c.at(4800, function () { c.pose("cheer"); hoot(0); });
+      c.at(5900, function () { for (var i = 0; i < 8; i++) (function (i) { c.at(i * 200, function () { c.pose(i % 2 ? "flap" : "up"); if (i % 2 === 0) flap(0); }); })(i); c.go([{ transform: c.tf(xc, 0) }, { transform: c.tf(c.W * .75, hi * .7), offset: .5 }, { transform: c.tf(c.x1, hi * 1.3) }], 1600, "ease-in"); });
+    } });
+  }
+  function penguin(o) {
+    return critter("penguin", o, { restPose: "flipper", length: 6800, run: function (c) {
+      var x0 = c.x0, xc = c.xc, kf = [];
+      for (var i = 0; i <= 8; i++) kf.push({ transform: c.tf(x0 + (xc - x0) * i / 8, 0, i % 2 ? -6 : 6) });
+      c.go(kf, 2200, "linear");
+      for (var j = 0; j < 8; j++) (function (j) { c.at(j * 275, function () { c.pose(j % 2 ? "right" : "left"); tone(0, .06, 220, 160, "triangle", .06); }); })(j);
+      c.at(2300, function () { c.pose("flipper"); c.wobble(xc, 4, 6, 1300); tone(0, .1, 700, 200, "square", .1); tone(.25, .1, 700, 200, "square", .1); chime([660, 880, 1100]); buzz([20, 30, 20, 30, 60]); });
+      c.at(3800, function () { c.pose("slide"); slideWhistle(0); buzz([40, 30, 60]); c.go([{ transform: c.tf(xc, 10, 0) }, { transform: c.tf(c.x1 + 40, 30, 0) }], 1100, "cubic-bezier(.5,0,.9,.6)"); sparkleStars(c.b, c.xc + c.size / 2, c.H - c.size * .4, 8); });
+    } });
+  }
+
   w.Moriwella = w.Moriwella || {};
-  var WALKONS = { kitten: kitten, baboon: baboon, rocket: rocket, balloons: balloons };
+  var WALKONS = { kitten: kitten, baboon: baboon, rocket: rocket, balloons: balloons, puppy: puppy, bunny: bunny, owl: owl, penguin: penguin };
   w.Moriwella.celebrate = function (o) { o = o || {}; var st = o.style || (document.body && document.body.getAttribute("data-celebrate-style")); if (o.level === "milestone" && WALKONS[st]) return WALKONS[st](o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
 })(window);
