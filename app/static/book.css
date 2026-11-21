@@ -236,3 +236,51 @@
 .tdy a{display:inline-block; font:500 14px var(--sans); color:var(--paper); background:var(--head); border-radius:999px; padding:9px 16px; text-decoration:none}
 .nobook{max-width:30rem; margin:20vh auto 0; padding:0 1.2rem; text-align:center; color:#e9dfc6; font:400 17px/1.5 var(--serif)}
 .nobook a{color:#f3d9a4}
+
+/* ---------- writing ---------- */
+.tools{position:fixed; top:calc(10px + env(safe-area-inset-top)); right:12px; z-index:20; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; max-width:calc(100% - 150px)}
+.tools .gear{position:static}
+.penb{background:#D9A02B; color:#21362F; border-color:#D9A02B; font-weight:600}
+.tdy button.tdyb{font:500 14px var(--sans); color:var(--paper); background:var(--head); border:0; border-radius:999px; padding:10px 18px; cursor:pointer}
+.pend{margin-top:8px; padding:8px 10px; border:1px dashed var(--chipb); border-radius:8px; background:var(--chip); max-width:100%}
+.pend b{font:600 12px var(--sans); color:var(--sub)} .pend p{margin:4px 0 0; font:400 13px/1.35 var(--sans); color:var(--text); overflow-wrap:anywhere}
+.mood{display:flex; align-items:flex-start; gap:6px}
+.pedit{font:400 15px/1 var(--sans); width:28px; height:28px; margin-top:1px; border:1px solid var(--rule); border-radius:50%; background:transparent; color:var(--sub); cursor:pointer; padding:0}
+.pedit:hover,.pedit:focus-visible{color:var(--head); border-color:var(--head)}
+
+.wsheet{position:fixed; inset:0; z-index:40; overflow-y:auto; -webkit-overflow-scrolling:touch; background:rgba(8,20,16,.62); padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom)); font-family:var(--sans); color:var(--text)}
+.wsheet[hidden],.wsheet [hidden]{display:none!important}
+.wpaper{max-width:560px; margin:0 auto; background:var(--paper); background-image:var(--grain); border-radius:10px; padding:16px 16px 18px; box-shadow:0 18px 50px rgba(0,0,0,.45); min-width:0}
+.wpaper *{min-width:0; box-sizing:border-box}
+.wsheet .sr{position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+.whead{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+.whead h2{margin:0; font:500 22px/1.25 var(--jf,var(--serif)); color:var(--head); overflow-wrap:break-word}
+.whead button{border:0; background:transparent; color:var(--sub); font-size:30px; line-height:1; cursor:pointer; padding:0 4px; flex:none}
+.wnote{margin:6px 0 0; font:400 13px/1.4 var(--sans); color:var(--sub)}
+.wh,.wg{margin:12px 0 6px; font:600 13px/1.3 var(--sans); color:var(--sub)}
+.wrow{display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:12px}
+.wrow label{font:600 13px var(--sans); color:var(--sub)}
+.wrow input,.wrow select{font:400 16px var(--sans); color:var(--text); background:var(--chip); border:1px solid var(--chipb); border-radius:8px; padding:8px 10px; max-width:100%; flex:1 1 11em}
+.wfaces{display:flex; flex-wrap:wrap; gap:6px}
+.wface{flex:1 1 4.2em; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; min-height:60px; border:1px solid var(--chipb); border-radius:12px; background:var(--chip); color:var(--text); cursor:pointer; font:inherit}
+.wface .e{font-size:26px; line-height:1.1} .wface .l{font:400 12px/1.2 var(--sans); color:var(--sub); overflow-wrap:anywhere; text-align:center}
+.wface[aria-checked=true]{background:var(--head); border-color:var(--head)} .wface[aria-checked=true] .l{color:var(--paper); font-weight:600}
+.wlink{margin-top:8px; background:none; border:0; padding:8px 2px; min-height:40px; font:500 14px var(--sans); color:var(--head); text-decoration:underline; cursor:pointer}
+.wchips{display:flex; flex-wrap:wrap; gap:6px}
+.wchip{padding:8px 12px; min-height:40px; border:1px solid var(--chipb); border-radius:999px; background:var(--chip); color:var(--text); font:400 14px var(--sans); cursor:pointer; max-width:100%}
+.wchip[aria-pressed=true]{background:var(--head); border-color:var(--head); color:var(--paper)}
+.wtitle{display:block; width:100%; margin-top:14px; font:500 20px/1.3 var(--jf,var(--serif)); color:var(--text); background:transparent; border:0; border-bottom:1px solid var(--rule); padding:8px 2px; outline:none}
+.wbody{display:block; width:100%; margin-top:10px; min-height:11em; font:400 18px/1.7em var(--jf,var(--serif)); color:var(--text); background:transparent; background-image:repeating-linear-gradient(180deg,transparent 0 calc(1.7em - 1px),var(--rule) calc(1.7em - 1px) 1.7em); background-attachment:local; border:0; border-left:2px solid var(--mrule); padding:0 4px 0 12px; resize:vertical; outline:none}
+.wtitle::placeholder,.wbody::placeholder{color:var(--ph); font-style:italic}
+.wtitle:focus,.wbody:focus{box-shadow:0 0 0 2px var(--chipb)}
+.wtools{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.wbtn{display:inline-flex; align-items:center; justify-content:center; text-align:center; min-height:44px; padding:10px 16px; border:1px solid var(--chipb); border-radius:999px; background:var(--chip); color:var(--head); font:600 14px/1.25 var(--sans); cursor:pointer; flex:1 1 9em}
+.wthumbs{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+.wth{position:relative; width:72px; height:72px} .wth img{width:100%; height:100%; object-fit:cover; border-radius:8px; display:block}
+.wth button{position:absolute; top:-6px; right:-6px; width:26px; height:26px; border-radius:50%; border:0; background:#21362F; color:#fff; font-size:16px; line-height:1; cursor:pointer; padding:0}
+.wmsg{margin:10px 0 0; min-height:1.3em; font:400 13px/1.4 var(--sans); color:var(--sub)} .wmsg.bad{color:#b3261e; font-weight:600}
+.wfoot{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
+.wsave{background:var(--head); color:var(--paper); border-color:var(--head); flex:2 1 12em} .wsave:disabled{opacity:.6}
+.wdel{color:#b3261e; border-color:#e3b9b6; background:transparent}
+.wtoast{position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:50; max-width:min(440px,calc(100% - 24px)); background:#21362F; color:#fff; font:500 14px/1.4 var(--sans); border-radius:12px; padding:12px 16px; box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.wtoast[hidden]{display:none}

@@ -310,6 +310,79 @@ if ($path === '/entries' && $post) {
     redirect(url('/day/' . $date));
 }
 
+/* ----- writing in the journal book ----- */
+/* Everything the writing page needs about one day: moods and feelings already chosen. */
+if ($path === '/journal/book/feel') {
+    $d = (string)($_GET['day'] ?? ''); if (!valid_date($d)) json_out(['ok' => false], 400);
+    $f = feelings_for_day($uid, $d);
+    header('Cache-Control: no-store');
+    json_out(['ok' => true, 'mood' => $f['mood'], 'feelings' => $f['feelings']]);
+}
+if ($path === '/journal/book/save' && $post) {
+    $cid = substr(preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($_POST['cid'] ?? '')), 0, 64);
+    if ($cid !== '') {
+        $dq = db()->prepare('SELECT entry_id FROM entry_saves WHERE user_id = ? AND cid = ?'); $dq->execute([$uid, $cid]);
+        if ($did = $dq->fetchColumn()) json_out(['ok' => true, 'id' => (int)$did, 'dup' => true]);
+    }
+    $date = (string)($_POST['entry_date'] ?? ''); if (!valid_date($date)) $date = date('Y-m-d');
+    $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
+    $body = mb_substr(trim(str_replace(["\r\n", "\r"], "\n", (string)($_POST['body'] ?? ''))), 0, 50000);
+    $hasPhotos = false; foreach (normalize_files('photos') as $f) { if ($f['error'] !== UPLOAD_ERR_NO_FILE) $hasPhotos = true; }
+    $mood = (int)($_POST['mood'] ?? 0); $setFeel = isset($_POST['feelings_set']);
+    if ($title === '' && $body === '' && !$hasPhotos && !$mood && !$setFeel) json_out(['ok' => false, 'error' => tt('msg.write_something_or_add')], 400);
+    $now = time(); $ts = (int)($_POST['ts'] ?? 0); if ($ts < $now - 30 * 86400 || $ts > $now + 120) $ts = $now; /* a save that waited offline keeps the time it was written */
+    $stamped = $body === '' ? '' : stamp_text($ts, $body);
+    $evId = (int)($_POST['event_id'] ?? 0); $ev = null;
+    if ($evId) { $eq = db()->prepare('SELECT * FROM events WHERE id = ? AND user_id = ?'); $eq->execute([$evId, $uid]); $ev = $eq->fetch() ?: null; }
+    $entryId = 0;
+    if ($title !== '' || $body !== '' || $hasPhotos) {
+        if ($ev) {
+            db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at, event_id, section_id) VALUES (?, ?, ?, ?, ?, ?, ?, NULL)')->execute([$uid, $date, $title, $stamped, $ts, $now, $ev['id']]);
+            $entryId = (int)db()->lastInsertId();
+        } else {
+            $mq = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? AND event_id IS NULL ORDER BY id LIMIT 1'); $mq->execute([$uid, $date]); $main = $mq->fetch();
+            if ($main) {
+                $joined = $main['body'] === '' ? $stamped : ($stamped === '' ? $main['body'] : $main['body'] . "\n\n" . $stamped);
+                db()->prepare('UPDATE entries SET body = ?, title = CASE WHEN title = \'\' THEN ? ELSE title END, updated_at = ? WHERE id = ? AND user_id = ?')->execute([mb_substr($joined, 0, 50000), $title, $now, $main['id'], $uid]);
+                $entryId = (int)$main['id'];
+            } else {
+                db()->prepare('INSERT INTO entries (user_id, entry_date, title, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')->execute([$uid, $date, $title, $stamped, $ts, $now]);
+                $entryId = (int)db()->lastInsertId();
+            }
+        }
+        $errs = save_uploaded_photos($entryId, $uid);
+    } else { $errs = []; }
+    if ($mood >= 1 && $mood <= 5) {
+        $lq = db()->prepare('SELECT value FROM mood_log WHERE user_id = ? AND day = ? ORDER BY ts DESC, id DESC LIMIT 1'); $lq->execute([$uid, $date]); $lastMood = $lq->fetchColumn();
+        if ((int)$lastMood !== $mood) db()->prepare('INSERT INTO mood_log (user_id, day, ts, value) VALUES (?, ?, ?, ?)')->execute([$uid, $date, $date === date('Y-m-d') ? $ts : 0, $mood]);
+    }
+    if ($setFeel) {
+        $want = array_values(array_unique(array_filter((array)($_POST['feelings'] ?? []), fn($f) => is_string($f) && feelings_valid($f))));
+        db()->prepare('DELETE FROM day_feelings WHERE user_id = ? AND day = ?')->execute([$uid, $date]);
+        foreach ($want as $f) db()->prepare('INSERT OR IGNORE INTO day_feelings (user_id, day, feeling) VALUES (?, ?, ?)')->execute([$uid, $date, $f]);
+    }
+    if ($cid !== '') db()->prepare('INSERT OR IGNORE INTO entry_saves (user_id, cid, entry_id, created_at) VALUES (?, ?, ?, ?)')->execute([$uid, $cid, $entryId, $now]);
+    queue_unlocked(achievements_eval($uid, ['day' => $date]));
+    json_out(['ok' => true, 'id' => $entryId, 'notes' => $errs]);
+}
+if (preg_match('#^/journal/book/edit/(\d+)$#', $path, $m) && $post) {
+    $s = db()->prepare('SELECT * FROM entries WHERE id = ? AND user_id = ?'); $s->execute([(int)$m[1], $uid]); $entry = $s->fetch();
+    if (!$entry) json_out(['ok' => false, 'error' => tt('msg.entry_not_found')], 404);
+    if (!empty($_POST['delete'])) {
+        delete_entry_photos((int)$entry['id'], $uid);
+        db()->prepare('DELETE FROM entry_photos WHERE entry_id = ? AND user_id = ?')->execute([$entry['id'], $uid]);
+        db()->prepare('DELETE FROM entries WHERE id = ? AND user_id = ?')->execute([$entry['id'], $uid]);
+        json_out(['ok' => true, 'deleted' => true]);
+    }
+    $title = mb_substr(trim((string)($_POST['title'] ?? '')), 0, 200);
+    $plain = mb_substr(trim((string)($_POST['body'] ?? '')), 0, 50000);
+    $old = body_parts($entry['body'], (int)$entry['created_at']); $new = [];
+    foreach (preg_split('/\n{2,}/', str_replace(["\r\n", "\r"], "\n", $plain)) as $i => $t) { $t = trim($t); if ($t !== '') $new[] = stamp_text((int)($old[$i]['ts'] ?? 0), $t); }
+    db()->prepare('UPDATE entries SET title = ?, body = ?, updated_at = ? WHERE id = ? AND user_id = ?')->execute([$title, implode("\n\n", $new), time(), $entry['id'], $uid]);
+    $errs = save_uploaded_photos((int)$entry['id'], $uid);
+    json_out(['ok' => true, 'id' => (int)$entry['id'], 'notes' => $errs]);
+}
+
 /* The journal as an open book: a standalone page, plus the entries as JSON. */
 if ($path === '/journal/book/data') {
     $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? ORDER BY entry_date DESC, id DESC LIMIT 200'); $s->execute([$uid]);
@@ -317,21 +390,28 @@ if ($path === '/journal/book/data') {
     $ph = photos_for_entries(array_column($rows, 'id'));
     $moods = $rows ? feelings_moods_between($uid, $rows[0]['entry_date'], end($rows)['entry_date']) : [];
     $faces = feelings_faces(); $out = []; $seen = [];
+    $evt = []; foreach (db()->query('SELECT id, title FROM events WHERE user_id = ' . (int)$uid)->fetchAll() as $ev) $evt[(int)$ev['id']] = $ev['title'];
     foreach ($rows as $r) {
         $ts = strtotime($r['entry_date']); $d = $r['entry_date'];
         $mood = (empty($seen[$d]) && !empty($moods[$d])) ? $faces[$moods[$d]]['e'] : ''; $seen[$d] = true;
-        $out[] = ['id' => (int)$r['id'], 'date' => $d, 'md' => ldate('F j', $ts), 'dow' => ldate('l', $ts), 'mood' => $mood, 'title' => (string)$r['title'], 'body' => body_plain((string)$r['body']),
+        $out[] = ['id' => (int)$r['id'], 'date' => $d, 'trip' => $r['event_id'] ? (string)($evt[(int)$r['event_id']] ?? '') : '', 'md' => ldate('F j', $ts), 'dow' => ldate('l', $ts), 'mood' => $mood, 'title' => (string)$r['title'], 'body' => body_plain((string)$r['body']),
                   'photos' => array_map(fn($p) => ['id' => (int)$p['id'], 'v' => (int)$p['edited_at']], $ph[$r['id']] ?? [])];
     }
     $first = $rows ? ldate('F Y', strtotime($rows[0]['entry_date'])) : ldate('F Y', time());
     header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
-    echo json_encode(['entries' => $out, 'started' => $first, 'today' => date('Y-m-d'), 'todayMd' => ldate('F j', time()), 'todayDow' => ldate('l', time())], JSON_UNESCAPED_UNICODE);
+    $fl = []; foreach ($faces as $n => $f) $fl[] = ['v' => $n, 'e' => $f['e'], 'l' => $f['l']];
+    $cat = []; foreach (feelings_catalog() as $g => $list) { $items = []; foreach ($list as $k) { $w = tl($k); $items[] = ['k' => $k, 'l' => mb_strtoupper(mb_substr($w, 0, 1)) . mb_substr($w, 1)]; } $cat[] = ['g' => tl($g), 'items' => $items]; }
+    $tf = feelings_for_day($uid, date('Y-m-d'));
+    $trips = []; foreach (db()->query('SELECT id, title FROM events WHERE user_id = ' . (int)$uid . ' ORDER BY start_date DESC LIMIT 40')->fetchAll() as $ev) $trips[] = ['id' => (int)$ev['id'], 'title' => (string)$ev['title']];
+    echo json_encode(['entries' => $out, 'started' => $first, 'today' => date('Y-m-d'), 'todayMd' => ldate('F j', time()), 'todayDow' => ldate('l', time()),
+        'csrf' => csrf_token(), 'faces' => $fl, 'catalog' => $cat, 'mood' => $tf['mood'], 'feelings' => $tf['feelings'], 'trips' => $trips], JSON_UNESCAPED_UNICODE);
     exit;
 }
 if ($path === '/journal/book') {
     $keys = ['title','home','cover_t1','cover_t2','cover_cap','belongs','started','my_journal','tagline','today','write_today','today_hint','continued','untitled','cover','title_page','back_page','next_page','zoom_page','zoom_both','scrub','customize','cust_cover','cust_style','cust_size','close','size_s','size_m','size_l','font_auto','font_newsreader','font_garamond','font_merri','font_nunito','font_elite','font_fell','font_caveat','font_kalam','theme_classic','theme_antique','theme_midnight','theme_garden','theme_sea','theme_notebook','theme_blush','theme_lavender','theme_zen','theme_sunrise','theme_cabin','empty','empty_link'];
+    $keys = array_merge($keys, ['write','write_open','write_title','w_today','w_day','w_edit','w_ph','w_ph_more','w_title','w_feel','w_more_feel','w_less_feel','w_photos','w_camera','w_trip','w_trip_none','w_save','w_save_edit','w_saving','w_saved','w_wait','w_offline_saved','w_draft','w_delete','w_delete_ask','w_cancel','w_empty','w_date','w_remove_photo','w_fail','w_edit_hint','edit_page','list_view','w_pending','w_photos_n']);
     $L = []; foreach ($keys as $k) $L[$k] = tt('book.' . $k);
-    $cfg = ['L' => $L, 'name' => (string)$user['name'], 'data' => url('/journal/book/data'), 'day' => url('/day/'), 'photo' => url('/photo/'), 'home' => url('/')];
+    $cfg = ['L' => $L, 'name' => (string)$user['name'], 'data' => url('/journal/book/data'), 'day' => url('/day/'), 'photo' => url('/photo/'), 'home' => url('/'), 'save' => url('/journal/book/save'), 'edit' => url('/journal/book/edit/'), 'feel' => url('/journal/book/feel'), 'csrf' => csrf_token(), 'list' => url('/journal'), 'exp' => url('/experiences/')];
     echo '<!DOCTYPE html><html lang="' . e(current_lang()) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#153a2f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/assets/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"><title>' . e(t('book.title')) . ' | Moriwella</title>'
        . '<link rel="stylesheet" href="/app/static/book-fonts.css?v=' . asset_v('static/book-fonts.css') . '"><link rel="stylesheet" href="/app/static/book.css?v=' . asset_v('static/book.css') . '"></head>'
        . '<body style="margin:0"><div class="bk" id="bk" data-config="' . e(json_encode($cfg, JSON_UNESCAPED_UNICODE)) . '"></div><script src="/app/static/book.js?v=' . asset_v('static/book.js') . '"></script></body></html>';

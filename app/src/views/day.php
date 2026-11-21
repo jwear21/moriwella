@@ -57,31 +57,10 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   </details>
 </section>
 
-<section class="card write">
-  <form method="post" action="<?= url('/entries') ?>" id="entry-form" enctype="multipart/form-data">
-    <?= csrf_field() ?>
-    <input type="hidden" name="entry_date" id="entry-date" value="<?= e($day) ?>">
-    <?php if (!$hasDay): ?>
-      <label class="sr-only" for="title"><?= t('common.title_optional') ?></label>
-      <input id="title" name="title" maxlength="200" placeholder="<?= t('common.title_optional') ?>" class="title-in journal-field">
-    <?php endif; ?>
-    <label class="sr-only" for="body"><?= t('day.what_s_on_your') ?></label>
-    <textarea id="body" name="body" rows="6" class="journal-field" placeholder="<?= $hasDay ? ($isToday ? t('day.ph_next') : t('day.ph_more')) : ($isToday ? $todayPrompt : t('day.ph_this_day')) ?>" <?= $isToday ? 'data-draft="mw-draft-body"' : '' ?>></textarea>
-    <div class="photo-pick">
-      <label class="btn btn--quiet" for="photos"><?= t('common.add_photos') ?></label>
-      <input id="photos" type="file" name="photos[]" accept="image/*" multiple class="sr-only">
-      <label class="btn btn--quiet" for="camera" id="camera-btn"><?= t('common.take_photo') ?></label>
-      <input id="camera" type="file" name="photos[]" accept="image/*" capture="environment" class="sr-only">
-      <button type="button" class="btn btn--quiet" id="dictate-btn" hidden aria-pressed="false"><?= t('common.dictate') ?></button>
-      <span class="hint" id="photo-state"></span>
-    </div>
-    <div class="thumbs" id="photo-preview"></div>
-    <div class="progress" id="upload-progress" hidden><div class="bar" id="upload-bar"></div></div>
-    <div class="write-foot">
-      <span class="hint" id="draft-state" aria-live="polite"></span>
-      <button class="btn" type="submit" id="save-btn"><?= $hasDay ? ($isToday ? t('day.btn_add_today') : t('day.btn_add_day')) : t('day.btn_save') ?></button>
-    </div>
-  </form>
+<section class="card write write-cta">
+  <p class="subtle"><?= $hasDay ? ($isToday ? t('day.cta_more_today') : t('day.cta_more_day')) : ($isToday ? $todayPrompt : t('day.ph_this_day')) ?></p>
+  <a class="btn" href="<?= url('/journal/book?write=' . $day) ?>"><?= $hasDay ? ($isToday ? t('day.btn_add_today') : t('day.btn_add_day')) : t('day.cta_write') ?></a>
+  <a class="link" href="<?= url('/journal/book') ?>"><?= t('day.cta_read') ?></a>
 </section>
 
 <h2 class="section-h"><?= $isToday ? t('day.h_so_far') : t('day.h_this_day') ?></h2>
@@ -98,7 +77,7 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
         <button type="button" class="thumb-edit" data-edit-photo="<?= (int)$p['id'] ?>" aria-label="<?= t('common.edit_this_photo') ?>"><?= t('common.edit') ?></button>
       </div>
     <?php endforeach; ?></div><?php endif; ?>
-    <p><a class="link" href="<?= url('/entries/' . $en['id']) ?>"><?= t('common.edit') ?></a></p>
+    <p><a class="link" href="<?= url('/journal/book?edit=' . $en['id']) ?>"><?= t('common.edit') ?></a></p>
   </article>
 <?php endforeach; endif; ?>
 <?php if (count(array_filter($entries, fn($e) => empty($e['event_id']))) > 1): ?>
