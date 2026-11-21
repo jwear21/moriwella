@@ -93,7 +93,8 @@ html.ts-xl .cal-n{font-size:min(1rem,15px)}
 .filebtn{display:block;max-width:100%}
 .filebtn .btn{width:100%}
 .size-pick{max-width:100%;min-width:0}
-.size-pick label{display:block;max-width:100%;overflow-wrap:break-word}
+.size-pick label{display:flex;align-items:flex-start;max-width:100%;overflow-wrap:break-word}
+.size-pick label input{margin-top:.15em}
 .size-pick legend{white-space:normal}
 .badge b,.badge .subtle,.badge small{overflow-wrap:break-word;max-width:100%}
 .size-pick legend{display:block;width:100%;box-sizing:border-box;max-width:100%}
