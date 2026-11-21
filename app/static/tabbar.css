@@ -13,3 +13,6 @@
   html.ts-tabs .tabbar a[aria-current=page]{flex:2.4 1 0}
   html.ts-tabs .tabbar a:not([aria-current=page]) span{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 }
+
+/* six tabs: tighten labels so "Experiences" fits on common phones */
+@media (max-width:430px){ html .tabbar{padding-inline:.05rem} html .tabbar a{padding-inline:0} html .tabbar a span{font-size:min(.6rem,calc(9.6px * min(var(--ts,1),1.4))); letter-spacing:-.015em} html .tabbar svg{width:22px;height:22px} }

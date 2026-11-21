@@ -271,3 +271,11 @@ function list_family(int $uid): array {
     foreach (household_members((int)$h['id']) as $m) if ($m['status'] === 'active' && (int)$m['user_id'] !== $uid && $m['user_status'] === 'active') $out[] = ['id' => (int)$m['user_id'], 'name' => $m['name'], 'email' => $m['email']];
     return $out;
 }
+
+/** What a movie cost, for the movie card: which kind of credit was spent, or that it was returned. */
+function movie_credit_note(int $movieId): array {
+    $q = db()->prepare("SELECT kind, status, SUM(-delta) AS n FROM credit_ledger WHERE movie_id = ? GROUP BY kind, status"); $q->execute([$movieId]);
+    $rows = $q->fetchAll(); $spent = ''; $returned = false;
+    foreach ($rows as $r) { if ($r['status'] === 'posted' && (int)$r['n'] > 0) $spent = $r['kind']; if ($r['status'] === 'void') $returned = true; }
+    return ['spent' => $spent, 'returned' => $returned && $spent === ''];
+}

@@ -40,7 +40,7 @@ if ($post && preg_match('#^/experiences/(\d+)/movie$#', $path, $mm)) {
             return '';
         });
         if ($res !== '') { flash('err', tt($res)); redirect(url('/billing') . '#credits'); }
-        mv_kick(); flash('ok', tt('msg.your_movie_is_in'));
+        mv_kick(); flash('ok', tt('billing.movie_started', ['n' => credits_balance($uid)['available']]));
     }
     redirect($back);
 }

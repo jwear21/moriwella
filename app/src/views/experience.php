@@ -70,10 +70,12 @@
       <?php if ($mv['status'] === 'done'): ?>
         <video controls playsinline preload="metadata" src="<?= url('/movies/' . $mv['id'] . '/file') ?>"></video>
         <p class="hint"><?= e(tl(MV_THEMES[$mv['theme']]['name'] ?? '')) ?> · <?= t('experience.movie_meta', ['seconds' => (int)round($mv['seconds']), 'mb' => round($mv['bytes'] / 1048576, 1), 'date' => ldate('M j', (int)$mv['finished_at'])]) ?></p>
+        <?php $cn = movie_credit_note((int)$mv['id']); if ($cn['spent']): ?><p class="hint"><?= t('billing.movie_used', ['kind' => t('billing.kind_' . $cn['spent'])]) ?></p><?php endif; ?>
         <p class="movie-actions"><a class="btn btn--quiet" href="<?= url('/movies/' . $mv['id'] . '/file') ?>?dl=1"><?= t('experience.download') ?></a>
           <form method="post" action="<?= url('/movies/' . $mv['id'] . '/delete') ?>" data-confirm="<?= t('experience.delete_this_movie_your') ?>"><?= csrf_field() ?><button class="btn btn--quiet" type="submit"><?= t('experience.delete') ?></button></form></p>
       <?php elseif ($mv['status'] === 'failed'): ?>
         <p class="err-text"><?= e($mv['error']) ?></p>
+        <?php if (movie_credit_note((int)$mv['id'])['returned']): ?><p class="hint"><?= t('billing.movie_returned') ?></p><?php endif; ?>
         <form method="post" action="<?= url('/movies/' . $mv['id'] . '/delete') ?>"><?= csrf_field() ?><button class="btn btn--quiet" type="submit"><?= t('experience.dismiss') ?></button></form>
       <?php else: ?>
         <p><strong class="movie-state"><?= $mv['status'] === 'queued' ? t('experience.movie_waiting') : t('experience.movie_making') ?></strong> <span class="hint movie-pct"><?= (int)$mv['progress'] ?>%</span></p>
@@ -97,7 +99,16 @@
       <input id="mv-close" name="closing" maxlength="160" placeholder="<?= t('experience.thank_you_for_the') ?>">
       <?php $cb = credits_balance((int)$user['id']); ?>
       <?php if ($cb['available'] > 0): ?>
-      <p class="hint"><?= t('billing.uses_one', ['n' => $cb['available']]) ?> <a class="link" href="<?= url('/billing') ?>#credits"><?= t('menu.buy_credits') ?></a></p>
+      <div class="credit-explain" role="note">
+        <p><strong><?= t('billing.cost_line', ['n' => $cb['available']]) ?></strong></p>
+        <ul>
+          <?php if ($cb['trial'] > 0): ?><li><?= t('billing.cost_trial', ['n' => $cb['trial']]) ?></li><?php endif; ?>
+          <?php if ($cb['included'] > 0): ?><li><?= t('billing.cost_included', ['n' => $cb['included'], 'date' => ldate('M j', (int)$cb['renews'])]) ?></li><?php endif; ?>
+          <?php if ($cb['purchased'] > 0): ?><li><?= t('billing.cost_purchased', ['n' => $cb['purchased']]) ?></li><?php endif; ?>
+        </ul>
+        <p class="hint"><?= t('billing.cost_order', ['left' => max(0, $cb['available'] - 1)]) ?></p>
+        <p class="hint"><?= t('billing.cost_retry') ?> <a class="link" href="<?= url('/billing') ?>#credits"><?= t('menu.buy_credits') ?></a></p>
+      </div>
       <button class="btn" type="submit"><?= t('experience.make_my_movie') ?></button>
       <?php else: ?>
       <p class="hint"><?= t('billing.none_left') ?></p>

@@ -594,3 +594,8 @@ label.check input { width: auto; margin-top: .3rem; }
 .style-opt{width:100%;box-sizing:border-box;max-width:100%}
 .style-opt span{flex:1 1 0;overflow-wrap:break-word}
 .style-opt small{font-weight:400}
+
+.credit-explain{margin:.75rem 0;padding:.75rem .9rem;border:1px solid #E9D8B6;border-radius:14px;background:#FFFBF0}
+.credit-explain p{margin:.25rem 0}
+.credit-explain ul{margin:.3rem 0 .45rem 1.1rem;padding:0}
+.credit-explain li{margin:.15rem 0}
