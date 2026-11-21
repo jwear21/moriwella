@@ -75,13 +75,25 @@ $reps = function ($sel) { $h = ''; foreach ([''=>t('list.rep_none'),'daily'=>t('
 <h2 class="section-h"><?= t('list.sharing') ?></h2>
 <section class="card">
   <p class="subtle"><?= t('list.owner', ['name' => $ownerName]) ?></p>
-  <?php foreach ($members as $mb): ?>
+  <?php $famIds = array_column($family, 'id'); $shared = array_column($members, 'id'); ?>
+  <?php foreach ($members as $mb): if ($isOwner && in_array((int)$mb['id'], $famIds, true)) continue; ?>
     <form method="post" action="<?= $base ?>/members/<?= $mb['id'] ?>/remove" class="member">
       <?= csrf_field() ?><span><?= e($mb['name']) ?> <small class="due"><?= e($mb['email']) ?></small></span>
       <?php if ($isOwner || (int)$mb['id'] === (int)$user['id']): ?><button class="btn btn--quiet" type="submit"><?= $isOwner ? t('common.remove') : t('list.leave') ?></button><?php endif; ?>
     </form>
   <?php endforeach; ?>
+  <?php if ($isOwner && $family): ?>
+  <form method="post" action="<?= $base ?>/share_family">
+    <?= csrf_field() ?>
+    <p class="subtle"><?= t('list.share_with_family') ?></p>
+    <?php foreach ($family as $f): ?>
+      <label class="check-row"><input type="checkbox" name="people[]" value="<?= (int)$f['id'] ?>"<?= in_array((int)$f['id'], $shared, true) ? ' checked' : '' ?>> <?= e($f['name']) ?> <small class="due"><?= e($f['email']) ?></small></label>
+    <?php endforeach; ?>
+    <button class="btn" type="submit"><?= t('list.save_sharing') ?></button>
+  </form>
+  <?php endif; ?>
   <?php if ($isOwner): ?>
+  <p class="subtle"><?= $family ? t('list.someone_outside_family') : t('list.share_by_email') ?></p>
   <form method="post" action="<?= $base ?>/share" class="inline-form">
     <?= csrf_field() ?>
     <label class="sr-only" for="semail"><?= t('list.email_of_a_moriwella') ?></label>
