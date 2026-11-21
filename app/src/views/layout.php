@@ -6,6 +6,7 @@
 <title><?= e(page_title($title)) ?> | Moriwella</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#1B4D3E">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">

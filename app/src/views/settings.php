@@ -48,6 +48,15 @@
     <button class="btn" type="submit"><?= t('settings.change_password') ?></button>
   </form>
 </details>
+<details class="card write pw">
+  <summary><?= t('account.delete_h') ?></summary>
+  <form method="post">
+    <?= csrf_field() ?><input type="hidden" name="request_delete" value="1">
+    <p><?= t('account.delete_intro') ?> <?= t('account.delete_paid') ?></p>
+    <label><?= t('account.delete_password') ?><input type="password" name="current" autocomplete="current-password" required></label>
+    <button class="btn" type="submit"><?= t('account.delete_btn') ?></button>
+  </form>
+</details>
 <section class="card write">
   <h2 class="section-h"><?= t('common.account_2') ?></h2>
   <div class="acct-actions">

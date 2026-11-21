@@ -515,6 +515,19 @@ if ($path === '/settings') {
             flash($err ? 'err' : 'ok', $err ?: tt('profile.saved')); redirect(url('/settings'));
         }
         if (isset($_POST['remove_avatar'])) { avatar_delete($uid); flash('ok', tt('profile.removed')); redirect(url('/settings')); }
+        if (isset($_POST['request_delete'])) {
+            if (!password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) { flash('err', tt('account.delete_err_pw')); redirect(url('/settings')); }
+            $stamp = date('c');
+            $ok = send_mail('support@moriwella.com', 'Account deletion request: ' . $user['email'],
+                "Delete this account within 30 days.\n\nName: " . $user['name'] . "\nEmail: " . $user['email'] . "\nUser id: " . $uid . "\nRequested: " . $stamp . "\n\nAlso stop any billing and remove the person from households.\n", (string)$user['email']);
+            @file_put_contents(data_dir() . '/deletion_requests.log', $stamp . ' uid=' . $uid . ' email=' . $user['email'] . ' mailed=' . ($ok ? 'yes' : 'no') . "\n", FILE_APPEND);
+            if ($ok) {
+                send_mail((string)$user['email'], 'We received your Moriwella account deletion request',
+                    "Hi " . $user['name'] . ",\n\nWe received your request to delete your Moriwella account and all of its content. We will finish within 30 days and email you when it is done.\n\nIf you did not ask for this, reply to this email right away.\n\nMoriwella\n", 'support@moriwella.com');
+                flash('ok', tt('account.delete_sent'));
+            } else { flash('err', tt('account.delete_err_mail')); }
+            redirect(url('/settings'));
+        }
         if (isset($_POST['change_password'])) {
             $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
             if (!$err && !password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) $err = tt('msg.your_current_password_isn');

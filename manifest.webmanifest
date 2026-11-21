@@ -1,0 +1,24 @@
+{
+  "name": "Moriwella",
+  "short_name": "Moriwella",
+  "description": "Remember your life, organize your days, and live well.",
+  "id": "/app/",
+  "start_url": "/app/?source=pwa",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF7EE",
+  "theme_color": "#1B4D3E",
+  "lang": "en-US",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    {"src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Today", "url": "/app/"},
+    {"name": "Journal", "url": "/app/journal"},
+    {"name": "Lists", "url": "/app/lists"}
+  ]
+}
