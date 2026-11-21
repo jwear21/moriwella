@@ -60,13 +60,10 @@ function household_ensure(int $uid): array {
                 $norm = billing_norm_email((string)$u['email']);
                 $claim = db()->prepare('INSERT OR IGNORE INTO trial_claims (email_norm, household_id, user_id, claimed_at) VALUES (?, ?, ?, ?)');
                 $claim->execute([$norm, $hid, $uid, $now]);
-                if ($claim->rowCount() === 1 && (int)($u['referred_by'] ?? 0) > 0 && referral_of_friend($uid)) {
-                    /* referred by a member: no app-side trial. They start 30 days with a card on file (see billing.php), so until then the account is limited */
+                if ($claim->rowCount() === 1) {
+                    /* first account for this person: no app-side trial. They pick a plan and add a card, then Stripe runs the free days (14, or 30 when a member referred them)
+                       and charges the card when they end. Until then the account is limited. Family-sized so the plan they choose can seat everyone. */
                     db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, seat_limit, updated_at) VALUES (?, 'family', 'none', ?, ?)")->execute([$hid, plan_for('family')['seats'], $now]);
-                } elseif ($claim->rowCount() === 1) {
-                    /* trial: family-sized so people can try sharing; one free credit for the whole household, never renewed */
-                    db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, trial_start, trial_end, seat_limit, updated_at) VALUES (?, 'family', 'none', ?, ?, ?, ?)")->execute([$hid, $now, $now + TRIAL_DAYS * 86400, plan_for('family')['seats'], $now]);
-                    credits_grant($uid, $hid, 'trial', 1, 'trial', 'trial:' . $norm, '', 'Free trial movie');
                 } else {
                     db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, seat_limit, updated_at) VALUES (?, 'individual', 'none', 1, ?)")->execute([$hid, $now]);
                     billing_log("trial already used for $norm (user $uid)");
@@ -75,6 +72,15 @@ function household_ensure(int $uid): array {
         }
         return household_of($uid);
     });
+}
+
+/** A household that has not yet started its free days: no subscription, no old-style trial, and its first-account claim is its own. Returns the days it gets and any referral. */
+function card_trial_pending(int $hid): ?array {
+    $s = subscription_of($hid);
+    if (!empty($s['stripe_subscription_id']) || !empty($s['comped']) || (int)$s['trial_end'] > 0 || $s['status'] !== 'none') return null;
+    $c = db()->prepare('SELECT 1 FROM trial_claims WHERE household_id = ?'); $c->execute([$hid]); if (!$c->fetchColumn()) return null;
+    $ref = referral_pending_start($hid);
+    return ['days' => $ref ? REFERRAL_FRIEND_DAYS : TRIAL_DAYS, 'ref' => $ref];
 }
 
 /** 'comped', 'trial', 'active' (paid, including a payment being retried) or 'limited'. */

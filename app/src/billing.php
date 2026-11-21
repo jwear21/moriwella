@@ -69,11 +69,16 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
                 if (!empty($sub['stripe_subscription_id']) && in_array($sub['status'], ['active', 'trialing', 'past_due'], true)) billing_back();
                 $data = ['metadata' => ['household_id' => $hid, 'plan_key' => $planKey]];
                 /* the trial was ours: a card captured during it is charged only when it ends (Stripe needs the end date at least two days away) */
-                $refStart = referral_pending_start($hid);
-                if ($refStart) $data['trial_period_days'] = REFERRAL_FRIEND_DAYS;   // a friend's 30 days: card on file, first payment after 30 days
+                $cardTrial = card_trial_pending($hid); $notice = '';
+                if ($cardTrial) {
+                    $data['trial_period_days'] = $cardTrial['days'];   // card on file now, first payment when the free days end (14, or a friend's 30)
+                    $data['trial_settings'] = ['end_behavior' => ['missing_payment_method' => 'cancel']];
+                    $notice = tt('billing.checkout_notice', ['days' => $cardTrial['days'], 'price' => money($plan['monthly_cents'])]);
+                }
                 elseif ($b['state'] === 'trial' && (int)$sub['trial_end'] > time() + 2 * 86400 + 600) $data['trial_end'] = (int)$sub['trial_end'];
                 $s = stripe_api('POST', '/v1/checkout/sessions', ['mode' => 'subscription', 'customer' => $cus, 'client_reference_id' => $hid,
                     'line_items' => [['price' => $price, 'quantity' => 1]], 'subscription_data' => $data, 'payment_method_collection' => 'always',
+                    'custom_text' => $notice !== '' ? ['submit' => ['message' => $notice]] : null,
                     'metadata' => ['kind' => 'subscription', 'plan_key' => $planKey, 'user_id' => $uid, 'household_id' => $hid],
                     'success_url' => billing_abs('/billing?subscribed=1'), 'cancel_url' => billing_abs('/pricing')]);
                 redirect($s['url']);

@@ -166,6 +166,13 @@ if (preg_match('#^/a/([a-f0-9]{32})(?:/p/(\d+)/(thumb|web|orig))?$#', $path, $al
 $user = require_login();
 $uid = (int)$user['id'];
 
+/* A new account that has not yet picked a plan and added a card only sees the plan page (and Settings, to sign out or delete the account). */
+if (!$post || $path === '/billing/subscribe') {
+    $gh = household_ensure($uid);
+    if ($gh && (int)$gh['owner_user_id'] === $uid && card_trial_pending((int)$gh['id'])
+        && !preg_match('#^(/pricing|/billing|/settings|/logout|/lang|/help)#', $path) && !preg_match('#^/(static|kit)/#', $path)) { redirect(url('/pricing')); }
+}
+
 function entries_for_day(int $uid, string $day): array {
     $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? AND entry_date = ? ORDER BY id DESC');
     $s->execute([$uid, $day]);

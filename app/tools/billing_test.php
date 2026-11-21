@@ -9,7 +9,7 @@ exec('rm -rf ' . escapeshellarg($dir)); mkdir($dir);
 putenv("MW_DATA=$dir"); chdir(__DIR__ . '/..');
 file_put_contents("$dir/stripe.php", "<?php return ['secret_key' => 'sk_test_fake', 'webhook_secret' => 'whsec_test'];");
 file_put_contents("$dir/stripe_prices.json", json_encode(['moriwella_individual_monthly' => 'price_ind', 'moriwella_family_monthly' => 'price_fam', 'moriwella_family_pro_monthly' => 'price_pro', 'moriwella_credit_single' => 'price_one', 'moriwella_credit_pack_10' => 'price_ten']));
-require 'src/lib.php'; require 'src/credits.php'; require 'src/stripe.php';
+require 'src/lib.php'; require 'src/credits.php'; require 'src/referrals.php'; require 'src/stripe.php';
 $GLOBALS['mw_stripe_http'] = function ($m, $p, $a, $i) { return ['id' => 'sub_1', 'status' => 'active', 'customer' => 'cus_1', 'items' => ['data' => [['price' => ['id' => 'price_fam'], 'current_period_start' => $GLOBALS['ps'], 'current_period_end' => $GLOBALS['ps'] + 2592000]]]]; };
 $pass = 0; $fail = 0;
 function ok(string $name, bool $c) { global $pass, $fail; echo ($c ? 'PASS  ' : 'FAIL  ') . $name . "\n"; $c ? $pass++ : $fail++; }
@@ -18,15 +18,15 @@ function mkuser(string $e, string $role = 'member', string $plan = 'free'): int 
 function ev(string $id, string $type, array $obj): array { return ['id' => $id, 'type' => $type, 'data' => ['object' => $obj]]; }
 function bal(int $u): array { return credits_balance($u); }
 
-/* 1-3 trial */
-$a = mkuser('alice@x.com'); $b0 = bal($a);
-ok('1 trial starts (14 days, trial state)', $b0['state'] === 'trial' && subscription_of((int)household_of($a)['id'])['trial_end'] - time() > 13 * 86400);
-ok('2 exactly one trial credit', $b0['trial'] === 1 && $b0['available'] === 1);
-$a2 = mkuser('alice+promo@x.com'); ok('3 no repeat trial for the same person', bal($a2)['state'] === 'limited' && bal($a2)['trial'] === 0);
-/* trial ends, no charge */
-db()->exec("UPDATE subscriptions SET trial_end = " . (time() - 10) . " WHERE household_id = " . (int)household_of($a)['id']);
-ok('4 trial end with no card: limited, no charge, credit record kept', bal($a)['state'] === 'limited' && billing_can($a, 'movies') === false && billing_can($a, 'read'));
-db()->exec("UPDATE subscriptions SET trial_end = " . (time() + 86400 * 10) . " WHERE household_id = " . (int)household_of($a)['id']);
+/* 1-4 card-first trial: no app-side trial; a card and a plan start the free days */
+$a = mkuser('alice@x.com'); $b0 = bal($a); $ha = household_of($a);
+ok('1 new account is limited until a card starts the free days', $b0['state'] === 'limited' && card_trial_pending((int)$ha['id']) !== null && card_trial_pending((int)$ha['id'])['days'] === 14);
+ok('2 no free-trial credit is granted up front', $b0['trial'] === 0 && billing_can($a, 'movies') === false && billing_can($a, 'read'));
+$a2 = mkuser('alice+promo@x.com'); bal($a2); $ha2 = household_of($a2); ok('3 no repeat free days for the same person', card_trial_pending((int)$ha2['id']) === null && bal($a2)['state'] === 'limited');
+db()->exec("UPDATE subscriptions SET trial_end = " . (time() + 86400 * 10) . ", trial_start = " . time() . " WHERE household_id = " . (int)$ha['id']);   // stand-in for an old-style trial still running
+ok('4 an old-style running trial still works and is no longer pending', bal($a)['state'] === 'trial' && card_trial_pending((int)$ha['id']) === null);
+db()->exec("UPDATE subscriptions SET trial_end = " . (time() + 86400 * 10) . " WHERE household_id = " . (int)$ha['id']);
+credits_grant($a, (int)$ha['id'], 'trial', 1, 'trial', 'trial:test', '', 'Free trial movie');
 
 /* 5 individual pays */
 $h = household_of($a); db()->prepare("UPDATE households SET stripe_customer_id='cus_1' WHERE id=?")->execute([$h['id']]);
@@ -87,8 +87,17 @@ stripe_handle_event(ev('pf', 'invoice.payment_failed', ['subscription' => 'sub_1
 ok('admin grant adds permanent credits', credits_admin_grant($a, $a, 5, 'test') === null && bal($a)['purchased'] === $pre + 5);
 
 /* 17 concurrency: 6 simultaneous renders, one credit */
-$c = mkuser('carl@x.com', 'member', 'free'); bal($c); db()->exec("UPDATE subscriptions SET trial_end = trial_end WHERE 0");
+$c = mkuser('carl@x.com', 'member', 'free'); bal($c); credits_grant($c, (int)household_of($c)['id'], 'trial', 1, 'trial', 'trial:carl', '', 'Free trial movie');
 $procs = []; for ($i = 0; $i < 6; $i++) $procs[] = popen('php ' . escapeshellarg(__FILE__) . ' worker ' . $c . ' ' . (700 + $i), 'r');
 $got = 0; foreach ($procs as $pr) { if (stream_get_contents($pr) === 'GOT') $got++; pclose($pr); }
 ok("17 six simultaneous requests, one credit: exactly 1 succeeds (got $got)", $got === 1);
+
+$madeCfg = !is_file('src/config.php'); if ($madeCfg) file_put_contents('src/config.php', "<?php return ['app_url' => 'https://example.test', 'mail_from' => 'noreply@example.test'];");   // throwaway, removed below (the real one is never committed)
+/* 18-20 card-first trial: pending until a subscription exists; the reminder email; a friend gets 30 days */
+$d = mkuser('dana@x.com'); bal($d); $hd = household_of($d); db()->prepare("UPDATE households SET stripe_customer_id='cus_dana' WHERE id=?")->execute([$hd['id']]);
+ok('18 pending until a subscription starts, then no longer pending', card_trial_pending((int)$hd['id']) !== null && (db()->prepare("UPDATE subscriptions SET stripe_subscription_id='sub_dana', status='trialing', period_start=" . time() . ", period_end=" . (time() + 14 * 86400) . " WHERE household_id=?")->execute([$hd['id']]) ? card_trial_pending((int)$hd['id']) === null : false));
+ok('19 a trialing card-on-file account is active (full plan access)', bal($d)['state'] === 'active' && billing_can($d, 'movies'));
+$r = stripe_handle_event(ev('evt_tw', 'customer.subscription.trial_will_end', ['id' => 'sub_dana', 'customer' => 'cus_dana', 'trial_end' => time() + 3 * 86400, 'items' => ['data' => [['price' => ['id' => 'price_fam']]]], 'metadata' => ['plan_key' => 'family']]));
+ok('20 trial-ending event finds the account and tries the reminder email (' . $r . ')', in_array($r, ['emailed', 'email failed'], true));
+if ($madeCfg) @unlink('src/config.php');
 echo "\n$pass passed, $fail failed\n"; exit($fail ? 1 : 0);

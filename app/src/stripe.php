@@ -164,12 +164,26 @@ function stripe_dispatch(string $type, array $o, array $ev): string {
             if ($h) { db()->prepare("UPDATE subscriptions SET status = 'past_due', updated_at = ? WHERE household_id = ? AND stripe_subscription_id IS NOT NULL")->execute([time(), $h['id']]); billing_log('payment failed for household ' . $h['id']); }
             return 'payment failed';
         }
-        case 'customer.subscription.trial_will_end': billing_log('trial ending soon: ' . ($o['id'] ?? '?')); return 'noted';
+        case 'customer.subscription.trial_will_end': return stripe_on_trial_ending($o);
         case 'charge.refunded': referral_on_charge_problem($o); return stripe_on_refund($o);
         case 'charge.dispute.created': referral_on_charge_problem($o, true); return stripe_on_dispute($o);
         case 'payment_intent.succeeded': return 'noted';   // credits and plans are granted from the checkout session, which carries our metadata
         default: return 'ignored';
     }
+}
+
+/** Three days before the free days end, tell the account owner what will be charged and when. Sent once per subscription. */
+function stripe_on_trial_ending(array $sub): string {
+    $h = billing_household_by_sub((string)($sub['id'] ?? '')) ?? billing_household_by_customer((string)($sub['customer'] ?? ''));
+    if (!$h) return 'no household';
+    $u = db()->prepare('SELECT * FROM users WHERE id = ?'); $u->execute([(int)$h['owner_user_id']]); $u = $u->fetch(); if (!$u) return 'no owner';
+    $planKey = stripe_plan_for_price(stripe_sub_price($sub))[0] ?: (string)($sub['metadata']['plan_key'] ?? 'individual'); $plan = plan_for($planKey) ?? plan_for('individual');
+    $end = (int)($sub['trial_end'] ?? 0);
+    $sent = send_mail((string)$u['email'], 'Your Moriwella free days end soon',
+        'Hi ' . $u['name'] . ",\n\nYour free days on Moriwella end on " . date('F j, Y', $end ?: time()) . '. After that your ' . $plan['name'] . ' plan renews at ' . '$' . number_format($plan['monthly_cents'] / 100, 2) . " a month, charged to the card you added.\n\n" .
+        "If Moriwella is not for you, you can cancel any time before then and pay nothing: sign in, open Billing, and choose Manage billing, at moriwella.com.\n\nThank you for trying Moriwella.\nJSW Software Designs");
+    billing_log('trial ending email to user ' . $u['id'] . ': ' . ($sent ? 'sent' : 'failed'));
+    return $sent ? 'emailed' : 'email failed';
 }
 
 function stripe_on_checkout(array $s): string {
