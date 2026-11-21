@@ -2,7 +2,7 @@
    Moriwella.celebrate({ level: "small", origin: element })            quick sparkle for an everyday check-off
    Moriwella.celebrate({ level: "splash", origin: element })           water droplets and ripples
    Moriwella.celebrate({ level: "burst", origin: element })            confetti burst for a goal
-   Moriwella.celebrate({ level: "milestone", title, sub })              fireworks and a badge you can dismiss (or the kitten walk-on when the person chose it; style:"kitten" forces it)
+   Moriwella.celebrate({ level: "milestone", title, sub })              fireworks and a badge you can dismiss (or the kitten or baboon walk-on when the person chose it; style:"kitten" or "baboon" forces it)
    Reduced motion: no particles or movement, the badge simply appears. */
 (function (w) {
   var COLORS = ["#DDA12F", "#C9A763", "#F6DE9C", "#A9C5B3", "#6B8F77", "#F9F6ED"];
@@ -253,6 +253,95 @@
     return close;
   }
 
+  /* Baboon walk-on: strolls in from the left, stands in the middle, claps, cheers "woo-hoo", turns around, shakes its red rump (boing), then strolls off.
+     Frames are in /kit/baboon/. All sounds are synthesized (no sound files). Reduced motion: the cheering baboon simply appears, with the badge. */
+  function ctx() { var AC = w.AudioContext || w.webkitAudioContext; if (!AC) return null; actx = actx || new AC(); if (actx.state === "suspended") actx.resume(); return actx; }
+  /* One vocal hoot: sawtooth through a vowel filter. from/to are pitch in Hz, vowel is the filter centre in Hz. */
+  function voice(at, dur, from, to, vowel, vol, vibrato) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + at;
+    var o = a.createOscillator(), f = a.createBiquadFilter(), g = a.createGain(), vb = a.createOscillator(), vg = a.createGain();
+    o.type = "sawtooth"; o.frequency.setValueAtTime(from, t); o.frequency.linearRampToValueAtTime(to, t + dur * .7); o.frequency.linearRampToValueAtTime(to * .92, t + dur);
+    vb.frequency.value = vibrato || 7; vg.gain.value = to * .02; vb.connect(vg); vg.connect(o.frequency);
+    f.type = "bandpass"; f.Q.value = 5; f.frequency.setValueAtTime(vowel * .8, t); f.frequency.linearRampToValueAtTime(vowel, t + dur * .5); f.frequency.linearRampToValueAtTime(vowel * 1.1, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .04); g.gain.setValueAtTime(vol, t + dur * .65); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(a.destination); o.start(t); vb.start(t); o.stop(t + dur + .05); vb.stop(t + dur + .05);
+  }
+  function vq() { return scale() < 1 ? .06 : .17; }
+  /* Happy ape chatter: "oo oo ah ah" climbing. */
+  function chatter() { var v = vq(); voice(0, .16, 330, 420, 450, v); voice(.2, .16, 360, 460, 450, v); voice(.42, .2, 420, 560, 800, v); voice(.66, .24, 450, 600, 800, v); }
+  /* "Woo-hoo!": a rising "woo" then a higher "hoo", with a wobble. */
+  function woohoo() { var v = vq() * 1.15; voice(0, .3, 260, 480, 380, v, 9); voice(.32, .46, 520, 780, 650, v, 9); }
+  /* Hand clap: a few short noise snaps. */
+  function clapSound(n) {
+    var a = ctx(); if (!a) return; var vol = scale() < 1 ? .05 : .16;
+    for (var k = 0; k < (n || 4); k++) {
+      var t = a.currentTime + .02 + k * .2, len = Math.floor(a.sampleRate * .07), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      var s = a.createBufferSource(); s.buffer = buf; var f = a.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1700; f.Q.value = .8;
+      var g = a.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .07); s.connect(f); f.connect(g); g.connect(a.destination); s.start(t);
+    }
+  }
+  /* Cartoon boing for each rump shake: a quick spring wobble. */
+  function boing(at) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + (at || 0), o = a.createOscillator(), g = a.createGain(), vol = scale() < 1 ? .04 : .12;
+    o.type = "sine"; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(520, t + .08); o.frequency.exponentialRampToValueAtTime(180, t + .3);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .32); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .35);
+  }
+  var BAB = ["walk", "clap", "cheer", "rump"], babImgs = null;
+  function babLoad() { if (!babImgs) { babImgs = {}; BAB.forEach(function (n) { var i = new Image(); i.src = "/kit/baboon/" + n + ".png"; babImgs[n] = i; }); } }
+  function baboon(o) {
+    if (openBadge) openBadge();
+    babLoad();
+    var box = document.createElement("div");
+    box.className = "mw-cele mw-kit mw-bab"; box.setAttribute("role", "status");
+    var size = Math.min(innerWidth * .52, 270);
+    box.innerHTML = '<img class="mw-kitimg" alt="" aria-hidden="true" src="/kit/baboon/walk.png" width="' + size + '">' +
+      '<div class="mw-card"><b class="mw-t"></b><span class="mw-s"></span><button type="button" class="mw-x">Done</button></div>';
+    box.querySelector(".mw-t").textContent = o.title || "Nicely done";
+    box.querySelector(".mw-s").textContent = o.sub || "";
+    var img = box.querySelector(".mw-kitimg"), timers = [], raf = 0, done = false;
+    document.body.appendChild(box);
+    function close() {
+      if (done) return; done = true; timers.forEach(clearTimeout); cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", onKey); if (box.parentNode) box.parentNode.removeChild(box); openBadge = null;
+    }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    box.querySelector(".mw-x").addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    openBadge = close;
+    function pose(n) { img.src = "/kit/baboon/" + n + ".png"; }
+    function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+    if (calm()) { pose("cheer"); woohoo(); img.style.left = "calc(50% - " + size / 2 + "px)"; at(o.duration || 7000, close); return close; }
+    var W = innerWidth, y = innerHeight - size - 8;
+    img.style.top = Math.max(8, y) + "px";
+    var x0 = -size, xm = W / 2 - size / 2, x1 = W + 10, t0 = performance.now(), walkIn = 2000, walkOut = 2000, stay = 7200;
+    var phase = "in", shake = false, sk0 = 0;
+    function setX(x, bob, rot) { img.style.transform = "translate(" + x + "px," + (bob || 0) + "px) rotate(" + (rot || 0) + "deg)"; }
+    function frame(now) {
+      var t = now - t0;
+      if (phase === "in") {
+        var p = Math.min(1, t / walkIn), e = 1 - Math.pow(1 - p, 2);
+        setX(x0 + (xm - x0) * e, -Math.abs(Math.sin(t / 190 * Math.PI)) * 10, Math.sin(t / 190 * Math.PI) * 3);
+        if (p >= 1) { phase = "stay"; setX(xm, 0, 0); pose("cheer"); buzz([20, 30, 40]); chatter();
+          at(900, function () { pose("clap"); buzz([15, 40, 15, 40]); clapSound(5); });
+          at(2400, function () { pose("cheer"); woohoo(); buzz([30, 40, 60]); });
+          at(3700, function () { pose("rump"); shake = true; sk0 = performance.now(); buzz([20, 30, 20, 30, 20, 30, 20]); boing(0); boing(.28); boing(.56); boing(.84); at(300, woohoo); });
+          at(5700, function () { shake = false; pose("cheer"); chatter(); });
+          at(stay, function () { phase = "out"; t0 = performance.now(); pose("walk"); }); }
+      } else if (phase === "stay") {
+        if (shake) { var st = (now - sk0) / 1000; setX(xm + Math.sin(st * 2 * Math.PI * 3.6) * 14, -Math.abs(Math.sin(st * 2 * Math.PI * 1.8)) * 10, Math.sin(st * 2 * Math.PI * 3.6) * 5); }
+      } else if (phase === "out") {
+        var q = Math.min(1, t / walkOut);
+        setX(xm + (x1 - xm) * q * q, -Math.abs(Math.sin(t / 190 * Math.PI)) * 10, Math.sin(t / 190 * Math.PI) * 3);
+        if (q >= 1) { phase = "gone"; img.style.visibility = "hidden"; }
+      }
+      if (phase !== "gone" && !done) raf = requestAnimationFrame(frame);
+    }
+    setX(x0, 0, 0); raf = requestAnimationFrame(frame);
+    at(o.duration || 11800, close);
+    return close;
+  }
+
   w.Moriwella = w.Moriwella || {};
-  w.Moriwella.celebrate = function (o) { o = o || {}; if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "kitten") return kitten(o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
+  w.Moriwella.celebrate = function (o) { o = o || {}; if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "kitten") return kitten(o); if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "baboon") return baboon(o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
 })(window);
