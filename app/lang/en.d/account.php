@@ -9,4 +9,5 @@ return [
  'account.delete_sent' => 'We received your request. A confirmation is on its way to your email.',
  'account.delete_err_pw' => 'That password is not right. Your request was not sent.',
  'account.delete_err_mail' => 'We could not send your request. Please email support@moriwella.com from this account\'s address.',
+ 'billing.in_app_note' => 'To change your plan or buy movie credits, sign in at moriwella.com in your web browser. Your plan and movies work the same here.',
 ];
