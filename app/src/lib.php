@@ -449,6 +449,9 @@ function migrate(PDO $p): void {
           CREATE INDEX referrals_referrer ON referrals (referrer_id, id);
           PRAGMA user_version = 19;");
     }
+    if ($v < 20) {
+        $p->exec("ALTER TABLE users ADD COLUMN referral_terms_at INTEGER NOT NULL DEFAULT 0; PRAGMA user_version = 20;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

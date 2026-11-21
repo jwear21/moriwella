@@ -22,7 +22,8 @@ function referral_code(int $uid): string {
 function referral_link(int $uid): string { return rtrim((string)cfg('app_url'), '/') . url('/r/' . referral_code($uid)); }
 function referrer_by_code(string $code): ?array {
     if (!preg_match('/^[a-z0-9]{6,12}$/', $code)) return null;
-    $q = db()->prepare("SELECT id, name, email FROM users WHERE referral_code = ? AND status = 'active'"); $q->execute([$code]); return $q->fetch() ?: null;
+    $q = db()->prepare("SELECT id, name, email FROM users WHERE referral_code = ? AND status = 'active' AND referral_terms_at > 0");
+    $q->execute([$code]); return $q->fetch() ?: null;   // the link only works once the member has agreed to the rules
 }
 /** Called when a brand-new account is created from the signup form: remembers who sent them. Existing accounts never qualify. */
 function referral_record_signup(int $friendId, string $friendEmail): void {
@@ -112,7 +113,13 @@ function referrals_public_route(string $path): void {
     }
 }
 function referrals_member_routes(int $uid, array $user, string $path): void {
+    if ($path === '/invite/agree' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (empty($_POST['agree'])) { flash('err', tt('invite.err_agree')); redirect(url('/invite')); }
+        db()->prepare('UPDATE users SET referral_terms_at = ? WHERE id = ? AND referral_terms_at = 0')->execute([time(), $uid]);
+        redirect(url('/invite'));
+    }
     if ($path !== '/invite') return;
-    render('invite', ['link' => referral_link($uid), 'rows' => referral_summary($uid), 'creditsReward' => REFERRAL_CREDITS_REWARD, 'b' => billing_for($uid)], tt('invite.title'));
+    $q = db()->prepare('SELECT referral_terms_at FROM users WHERE id = ?'); $q->execute([$uid]); $agreed = (int)$q->fetchColumn() > 0;
+    render('invite', ['agreed' => $agreed, 'link' => $agreed ? referral_link($uid) : '', 'rows' => $agreed ? referral_summary($uid) : [], 'creditsReward' => REFERRAL_CREDITS_REWARD, 'b' => billing_for($uid)], tt('invite.title'));
     exit;
 }
