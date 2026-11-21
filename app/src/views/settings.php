@@ -39,6 +39,8 @@
       <label class="check-row"><input type="radio" name="celebrate_style" value="fireworks"<?= ($style ?? 'fireworks') === 'fireworks' ? ' checked' : '' ?>> <?= t('settings.style_fireworks') ?></label>
       <label class="check-row"><input type="radio" name="celebrate_style" value="kitten"<?= ($style ?? '') === 'kitten' ? ' checked' : '' ?>> <?= t('settings.style_kitten') ?></label>
       <label class="check-row"><input type="radio" name="celebrate_style" value="baboon"<?= ($style ?? '') === 'baboon' ? ' checked' : '' ?>> <?= t('settings.style_baboon') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="rocket"<?= ($style ?? '') === 'rocket' ? ' checked' : '' ?>> <?= t('settings.style_rocket') ?></label>
+      <label class="check-row"><input type="radio" name="celebrate_style" value="balloons"<?= ($style ?? '') === 'balloons' ? ' checked' : '' ?>> <?= t('settings.style_balloons') ?></label>
       <button type="button" class="textbtn" id="style-preview"><?= t('settings.preview_celebration') ?></button>
     </fieldset>
     <p class="hint"><?= t('settings.phones_and_computers_set') ?></p>

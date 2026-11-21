@@ -342,6 +342,97 @@
     return close;
   }
 
+  /* Object celebrations (no artwork files): a rocket launch and a bunch of rising balloons. Sounds are synthesized. */
+  function objBox(o) {
+    if (openBadge) openBadge();
+    var box = document.createElement("div");
+    box.className = "mw-cele mw-kit mw-obj"; box.setAttribute("role", "status");
+    box.innerHTML = '<div class="mw-stage" aria-hidden="true" style="position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:101"></div>' +
+      '<div class="mw-card"><b class="mw-t"></b><span class="mw-s"></span><button type="button" class="mw-x">Done</button></div>';
+    box.querySelector(".mw-t").textContent = o.title || "Nicely done";
+    box.querySelector(".mw-s").textContent = o.sub || "";
+    var timers = [], done = false, anims = [];
+    document.body.appendChild(box);
+    function close() {
+      if (done) return; done = true; timers.forEach(clearTimeout); anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+      document.removeEventListener("keydown", onKey); if (box.parentNode) box.parentNode.removeChild(box); openBadge = null;
+    }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    box.querySelector(".mw-x").addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    openBadge = close;
+    return { box: box, stage: box.querySelector(".mw-stage"), close: close, at: function (ms, fn) { timers.push(setTimeout(fn, ms)); }, anim: function (el, kf, op) { var a = el.animate(kf, op); anims.push(a); return a; } };
+  }
+  /* A sweet little chime: rising notes. */
+  function chime(notes) {
+    var a = ctx(); if (!a) return; var vol = scale() < 1 ? .03 : .09;
+    notes.forEach(function (hz, i) {
+      var t = a.currentTime + .02 + i * .11, o = a.createOscillator(), g = a.createGain(); o.type = "triangle"; o.frequency.value = hz;
+      g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .5);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .55);
+    });
+  }
+  function beep(at, hz) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + at, o = a.createOscillator(), g = a.createGain(), vol = scale() < 1 ? .03 : .08;
+    o.type = "square"; o.frequency.value = hz; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + .14); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + .16);
+  }
+  /* Whoosh: filtered noise whose pitch climbs. */
+  function whoosh(at, sec) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + at, len = Math.floor(a.sampleRate * sec), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    var n = a.createBufferSource(); n.buffer = buf; var f = a.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2; f.frequency.setValueAtTime(300, t); f.frequency.exponentialRampToValueAtTime(2800, t + sec * .9);
+    var g = a.createGain(), vol = scale() < 1 ? .06 : .2; g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + sec * .25); g.gain.exponentialRampToValueAtTime(.0001, t + sec);
+    n.connect(f); f.connect(g); g.connect(a.destination); n.start(t);
+  }
+  /* Balloon pop: a tiny noise burst. */
+  function pop(at) {
+    var a = ctx(); if (!a) return; var t = a.currentTime + .02 + at, len = Math.floor(a.sampleRate * .06), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+    var n = a.createBufferSource(); n.buffer = buf; var f = a.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 2200;
+    var g = a.createGain(); g.gain.value = scale() < 1 ? .06 : .18; n.connect(f); f.connect(g); g.connect(a.destination); n.start(t);
+  }
+  var ROCKET_SVG = '<svg viewBox="0 0 120 220" width="100%" xmlns="http://www.w3.org/2000/svg"><path d="M60 8C84 34 92 78 90 128H30C28 78 36 34 60 8Z" fill="#FBF7EE" stroke="#1B4D3E" stroke-width="4"/><path d="M60 8C70 20 77 34 81 50H39C43 34 50 20 60 8Z" fill="#DDA12F"/><circle cx="60" cy="86" r="17" fill="#8FB59A" stroke="#1B4D3E" stroke-width="4"/><circle cx="54" cy="80" r="5" fill="#FBF7EE" opacity=".8"/><path d="M30 104L8 146 30 138Z M90 104L112 146 90 138Z" fill="#1B4D3E"/><rect x="42" y="128" width="36" height="12" rx="3" fill="#1B4D3E"/><g class="flame"><path d="M46 140Q60 210 74 140Z" fill="#DDA12F"/><path d="M52 140Q60 184 68 140Z" fill="#FBF7EE"/></g></svg>';
+  function rocket(o) {
+    var b = objBox(o), W = innerWidth, H = innerHeight, size = Math.min(W * .3, 150);
+    if (calm()) { b.stage.innerHTML = '<div style="position:absolute;left:calc(50% - ' + size / 2 + 'px);bottom:6vh;width:' + size + 'px">' + ROCKET_SVG + '</div>'; chime([660, 880, 1100]); b.at(o.duration || 6000, b.close); return b.close; }
+    var r = document.createElement("div"); r.style.cssText = "position:absolute;left:" + (W / 2 - size / 2) + "px;top:" + (H - size * 1.9) + "px;width:" + size + "px"; r.innerHTML = ROCKET_SVG; b.stage.appendChild(r);
+    var fl = r.querySelector(".flame"); fl.style.transformOrigin = "60px 140px"; b.anim(fl, [{ transform: "scaleY(.7)" }, { transform: "scaleY(1.25)" }, { transform: "scaleY(.8)" }], { duration: 180, iterations: Infinity });
+    beep(0, 520); beep(.5, 520); beep(1, 520); beep(1.5, 880); buzz([20, 30, 20, 30, 20, 30, 80]);
+    b.anim(r, [{ transform: "translate(0,0)" }, { transform: "translate(-3px,0)" }, { transform: "translate(3px,1px)" }, { transform: "translate(-3px,-1px)" }, { transform: "translate(0,0)" }], { duration: 120, iterations: 13 });
+    b.at(1600, function () {
+      whoosh(0, 1.6); buzz([40, 40, 80]);
+      b.anim(r, [{ transform: "translateY(0)" }, { transform: "translateY(" + -(H + size * 2) + "px)" }], { duration: 1700, easing: "cubic-bezier(.5,0,.9,.4)", fill: "forwards" });
+      for (var i = 0; i < 16; i++) (function (i) { b.at(i * 90, function () {
+        var p = document.createElement("div"), x = W / 2 + (Math.random() - .5) * size * .5, y = H - size * .5 - (H * .9) * (i / 16) * .7, d = 24 + Math.random() * 26;
+        p.style.cssText = "position:absolute;left:" + (x - d / 2) + "px;top:" + y + "px;width:" + d + "px;height:" + d + "px;border-radius:50%;background:rgba(251,247,238,.85)"; b.stage.appendChild(p);
+        b.anim(p, [{ opacity: .9, transform: "scale(.5)" }, { opacity: 0, transform: "scale(2.2) translateY(30px)" }], { duration: 900, fill: "forwards" }); }); })(i);
+    });
+    b.at(3000, function () { chime([660, 880, 1100, 1320]);
+      for (var k = 0; k < 14; k++) { var st = document.createElement("div"), x = Math.random() * W, y = Math.random() * H * .5; st.textContent = "✦"; st.style.cssText = "position:absolute;left:" + x + "px;top:" + y + "px;color:#DDA12F;font-size:" + (16 + Math.random() * 22) + "px";
+        b.stage.appendChild(st); b.anim(st, [{ opacity: 0, transform: "scale(.2) rotate(0)" }, { opacity: 1, transform: "scale(1.1) rotate(90deg)", offset: .4 }, { opacity: 0, transform: "scale(.4) rotate(180deg)" }], { duration: 1200 + Math.random() * 600, delay: Math.random() * 500, fill: "forwards" }); } });
+    b.at(o.duration || 7500, b.close);
+    return b.close;
+  }
+  var BAL = ["#1B4D3E", "#DDA12F", "#C95C5C", "#8FB59A", "#F2C94C", "#6BA3BE", "#B58CC9"];
+  function balloons(o) {
+    var b = objBox(o), W = innerWidth, H = innerHeight, n = Math.max(9, Math.min(16, Math.round(W / 40)));
+    chime([523, 659, 784, 1047]);
+    for (var i = 0; i < n; i++) (function (i) {
+      var s = 46 + Math.random() * 26, x = Math.random() * (W - s), col = BAL[i % BAL.length], el = document.createElement("div");
+      el.style.cssText = "position:absolute;left:" + x + "px;top:" + H + "px;width:" + s + "px";
+      el.innerHTML = '<svg viewBox="0 0 60 100" width="100%" xmlns="http://www.w3.org/2000/svg"><path d="M30 2C12 2 4 18 6 34c2 18 16 30 24 34 8-4 22-16 24-34C56 18 48 2 30 2Z" fill="' + col + '"/><ellipse cx="20" cy="22" rx="6" ry="10" fill="#fff" opacity=".35" transform="rotate(-20 20 22)"/><path d="M26 68h8l-4 6z" fill="' + col + '"/><path d="M30 74c-6 8 6 14 0 24" fill="none" stroke="#1B4D3E" stroke-width="1.5" opacity=".6"/></svg>';
+      b.stage.appendChild(el);
+      var delay = calm() ? 0 : i * 140, rise = calm() ? 0 : H + s * 2, sway = (Math.random() - .5) * 90;
+      if (calm()) { el.style.top = (H * .2 + Math.random() * H * .5) + "px"; return; }
+      b.anim(el, [{ transform: "translate(0,0)" }, { transform: "translate(" + sway + "px," + -rise * .5 + "px)", offset: .5 }, { transform: "translate(" + -sway + "px," + -rise + "px)" }], { duration: 3400 + Math.random() * 1600, delay: delay, easing: "ease-in", fill: "forwards" });
+      if (i % 3 === 0) b.at(delay + 1200 + Math.random() * 1200, function () { pop(0); });
+    })(i);
+    buzz([20, 30, 20, 30, 40]);
+    b.at(o.duration || 7000, b.close);
+    return b.close;
+  }
+
   w.Moriwella = w.Moriwella || {};
-  w.Moriwella.celebrate = function (o) { o = o || {}; if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "kitten") return kitten(o); if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "baboon") return baboon(o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
+  var WALKONS = { kitten: kitten, baboon: baboon, rocket: rocket, balloons: balloons };
+  w.Moriwella.celebrate = function (o) { o = o || {}; var st = o.style || (document.body && document.body.getAttribute("data-celebrate-style")); if (o.level === "milestone" && WALKONS[st]) return WALKONS[st](o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
 })(window);

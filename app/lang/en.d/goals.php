@@ -23,6 +23,8 @@ return [
  'settings.celebration_style' => 'Goal celebration',
  'settings.style_fireworks' => 'Fireworks and confetti',
  'settings.style_kitten' => 'A kitten walks on, licks a paw and cheers',
+ 'settings.style_rocket' => 'A rocket counts down and blasts off into the stars',
+ 'settings.style_balloons' => 'Colorful balloons float up and pop',
  'settings.style_baboon' => 'A baboon strolls on, claps, cheers and shakes its red bottom',
  'settings.preview_celebration' => 'Preview',
  'js.kitten_alt' => 'A kitten cheering you on',
