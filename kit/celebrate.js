@@ -148,6 +148,59 @@
 
   /* Kitten walk-on: the kitten trots in from the left, sits in the middle, licks a paw, claps, cheers, then trots off to the right.
      Frames are in /kit/kitten/. Reduced motion: the cheering kitten simply appears, with the badge. */
+
+  /* Meow: a short synthesized "mrrow" (rising then falling pitch through a vowel-like filter). No sound files. Quieter when the person chose gentle. */
+  var actx = null;
+  function meow(v, pitch) {
+    try {
+      var AC = w.AudioContext || w.webkitAudioContext; if (!AC) return;
+      actx = actx || new AC(); if (actx.state === "suspended") actx.resume();
+      var t = actx.currentTime + .02, d = .55 + Math.random() * .1, base = (pitch || 1) * (600 + Math.random() * 60), vol = (scale() < 1 ? .05 : .13) * (v || 1);
+      var o = actx.createOscillator(), o2 = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain(), vib = actx.createOscillator(), vg = actx.createGain();
+      o.type = "sawtooth"; o2.type = "triangle";
+      o.frequency.setValueAtTime(base * .8, t); o.frequency.linearRampToValueAtTime(base * 1.45, t + d * .35); o.frequency.exponentialRampToValueAtTime(base * .85, t + d);
+      o2.frequency.setValueAtTime(base * 1.6, t); o2.frequency.linearRampToValueAtTime(base * 2.9, t + d * .35); o2.frequency.exponentialRampToValueAtTime(base * 1.7, t + d);
+      vib.frequency.value = 22; vg.gain.value = 9; vib.connect(vg); vg.connect(o.frequency);
+      f.type = "bandpass"; f.Q.value = 4; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(2300, t + d * .4); f.frequency.linearRampToValueAtTime(1100, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + .06); g.gain.setValueAtTime(vol, t + d * .6); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(actx.destination);
+      o.start(t); o2.start(t); vib.start(t); o.stop(t + d + .05); o2.stop(t + d + .05); vib.stop(t + d + .05);
+    } catch (e) {}
+  }
+
+  /* Purr: low rumble whose loudness pulses about 25 times a second. */
+  function purr(sec, v) {
+    try {
+      var AC = w.AudioContext || w.webkitAudioContext; if (!AC) return;
+      actx = actx || new AC(); if (actx.state === "suspended") actx.resume();
+      var t = actx.currentTime + .02, vol = (scale() < 1 ? .04 : .11) * (v || 1);
+      var n = actx.createBufferSource(), len = actx.sampleRate * 2, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      n.buffer = buf; n.loop = true;
+      var f = actx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 220; f.Q.value = 2;
+      var am = actx.createGain(), g = actx.createGain(), lfo = actx.createOscillator(), lg = actx.createGain();
+      am.gain.value = .5; lfo.frequency.value = 25; lg.gain.value = .5; lfo.connect(lg); lg.connect(am.gain);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 4, t + .25); g.gain.setValueAtTime(vol * 4, t + sec - .3); g.gain.linearRampToValueAtTime(0.0001, t + sec);
+      n.connect(f); f.connect(am); am.connect(g); g.connect(actx.destination);
+      n.start(t); lfo.start(t); n.stop(t + sec + .05); lfo.stop(t + sec + .05);
+    } catch (e) {}
+  }
+  /* Lick: a few quick wet swishes. */
+  function lick(count) {
+    try {
+      var AC = w.AudioContext || w.webkitAudioContext; if (!AC) return;
+      actx = actx || new AC(); if (actx.state === "suspended") actx.resume();
+      var vol = scale() < 1 ? .03 : .09;
+      for (var k = 0; k < (count || 3); k++) {
+        var t = actx.currentTime + .02 + k * .32, len = Math.floor(actx.sampleRate * .16), buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+        for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * i / len);
+        var n = actx.createBufferSource(); n.buffer = buf;
+        var f = actx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 3; f.frequency.setValueAtTime(2600, t); f.frequency.linearRampToValueAtTime(4800, t + .14);
+        var g = actx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + .16);
+        n.connect(f); f.connect(g); g.connect(actx.destination); n.start(t);
+      }
+    } catch (e) {}
+  }
   var KIT = ["sit", "walk1", "walk2", "lick", "clap", "cheer"], kitImgs = null;
   function kitLoad() { if (!kitImgs) { kitImgs = {}; KIT.forEach(function (n) { var i = new Image(); i.src = "/kit/kitten/" + n + ".png"; kitImgs[n] = i; }); } }
   function kitten(o) {
@@ -172,7 +225,7 @@
     openBadge = close;
     function pose(n) { img.src = "/kit/kitten/" + n + ".png"; }
     function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
-    if (calm()) { pose("cheer"); img.style.left = "calc(50% - " + size / 2 + "px)"; at(o.duration || 7000, close); return close; }
+    if (calm()) { pose("cheer"); meow(.8, 1.1); img.style.left = "calc(50% - " + size / 2 + "px)"; at(o.duration || 7000, close); return close; }
     var W = innerWidth, y = innerHeight - size * 1.02 - 8;
     img.style.top = Math.max(8, y) + "px";
     var x0 = -size, xm = W / 2 - size / 2, x1 = W + 10, t0 = performance.now(), walkIn = 2200, walkOut = 2200, stay = 4600;
@@ -184,8 +237,8 @@
         var p = Math.min(1, t / walkIn), e = 1 - Math.pow(1 - p, 2);
         setX(x0 + (xm - x0) * e, -Math.abs(Math.sin(t / 170 * Math.PI)) * 6);
         if (p < 1) { if (img.getAttribute("data-p") !== step) { pose(step); img.setAttribute("data-p", step); } }
-        else { phase = "stay"; setX(xm, 0); pose("sit"); img.setAttribute("data-p", "sit"); buzz([20, 30, 40]);
-          at(500, function () { pose("lick"); }); at(1900, function () { pose("clap"); buzz([15, 40, 15, 40]); }); at(3000, function () { pose("cheer"); buzz([30, 40, 60]); });
+        else { phase = "stay"; setX(xm, 0); pose("sit"); img.setAttribute("data-p", "sit"); buzz([20, 30, 40]); meow(1, 1);
+          at(500, function () { pose("lick"); lick(4); }); at(1900, function () { pose("clap"); buzz([15, 40, 15, 40]); purr(1.4, 1); }); at(3000, function () { pose("cheer"); buzz([30, 40, 60]); meow(1.1, 1.25); });
           at(stay, function () { phase = "out"; t0 = performance.now(); }); }
       } else if (phase === "out") {
         var q = Math.min(1, t / walkOut);
