@@ -36,7 +36,7 @@
     <?php
       /* Everything a member needs about their plan and movie credits lives in this one menu. A hiccup here must never break a page. */
       $am = null;
-      try { $amb = billing_for((int)$user['id']); $amc = credits_balance((int)$user['id']); $am = ['state' => $amb['state'], 'plan' => $amb['plan'], 'sub' => $amb['sub'], 'owner' => $amb['is_owner'], 'n' => (int)$amc['available']]; } catch (Throwable $e) { $am = null; }
+      try { $amb = billing_for((int)$user['id']); $amc = credits_balance((int)$user['id']); $am = ['state' => $amb['state'], 'plan' => $amb['plan'], 'sub' => $amb['sub'], 'owner' => $amb['is_owner'], 'n' => (int)$amc['available']]; } catch (Throwable $e) { $am = null; @file_put_contents(data_dir() . '/error.log', date('c') . ' menu billing: ' . $e->getMessage() . "\n", FILE_APPEND); }
     ?>
     <div class="acct" data-acct>
       <button class="acct-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="acct-panel" aria-label="<?= $am ? t('menu.open_n', ['n' => $am['n']]) : t('menu.open') ?>">
