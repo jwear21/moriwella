@@ -389,3 +389,17 @@ section { position: relative; }
   .keeps > div { padding: 1.2rem 1.3rem; }
   .cele-stage .cele { padding: 1.4rem; }
 }
+
+/* Celebration cast */
+.cast{list-style:none;margin:40px auto 0;padding:0;display:grid;grid-template-columns:repeat(6,1fr);gap:14px;max-width:960px}
+.cast li{display:flex;flex-direction:column;align-items:center;text-align:center;background:rgba(255,255,255,.55);border-radius:16px;padding:14px 8px 12px}
+.cast img{width:100%;max-width:120px;height:auto;aspect-ratio:1/1;object-fit:contain}
+.cast b{margin-top:6px;font-family:var(--serif, Georgia, serif);font-size:1.05rem;color:#073B2B}
+.cast span{font-size:.85rem;opacity:.75}
+.cast-note{text-align:center;margin:18px auto 0;max-width:640px;opacity:.85}
+@media(max-width:820px){.cast{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:440px){.cast{gap:10px}.cast b{font-size:.95rem}}
+
+/* Comfortable tap targets for footer and inline page links */
+.foot a{display:inline-block;padding:.5rem .3rem}
+a.link{display:inline-block;padding:.35rem .15rem}

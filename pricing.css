@@ -41,3 +41,7 @@
 .credits p { margin-top: .6rem; }
 .credits .hint { color: var(--moss); font-size: .95rem; }
 @media (max-width: 64rem) { .plans { grid-template-columns: 1fr; max-width: 28rem; } }
+
+/* Comfortable tap targets for footer and inline page links */
+.foot a{display:inline-block;padding:.5rem .3rem}
+a.link{display:inline-block;padding:.35rem .15rem}
