@@ -504,17 +504,6 @@ if (preg_match('#^/lists/(\d+)(?:/(.*))?$#', $path, $m)) {
             redirect(url('/lists/' . $listId));
         }
         if ($sub === 'clear') { db()->prepare('DELETE FROM list_items WHERE list_id = ? AND done_at IS NOT NULL')->execute([$listId]); redirect(url('/lists/' . $listId)); }
-        if ($sub === 'share' && $isOwner) {
-            $email = strtolower(trim((string)($_POST['email'] ?? '')));
-            $t = db()->prepare("SELECT id, name FROM users WHERE email = ? AND status != 'disabled'"); $t->execute([$email]); $target = $t->fetch();
-            if (!$target) flash('err', tt('msg.no_account_for_email', ['email' => $email]));
-            elseif ((int)$target['id'] === $uid) flash('err', tt('msg.that_s_you_you'));
-            else {
-                db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, added_at) VALUES (?, ?, ?)')->execute([$listId, $target['id'], time()]);
-                flash('ok', tt('msg.shared_with', ['name' => $target['name']])); queue_unlocked(achievements_eval($uid));
-            }
-            redirect(url('/lists/' . $listId));
-        }
         if ($sub === 'share_family' && $isOwner) {
             /* tick the people in your household who should see this list; unticked household members lose access. People outside the household are left as they are. */
             $want = array_map('intval', (array)($_POST['people'] ?? []));
