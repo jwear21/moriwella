@@ -47,7 +47,7 @@
   var labelEl=document.getElementById('label'), prevB=document.getElementById('prev'), nextB=document.getElementById('next'), zoomB=document.getElementById('zoom'), scrub=document.getElementById('scrub');
 
   /* ---------- state ---------- */
-  var pendF=null, DATA=null, pages=[], leaves=[], P=[], cur=0, nLeaf=0, MAXCUR=0, busy=false, isOpen=true, scaleNow=1, focus='both', drag=null;
+  var pendF=null, DATA=null, pages=[], leaves=[], P=[], cur=0, nLeaf=0, MAXCUR=0, busy=false, isOpen=true, scaleNow=1, focus='both', drag=null, single=false;
   var castL=el('div','castL'), castR=el('div','castR');
 
   /* ---------- laying text out by ruled lines ---------- */
@@ -76,7 +76,7 @@
 
   /* ---------- page contents ---------- */
   function pageInner(pg,idx){
-    var no='<div class="pno">'+(idx>2?idx-2:'')+'</div>';
+    var no='<div class="pno">'+(single?((pg.k!=='blank'&&idx>2)?(idx/2-1):''):(idx>2?idx-2:''))+'</div>';
     if(pg.k==='cover') return '<div class="cvr"><i class="stitch"></i><div class="label"><div class="emb"></div><div class="t1">'+esc(L.cover_t1)+'</div><div class="t2">'+esc(L.cover_t2)+'</div><div class="nm">'+esc(C.name)+'</div><div class="cap">'+esc(L.cover_cap)+'</div></div><div class="band"></div><div class="shine"></div></div>';
     if(pg.k==='endpaper') return '<div class="endp"><div class="own"><small>'+esc(L.belongs)+'</small><div class="nm">'+esc(C.name)+'</div><small>'+esc(String(L.started||'').replace('{month}',DATA.started))+'</small></div></div>';
     if(pg.k==='title') return '<div class="page"><div class="ttl"><div class="orn">&#10086;</div><h1>'+esc(L.my_journal)+'</h1><p>'+esc(L.tagline)+'</p><div class="orn">&#10086;</div>'+(DATA.more>0?'<button type="button" class="earlierb" id="earlierB">'+esc(L.earlier)+'</button>':'')+'</div></div>';
@@ -153,7 +153,7 @@
     syncWindow(); rigidPose(); clearCast(); setOpen(cur!==0);
     var l=pages[2*cur-1], r=pages[2*cur];
     labelEl.textContent=(cur===0)?L.cover:(cur===1)?L.title_page:(nm(l)&&nm(r)?nm(l)+'  ·  '+nm(r):(nm(r)||nm(l)));
-    if(pendF&&narrow()&&cur>0){ focus=pendF; } pendF=null; layout(); scrub.value=cur;
+    if(pendF&&!single&&narrow()&&cur>0){ focus=pendF; } pendF=null; layout(); scrub.value=cur;
   }
   /* On a phone the book is read one page at a time: left page, then right page, then the next spread. */
   function updateNav(){ var nar=narrow()&&isOpen&&focus!=='both'; prevB.disabled=cur===0; nextB.disabled=cur===MAXCUR&&(!nar||focus==='right'); }
@@ -167,23 +167,14 @@
     (function step(t){ var k=Math.min(1,(t-t0)/ms); P[j]=from+(target-from)*fn(k); show(j);
       if(k<1) requestAnimationFrame(step); else{ P[j]=target; endFlex(j); busy=false; settle(); } })(t0);
   }
-  /* Phone page change without sliding: fade out, jump the camera with no transition, fade in. */
-  function swapPage(fn){
-    busy=true; stage.style.transition='opacity .1s'; stage.style.opacity='0';
-    setTimeout(function(){
-      stage.style.transition='none'; fn(); void stage.offsetWidth;
-      stage.style.transition='opacity .14s'; stage.style.opacity='1';
-      setTimeout(function(){ stage.style.transition=''; busy=false; },160);
-    },110);
-  }
-  function turnTo(c,f){ c=Math.max(0,Math.min(MAXCUR,c)); for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0; pendF=f; settle(); }
   function go(dir){
     if(busy) return;
+    /* Phone: every page of text sits on a right-hand page and the view never leaves it; each page still turns with the flip. */
+    if(single){ if(dir>0&&cur<MAXCUR) animate(cur,1,950,ease); else if(dir<0&&cur>0) animate(cur-1,0,950,ease); return; }
     var one=narrow()&&isOpen&&focus!=='both';
     if(one){
-      /* One page at a time on a phone: the page stays put on screen and the next one fades in, instead of sliding between the left and right pages. */
-      if(dir>0){ if(focus==='left'){ swapPage(function(){ focus='right'; layout(); }); return; } if(cur<MAXCUR) swapPage(function(){ turnTo(cur+1,'left'); }); return; }
-      if(focus==='right'){ swapPage(function(){ focus='left'; layout(); }); return; } if(cur>0) swapPage(function(){ turnTo(cur-1,'right'); }); return;
+      if(dir>0){ if(focus==='left'){ focus='right'; layout(); return; } if(cur<MAXCUR){ pendF='left'; animate(cur,1,1050,ease); } return; }
+      if(focus==='right'){ focus='left'; layout(); return; } if(cur>0){ pendF='right'; animate(cur-1,0,1050,ease); } return;
     }
     if(dir>0 && cur<MAXCUR){ if(narrow()&&focus!=='both'&&cur===0) pendF='left'; animate(cur,1,1050,ease); }
     else if(dir<0 && cur>0) animate(cur-1,0,1050,ease);
@@ -201,14 +192,21 @@
     ty=(H-PH*s)/2; scaleNow=s;
     stage.style.height=PH+'px';
     stage.style.transform='translate('+tx.toFixed(1)+'px,'+ty.toFixed(1)+'px) scale('+s.toFixed(4)+')';
-    zoomB.style.display=(narrow()&&isOpen)?'':'none';
+    zoomB.style.display=(narrow()&&isOpen&&!single)?'':'none';
     zoomB.textContent=focus==='both'?L.zoom_page:L.zoom_both; updateNav();
   }
 
   /* ---------- building the whole book (again, when text size or style changes) ---------- */
   function rebuild(anchorId,last){
-    pages=[{k:'cover'},{k:'endpaper'},{k:'title'}].concat(paginate());
-    if(pages.length%2===1) pages.push({k:'blank'});
+    single=narrow();
+    if(single){
+      /* phone: cover, endpaper, title, then each page of text on its own right-hand page with a blank back, so the view can stay on the right page */
+      pages=[{k:'cover'},{k:'endpaper'},{k:'title'},{k:'blank'}];
+      paginate().forEach(function(pg){ pages.push(pg); pages.push({k:'blank'}); });
+    } else {
+      pages=[{k:'cover'},{k:'endpaper'},{k:'title'}].concat(paginate());
+      if(pages.length%2===1) pages.push({k:'blank'});
+    }
     pages.push({k:'today'}); pages.push({k:'blank'});
     nLeaf=pages.length/2; MAXCUR=nLeaf-1; leaves=[]; book.innerHTML='';
     book.appendChild(el('div','cover')); book.appendChild(el('div','blockL')); book.appendChild(el('div','blockR')); book.appendChild(castL); book.appendChild(castR);
@@ -242,8 +240,9 @@
     var span=Math.max(160,PW*scaleNow*(focus==='both'?1.5:1.25));
     if(!drag.mode){
       if(Math.abs(dx)>8 && Math.abs(dx)>Math.abs(dy)*1.15){
-        var one=narrow()&&focus!=='both';
-        if(one&&isOpen) drag.mode={pan:dx<0?1:-1};   /* phone: a swipe turns to the next or previous page with the same fade, no dragged page flip */
+        var one=!single&&narrow()&&focus!=='both';
+        if(one&&isOpen&&dx<0&&focus==='left') drag.mode={pan:1};
+        else if(one&&isOpen&&dx>0&&focus==='right') drag.mode={pan:-1};
         else if(dx>0 && cur>0) drag.mode={j:cur-1,back:true,pf:one?'right':null};
         else if(dx<0 && cur<MAXCUR) drag.mode={j:cur,back:false,pf:one?'left':null};
         else drag.mode={rubber:true};
@@ -271,10 +270,11 @@
     if(!narrow()||busy) return; if(e.target.closest('textarea,input,button,label,a')) return;
     if(focus==='both'){ var r=book.getBoundingClientRect(); focus=(e.clientX<r.left+r.width/2)?'left':'right'; layout(); }
   });
-  window.addEventListener('resize',function(){ focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); });
+  function modeChanged(){ if(DATA&&single!==narrow()){ rebuild(anchorNow()); return true; } return false; }
+  window.addEventListener('resize',function(){ if(modeChanged()) return; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); });
   /* when the phone's text size makes the top bar or the controls taller or shorter, the room left for the book changes: lay it out again */
-  if(window.ResizeObserver){ var lastWH=''; new ResizeObserver(function(){ var k=wrap.clientWidth+'x'+wrap.clientHeight; if(k===lastWH) return; lastWH=k; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); }).observe(wrap); }
-  window.addEventListener('orientationchange',function(){ setTimeout(function(){ focus=narrow()?'right':'both'; layout(); },250); });
+  if(window.ResizeObserver){ var lastWH=''; new ResizeObserver(function(){ var k=wrap.clientWidth+'x'+wrap.clientHeight; if(k===lastWH) return; lastWH=k; if(modeChanged()) return; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); }).observe(wrap); }
+  window.addEventListener('orientationchange',function(){ setTimeout(function(){ if(modeChanged()) return; focus=narrow()?'right':'both'; layout(); },250); });
 
   /* ---------- customize ---------- */
   var THEMES=[['classic','#FBF7EE'],['antique','#EBDDB8'],['midnight','#1F2A3A'],['garden','#F1F5E6'],['sea','#F3F8FB'],['notebook','#FFFFFF'],['blush','#FFF6F5'],['lavender','#F6F2FB'],['zen','#F6F6F1'],['sunrise','#FFFBEA'],['cabin','#F3EAD7']];
