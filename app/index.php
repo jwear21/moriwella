@@ -92,6 +92,48 @@ if ($path === '/login') {
     render('login', ['err' => $err, 'email' => $email], 'Sign in', true);
     exit;
 }
+/* ---------- public sign-up and forgotten password: both email a link that lets the person choose a password ---------- */
+if ($path === '/signup') {
+    if (current_user()) redirect(url('/'));
+    $err = null; $name = ''; $email = ''; $done = false;
+    if ($post) {
+        $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100); $email = strtolower(trim((string)($_POST['email'] ?? '')));
+        if (!empty($_POST['website'])) { $done = true; }
+        elseif (signup_throttled()) { $err = tt('signup.err_slow'); }
+        elseif ($name === '') { $err = tt('signup.err_name'); }
+        elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) { $err = tt('signup.err_email'); }
+        elseif (empty($_POST['agree'])) { $err = tt('signup.err_agree'); }
+        else {
+            signup_record();
+            $q = db()->prepare('SELECT * FROM users WHERE lower(email) = ?'); $q->execute([$email]); $t = $q->fetch();
+            if (!$t) {
+                db()->prepare("INSERT INTO users (email, name, role, plan, status, created_at) VALUES (?, ?, 'member', 'member', 'invited', ?)")->execute([$email, $name, time()]);
+                $nid = (int)db()->lastInsertId(); signup_email($name, $email, make_invite($nid));
+            } elseif ($t['status'] === 'invited') { signup_email((string)$t['name'], (string)$t['email'], make_invite((int)$t['id'])); }
+            elseif ($t['status'] === 'active') { reset_email((string)$t['name'], (string)$t['email'], make_invite((int)$t['id']), true); }
+            $done = true;
+        }
+    }
+    render('signup', ['err' => $err, 'name' => $name, 'email' => $email, 'done' => $done], tt('signup.title'), true);
+    exit;
+}
+if ($path === '/forgot') {
+    if (current_user()) redirect(url('/'));
+    $err = null; $email = ''; $done = false;
+    if ($post) {
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { $err = tt('signup.err_email'); }
+        elseif (signup_throttled()) { $err = tt('signup.err_slow'); }
+        else {
+            signup_record();
+            $q = db()->prepare("SELECT * FROM users WHERE lower(email) = ? AND status IN ('active','invited')"); $q->execute([$email]); $t = $q->fetch();
+            if ($t) reset_email((string)$t['name'], (string)$t['email'], make_invite((int)$t['id']));
+            $done = true;
+        }
+    }
+    render('forgot', ['err' => $err, 'email' => $email, 'done' => $done], tt('forgot.title'), true);
+    exit;
+}
 if ($path === '/logout' && $post) { $_SESSION = []; session_destroy(); redirect(url('/login')); }
 
 /* ---------- invitation / password link ---------- */

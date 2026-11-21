@@ -7,5 +7,6 @@
     <label><?= t('login.password') ?><input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn" type="submit"><?= t('login.sign_in') ?></button>
   </form>
+  <p class="hint"><a class="link" href="<?= url('/forgot') ?>"><?= t('forgot.link') ?></a> &middot; <a class="link" href="<?= url('/signup') ?>"><?= t('forgot.create') ?></a></p>
 </section>
 <?= lang_picker('lang-pick lang-pick--bare') ?>

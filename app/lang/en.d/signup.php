@@ -1,0 +1,27 @@
+<?php
+/* Sign-up and password-reset phrases. Copyright (c) JSW Software Designs */
+return [
+ 'signup.title' => 'Start your free trial',
+ 'signup.intro' => '14 days free and one free Memory Movie. No card needed.',
+ 'signup.name' => 'Your name',
+ 'signup.email' => 'Email',
+ 'signup.agree' => 'I agree to the {terms} and the {privacy}.',
+ 'signup.terms' => 'terms of use',
+ 'signup.privacy' => 'privacy policy',
+ 'signup.btn' => 'Start my free trial',
+ 'signup.have_account' => 'Already have an account?',
+ 'signup.sign_in' => 'Sign in',
+ 'signup.err_name' => 'Please enter your name.',
+ 'signup.err_email' => 'Please enter a valid email address.',
+ 'signup.err_agree' => 'Please agree to the terms and privacy policy to continue.',
+ 'signup.err_slow' => 'That is a lot of tries. Please wait a few minutes and try again.',
+ 'signup.done_h' => 'Check your email',
+ 'signup.done_p' => 'If {email} can receive mail, we sent a message there with a link to choose your password. The link works for 7 days. If you do not see it in a minute, check your spam folder.',
+ 'signup.back' => 'Back to sign in',
+ 'forgot.title' => 'Forgot your password?',
+ 'forgot.intro' => 'Enter your email and we will send you a link to choose a new password.',
+ 'forgot.btn' => 'Send me a link',
+ 'forgot.link' => 'Forgot your password?',
+ 'forgot.create' => 'Create an account',
+ 'forgot.done_p' => 'If there is an account for {email}, we sent a link there to choose a new password. The link works for 7 days. If you do not see it in a minute, check your spam folder.',
+];

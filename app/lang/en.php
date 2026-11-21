@@ -909,7 +909,7 @@ return [
  'msg.admins_only' => 'Admins only',
  'msg.an_experience_can_run' => 'An experience can run up to a year.',
  'msg.an_item_needs_some' => 'An item needs some text.',
- 'msg.ask_jeff_for_a' => 'Ask Jeff for a new sign-in link.',
+ 'msg.ask_jeff_for_a' => 'Choose Forgot your password on the sign-in page to get a new link.',
  'msg.changes_saved' => 'Changes saved.',
  'msg.changes_saved_notes' => 'Changes saved. {notes}',
  'msg.check_the_name_and' => 'Check the name and dates.',
