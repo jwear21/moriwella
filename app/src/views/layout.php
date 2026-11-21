@@ -13,6 +13,8 @@
 <link rel="stylesheet" href="/kit/kit.css">
 <link rel="stylesheet" href="/app/static/app.css?v=<?= asset_v('static/app.css') ?>">
 <link rel="stylesheet" href="/app/static/editor.css?v=<?= asset_v('static/editor.css') ?>">
+<link rel="stylesheet" href="/app/static/textscale.css?v=<?= asset_v('static/textscale.css') ?>">
+<script src="/app/static/textscale.js?v=<?= asset_v('static/textscale.js') ?>"></script>
 </head>
 <body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>
 <?php if (!$bare && $user && !empty($_SESSION['acting_admin'])): ?>
