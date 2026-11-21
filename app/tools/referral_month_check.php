@@ -9,7 +9,7 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 if (!in_array('--run', $argv ?? [], true)) { echo "Add --run to execute.\n"; exit(1); }
 require __DIR__ . '/../src/lib.php';
-require_once __DIR__ . '/../src/billing.php';
+require_once __DIR__ . '/../src/stripe.php';
 require_once __DIR__ . '/../src/referrals.php';
 
 $friend = db()->prepare("SELECT id FROM users WHERE email = 'referral.test.friend@example.com'"); $friend->execute(); $uid = (int)$friend->fetchColumn();

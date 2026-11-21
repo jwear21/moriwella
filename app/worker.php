@@ -10,7 +10,7 @@ require __DIR__ . '/src/movie_render.php';
 require __DIR__ . '/src/albums.php';
 require __DIR__ . '/src/scrapbooks.php';
 require_once __DIR__ . '/src/referrals.php';
-require_once __DIR__ . '/src/billing.php';
+require_once __DIR__ . '/src/stripe.php';
 
 if (in_array('--selftest', $argv ?? [], true)) {
     $t0 = microtime(true); $dir = sys_get_temp_dir() . '/mw-selftest-' . getmypid(); @mkdir($dir, 0700, true);
