@@ -69,4 +69,7 @@ return [
  'book.list_view' => 'See entries as a list',
  'book.w_pending' => '{n} waiting to be added',
  'book.w_photos_n' => '{n} photos',
+ 'book.w_dictate' => 'Dictate',
+ 'book.w_dictate_stop' => 'Stop dictating',
+ 'book.w_mic' => 'Allow the microphone to dictate.',
 ];
