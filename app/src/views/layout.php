@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="/app/static/textscale.css?v=<?= asset_v('static/textscale.css') ?>">
 <script src="/app/static/textscale.js?v=<?= asset_v('static/textscale.js') ?>"></script>
 </head>
-<body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>
+<body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>" data-celebrate-style="<?= $user ? celebrate_style((int)$user['id']) : 'fireworks' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>
 <?php if (!$bare && $user && !empty($_SESSION['acting_admin'])): ?>
 <div class="acting-bar" role="status"><span><?= t('layout.acting_as', ['name' => new Raw('<b>' . e($user['name']) . '</b>')]) ?></span>
   <form method="post" action="<?= url('/acting/stop') ?>"><?= csrf_field() ?><button type="submit"><?= t('layout.return_to_admin') ?></button></form></div>

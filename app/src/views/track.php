@@ -13,6 +13,21 @@
       <form method="post" action="<?= url('/track/toggle') ?>"><?= csrf_field() ?><input type="hidden" name="key" value="<?= e($k) ?>">
         <button type="submit" class="trk-btn<?= $isOn ? ' on' : '' ?>" aria-pressed="<?= $isOn ? 'true' : 'false' ?>"><?= $isOn ? 'On' : 'Add' ?></button>
       </form>
+      <?php if ($isOn && in_array($t['type'], ['water', 'count', 'number'], true)): $gg = $goalsT[$k] ?? null; $unit = $k === 'water' ? 'oz' : tl($t['unit'] ?? ''); ?>
+      <details class="goal-set"<?= isset($_GET['g']) && $_GET['g'] === $k ? ' open' : '' ?>>
+        <summary><?= $gg ? e(tt('track.goal_summary', ['target' => fmt_num($gg['target']), 'unit' => $unit, 'per' => fmt_num($gg['per'])])) . ' · ' . t('track.goal_change') : t('track.goal_set') ?></summary>
+        <form method="post" action="<?= url('/track/goal') ?>" class="goal-form"><?= csrf_field() ?><input type="hidden" name="key" value="<?= e($k) ?>">
+          <label><?= t('track.goal_target') ?> (<?= e($unit) ?>) <input type="number" name="target" min="1" step="any" inputmode="decimal" value="<?= $gg ? e(fmt_num($gg['target'])) : '' ?>" required></label>
+          <label><?= t('track.goal_per') ?> (<?= e($unit) ?>) <input type="number" name="per" min="0.01" step="any" inputmode="decimal" value="<?= $gg ? e(fmt_num($gg['per'])) : '' ?>"></label>
+          <fieldset class="goal-icons"><legend><?= t('track.goal_icon') ?></legend>
+            <?php foreach ($iconsT as $ik => $iv): ?>
+            <label class="goal-icon"><input type="radio" name="icon" value="<?= e($ik) ?>"<?= ($gg['icon'] ?? ($k === 'water' ? 'glass' : 'star')) === $ik ? ' checked' : '' ?>><span aria-hidden="true"><?= e($iv) ?></span><small><?= e(tt('icon.' . $ik)) ?></small></label>
+            <?php endforeach; ?>
+          </fieldset>
+          <div class="goal-acts"><button class="btn" type="submit"><?= t('track.goal_save') ?></button><?php if ($gg && $k !== 'water'): ?><button class="textbtn" type="submit" name="clear" value="1" formnovalidate><?= t('track.goal_remove') ?></button><?php endif; ?></div>
+        </form>
+      </details>
+      <?php endif; ?>
     </li>
   <?php endforeach; ?>
   </ul>

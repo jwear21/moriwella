@@ -106,15 +106,19 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
 <p class="subtle goal-nudge"><a class="link" href="<?= url('/track') ?>"><?= t('day.track_little_things') ?></a> <?= t('day.if_you_like_such') ?></p>
 <?php endif; ?>
 
-<?php if ($waterOn): ?>
-<section class="card water" data-day="<?= e($day) ?>" data-oz="<?= (int)$water ?>" data-url="<?= url('/water') ?>" data-csrf="<?= e(csrf_token()) ?>">
-  <div class="water-head"><b><?= t('day.water') ?></b> <span class="water-count"><span id="water-oz"><?= (int)$water ?></span> <?= t('day.of_64_oz') ?></span></div>
+<?php if ($waterOn): $wg = tracker_goals((int)current_user()["id"])["water"]; $wn = tracker_bullets($wg); $wi = tracker_icons(); ?>
+<section class="card water" data-day="<?= e($day) ?>" data-oz="<?= (int)$water ?>" data-per="<?= e(fmt_num($wg['per'])) ?>" data-cap="<?= e(fmt_num($wg['target'])) ?>" data-url="<?= url('/water') ?>" data-csrf="<?= e(csrf_token()) ?>">
+  <div class="water-head"><b><?= t('day.water') ?></b> <span class="water-count"><span id="water-oz"><?= (int)$water ?></span> <?= t('day.of_n_oz', ['n' => fmt_num($wg['target'])]) ?></span></div>
   <div class="water-cups" role="group" aria-label="<?= t('day.water_cups_8_oz') ?>">
-    <?php for ($i = 1; $i <= 8; $i++): ?>
-      <button type="button" class="cup<?= $water >= $i * 8 ? ' on' : '' ?>" data-cup="<?= $i ?>" aria-pressed="<?= $water >= $i * 8 ? 'true' : 'false' ?>" aria-label="<?= t('day.cup_n', ['n' => $i]) ?>"></button>
+    <?php for ($i = 1; $i <= $wn; $i++): $thr = min($i * $wg['per'], $wg['target']); $on = $water >= $thr; ?>
+      <?php if ($wg['icon'] === 'glass'): ?>
+      <button type="button" class="cup<?= $on ? ' on' : '' ?>" data-cup="<?= $i ?>" aria-pressed="<?= $on ? 'true' : 'false' ?>" aria-label="<?= t('day.cup_n', ['n' => $i]) ?>"></button>
+      <?php else: ?>
+      <button type="button" class="gb cup<?= $on ? ' on' : '' ?>" data-cup="<?= $i ?>" aria-pressed="<?= $on ? 'true' : 'false' ?>" aria-label="<?= t('day.cup_n', ['n' => $i]) ?>"><span aria-hidden="true"><?= e($wi[$wg['icon']] ?? $wi['star']) ?></span></button>
+      <?php endif; ?>
     <?php endfor; ?>
   </div>
-  <p class="hint"><?= t('day.tap_a_cup_for') ?></p>
+  <p class="hint"><?= t('day.tap_a_bullet', ['per' => fmt_num($wg['per'])]) ?></p>
 </section>
 <?php endif; ?>
 
@@ -125,6 +129,14 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   <div class="lt-row lt-<?= e($t['type']) ?>" data-key="<?= e($k) ?>">
     <?php if ($t['type'] === 'check'): ?>
       <button type="button" class="lt-check" role="checkbox" aria-checked="<?= $v ? 'true' : 'false' ?>"><span class="box" aria-hidden="true"></span><?= e(tl($t['label'])) ?></button>
+    <?php elseif (in_array($t['type'], ['count'], true) && !empty($t['goal'])): $g = $t['goal']; $gn = tracker_bullets($g); $gi = tracker_icons(); ?>
+      <span class="lt-label"><?= e(tl($t['label'])) ?></span>
+      <span class="lt-goalcount"><output><?= $v ? (int)$v : 0 ?></output> <?= t('day.of_target', ['target' => fmt_num($g['target']), 'unit' => tl($t['unit'] ?? '')]) ?></span>
+      <div class="goal-bullets" role="group" aria-label="<?= e(tl($t['label'])) ?>" data-per="<?= e((string)$g['per']) ?>" data-target="<?= e((string)$g['target']) ?>" data-val="<?= $v ? (int)$v : 0 ?>">
+        <?php for ($i = 1; $i <= $gn; $i++): $on = (float)($v ?? 0) >= min($i * $g['per'], $g['target']); ?>
+        <button type="button" class="gb<?= $on ? ' on' : '' ?>" data-i="<?= $i ?>" aria-pressed="<?= $on ? 'true' : 'false' ?>" aria-label="<?= t('day.bullet_n', ['n' => $i, 'total' => $gn]) ?>"><span aria-hidden="true"><?= e($gi[$g['icon']] ?? $gi['star']) ?></span></button>
+        <?php endfor; ?>
+      </div>
     <?php elseif ($t['type'] === 'count'): ?>
       <span class="lt-label"><?= e(tl($t['label'])) ?></span>
       <span class="lt-step" data-max="<?= (int)($t['max'] ?? 12) ?>">
@@ -135,6 +147,13 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
     <?php elseif ($t['type'] === 'number'): ?>
       <label class="lt-label" for="lt-<?= e($k) ?>"><?= e(tl($t['label'])) ?></label>
       <span class="lt-num"><input id="lt-<?= e($k) ?>" type="number" inputmode="decimal" min="0" step="<?= e((string)($t['step'] ?? 1)) ?>" value="<?= $v !== null ? e(fmt_num($v)) : '' ?>" placeholder="<?= t('day.x') ?>"> <small><?= e($t['unit'] ?? '') ?></small></span>
+      <?php if (!empty($t['goal'])): $g = $t['goal']; $gn = tracker_bullets($g); $gi = tracker_icons(); ?>
+      <div class="goal-bullets" role="group" aria-label="<?= e(tl($t['label'])) ?>" data-per="<?= e((string)$g['per']) ?>" data-target="<?= e((string)$g['target']) ?>" data-val="<?= $v !== null ? e(fmt_num($v)) : 0 ?>">
+        <?php for ($i = 1; $i <= $gn; $i++): $on = (float)($v ?? 0) >= min($i * $g['per'], $g['target']); ?>
+        <button type="button" class="gb<?= $on ? ' on' : '' ?>" data-i="<?= $i ?>" aria-pressed="<?= $on ? 'true' : 'false' ?>" aria-label="<?= t('day.bullet_n', ['n' => $i, 'total' => $gn]) ?>"><span aria-hidden="true"><?= e($gi[$g['icon']] ?? $gi['star']) ?></span></button>
+        <?php endfor; ?>
+      </div>
+      <?php endif; ?>
     <?php elseif ($t['type'] === 'scale'): ?>
       <span class="lt-label"><?= e(tl($t['label'])) ?></span>
       <span class="lt-scale" role="radiogroup" aria-label="<?= e(tl($t['label'])) ?>">

@@ -2,7 +2,7 @@
    Moriwella.celebrate({ level: "small", origin: element })            quick sparkle for an everyday check-off
    Moriwella.celebrate({ level: "splash", origin: element })           water droplets and ripples
    Moriwella.celebrate({ level: "burst", origin: element })            confetti burst for a goal
-   Moriwella.celebrate({ level: "milestone", title, sub })              fireworks and a badge you can dismiss
+   Moriwella.celebrate({ level: "milestone", title, sub })              fireworks and a badge you can dismiss (or the kitten walk-on when the person chose it; style:"kitten" forces it)
    Reduced motion: no particles or movement, the badge simply appears. */
 (function (w) {
   var COLORS = ["#DDA12F", "#C9A763", "#F6DE9C", "#A9C5B3", "#6B8F77", "#F9F6ED"];
@@ -145,6 +145,61 @@
     return close;
   }
 
+
+  /* Kitten walk-on: the kitten trots in from the left, sits in the middle, licks a paw, claps, cheers, then trots off to the right.
+     Frames are in /kit/kitten/. Reduced motion: the cheering kitten simply appears, with the badge. */
+  var KIT = ["sit", "walk1", "walk2", "lick", "clap", "cheer"], kitImgs = null;
+  function kitLoad() { if (!kitImgs) { kitImgs = {}; KIT.forEach(function (n) { var i = new Image(); i.src = "/kit/kitten/" + n + ".png"; kitImgs[n] = i; }); } }
+  function kitten(o) {
+    if (openBadge) openBadge();
+    kitLoad();
+    var box = document.createElement("div");
+    box.className = "mw-cele mw-kit"; box.setAttribute("role", "status");
+    var size = Math.min(innerWidth * .5, 260);
+    box.innerHTML = '<img class="mw-kitimg" alt="" aria-hidden="true" src="/kit/kitten/sit.png" width="' + size + '">' +
+      '<div class="mw-card"><b class="mw-t"></b><span class="mw-s"></span><button type="button" class="mw-x">Done</button></div>';
+    box.querySelector(".mw-t").textContent = o.title || "Nicely done";
+    box.querySelector(".mw-s").textContent = o.sub || "";
+    var img = box.querySelector(".mw-kitimg"), timers = [], raf = 0, done = false;
+    document.body.appendChild(box);
+    function close() {
+      if (done) return; done = true; timers.forEach(clearTimeout); cancelAnimationFrame(raf);
+      document.removeEventListener("keydown", onKey); if (box.parentNode) box.parentNode.removeChild(box); openBadge = null;
+    }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    box.querySelector(".mw-x").addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    openBadge = close;
+    function pose(n) { img.src = "/kit/kitten/" + n + ".png"; }
+    function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+    if (calm()) { pose("cheer"); img.style.left = "calc(50% - " + size / 2 + "px)"; at(o.duration || 7000, close); return close; }
+    var W = innerWidth, y = innerHeight - size * 1.02 - 8;
+    img.style.top = Math.max(8, y) + "px";
+    var x0 = -size, xm = W / 2 - size / 2, x1 = W + 10, t0 = performance.now(), walkIn = 2200, walkOut = 2200, stay = 4600;
+    function setX(x, bob) { img.style.transform = "translate(" + x + "px," + (bob || 0) + "px)"; }
+    var phase = "in";
+    function frame(now) {
+      var t = now - t0, step = Math.floor(t / 170) % 2 ? "walk2" : "walk1";
+      if (phase === "in") {
+        var p = Math.min(1, t / walkIn), e = 1 - Math.pow(1 - p, 2);
+        setX(x0 + (xm - x0) * e, -Math.abs(Math.sin(t / 170 * Math.PI)) * 6);
+        if (p < 1) { if (img.getAttribute("data-p") !== step) { pose(step); img.setAttribute("data-p", step); } }
+        else { phase = "stay"; setX(xm, 0); pose("sit"); img.setAttribute("data-p", "sit"); buzz([20, 30, 40]);
+          at(500, function () { pose("lick"); }); at(1900, function () { pose("clap"); buzz([15, 40, 15, 40]); }); at(3000, function () { pose("cheer"); buzz([30, 40, 60]); });
+          at(stay, function () { phase = "out"; t0 = performance.now(); }); }
+      } else if (phase === "out") {
+        var q = Math.min(1, t / walkOut);
+        setX(xm + (x1 - xm) * q * q, -Math.abs(Math.sin(t / 170 * Math.PI)) * 6);
+        if (img.getAttribute("data-p") !== step) { pose(step); img.setAttribute("data-p", step); }
+        if (q >= 1) { phase = "gone"; img.style.visibility = "hidden"; }
+      }
+      if (phase !== "gone" && !done) raf = requestAnimationFrame(frame);
+    }
+    setX(x0, 0); raf = requestAnimationFrame(frame);
+    at(o.duration || 11500, close);
+    return close;
+  }
+
   w.Moriwella = w.Moriwella || {};
-  w.Moriwella.celebrate = function (o) { o = o || {}; return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
+  w.Moriwella.celebrate = function (o) { o = o || {}; if (o.level === "milestone" && (o.style || (document.body && document.body.getAttribute("data-celebrate-style"))) === "kitten") return kitten(o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
 })(window);

@@ -460,6 +460,13 @@ function migrate(PDO $p): void {
         /* The journal book's look (cover, writing style, text size) follows the person to any phone or computer. */
         $p->exec("CREATE TABLE book_prefs (user_id INTEGER PRIMARY KEY, theme TEXT NOT NULL DEFAULT 'classic', font TEXT NOT NULL DEFAULT 'auto', size TEXT NOT NULL DEFAULT 'm', updated_at INTEGER NOT NULL DEFAULT 0); PRAGMA user_version = 22;");
     }
+    if ($v < 23) {
+        /* A goal on a tracker: the daily target, how big each milestone is, and the icon used for each bullet. */
+        $p->exec("CREATE TABLE tracker_goal (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, tkey TEXT NOT NULL, target REAL NOT NULL, per REAL NOT NULL, icon TEXT NOT NULL DEFAULT 'star', PRIMARY KEY (user_id, tkey)); PRAGMA user_version = 23;");
+    }
+    if ($v < 24) {
+        $p->exec("ALTER TABLE user_settings ADD COLUMN celebrate_style TEXT NOT NULL DEFAULT 'fireworks'; PRAGMA user_version = 24;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */
@@ -709,6 +716,16 @@ function water_on(int $uid): bool {
 function celebrate_size(int $uid): string {
     $s = db()->prepare('SELECT celebrate_size FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
     return $s->fetchColumn() === 'gentle' ? 'gentle' : 'big';
+}
+function celebrate_styles(): array { return ['fireworks', 'kitten']; }
+function celebrate_style(int $uid): string {
+    $s = db()->prepare('SELECT celebrate_style FROM user_settings WHERE user_id = ?'); $s->execute([$uid]);
+    $v = (string)$s->fetchColumn();
+    return in_array($v, celebrate_styles(), true) ? $v : 'fireworks';
+}
+function save_celebrate_style(int $uid, string $style): void {
+    if (!in_array($style, celebrate_styles(), true)) $style = 'fireworks';
+    db()->prepare('INSERT INTO user_settings (user_id, celebrate_style) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET celebrate_style = excluded.celebrate_style')->execute([$uid, $style]);
 }
 function save_prefs(int $uid, bool $celebrations, bool $water, string $size): void {
     db()->prepare('INSERT INTO user_settings (user_id, celebrations, water_on, celebrate_size) VALUES (?, ?, ?, ?)
