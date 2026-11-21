@@ -16,12 +16,22 @@
     <?php if ($paid && $cur === $k): ?><p class="hint"><?= t('billing.your_plan') ?></p>
     <?php elseif (!$b['is_owner']): ?><p class="hint"><?= t('billing.owner_manages') ?></p>
     <?php else: ?>
+    <?php if (in_app()): ?>
+    <?php if (($b['sub']['source'] ?? 'stripe') === 'play' && $paid): ?><p class="hint"><?= t('billing.play_change_hint') ?></p>
+    <?php else: ?><button class="btn" type="button" data-play-plan="<?= e($k) ?>" data-product="<?= e(play_product_for($k)) ?>"><?= $ct ? t('billing.start_plan', ['days' => $ct['days'], 'plan' => $p['name']]) : t('billing.subscribe') ?></button><?php endif; ?>
+    <?php else: ?>
     <form method="post" action="<?= url($paid ? '/billing/change' : '/billing/subscribe') ?>"><?= csrf_field() ?><input type="hidden" name="plan" value="<?= e($k) ?>">
       <button class="btn" type="submit"<?= $ready ? '' : ' disabled' ?>><?= $ref ? t('referral.start_plan', ['plan' => $p['name']]) : ($ct ? t('billing.start_plan', ['days' => $ct['days'], 'plan' => $p['name']]) : ($paid ? t('billing.switch_to', ['plan' => $p['name']]) : ($b['state'] === 'trial' ? t('billing.choose_plan', ['plan' => $p['name']]) : t('billing.subscribe')))) ?></button>
     </form>
+    <?php endif; ?>
     <?php endif; ?>
   </section>
 <?php endforeach; ?>
 </div>
 <p class="hint"><?= $ref ? t('referral.friend_terms') : ($ct ? t('billing.card_terms', ['days' => $ct['days']]) : t('billing.trial_terms')) ?></p>
 <p class="hint"><a class="link" href="<?= url('/billing') ?>"><?= t('billing.go_to_billing') ?></a></p>
+<?php if (in_app()): ?>
+<p class="note note--err" id="play-msg" role="alert" hidden></p>
+<script>window.MW_PLAY = <?= json_encode(['tag' => play_account_tag((int)$b['household']['id']), 'base' => PLAY_BASE_PLAN, 'csrf' => csrf_token(), 'verify' => url('/billing/play/verify'), 'next' => url('/billing?subscribed=1'), 'wait' => tt('billing.play_wait'), 'fail' => tt('billing.err_play')]) ?>;</script>
+<script src="<?= url('/static/play-billing.js') ?>?v=<?= e(asset_v('static/play-billing.js')) ?>"></script>
+<?php endif; ?>

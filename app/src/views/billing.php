@@ -13,7 +13,10 @@
   <?php elseif ($ctPending = card_trial_pending((int)$b['household']['id'])): ?><p><?= t('billing.card_needed', ['days' => $ctPending['days']]) ?> <a class="link" href="<?= url('/pricing') ?>"><?= t('referral.pick_plan') ?></a></p>
   <?php elseif ($refPending = referral_pending_start((int)$b['household']['id'])): ?><p><?= t('referral.friend_note', ['name' => $refPending['referrer_name']]) ?> <a class="link" href="<?= url('/pricing') ?>"><?= t('referral.pick_plan') ?></a></p>
   <?php else: ?><p><?= t('billing.state_limited') ?></p><?php endif; ?>
-  <?php if (in_app()): ?><p class="hint"><?= t('billing.in_app_note') ?></p><?php else: ?>
+  <?php if (($sub['source'] ?? 'stripe') === 'play' && $state === 'active'): ?><p class="hint"><?= t('billing.managed_play') ?></p>
+  <?php if (in_app()): ?><p class="actions"><a class="btn btn--ghost" href="https://play.google.com/store/account/subscriptions?package=<?= e(play_cfg()['package']) ?>&sku=<?= e($sub['play_product']) ?>" target="_blank" rel="noopener"><?= t('billing.manage_play') ?></a></p><?php endif; ?>
+  <?php elseif (in_app()): ?><p class="actions"><a class="btn" href="<?= url('/pricing') ?>"><?= $state === 'active' ? t('billing.change_plan') : t('billing.see_plans') ?></a></p>
+  <?php else: ?>
   <p class="actions"><a class="btn" href="<?= url('/pricing') ?>"><?= $state === 'active' ? t('billing.change_plan') : t('billing.see_plans') ?></a>
   <?php if ($b['is_owner'] && !empty($sub['stripe_subscription_id'])): ?>
     <form method="post" action="<?= url('/billing/portal') ?>" style="display:inline"><?= csrf_field() ?><button class="btn btn--ghost" type="submit"><?= t('billing.manage_billing') ?></button></form>

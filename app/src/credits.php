@@ -31,6 +31,7 @@ function household_of(int $uid): ?array {
     $q = db()->prepare("SELECT h.* FROM households h JOIN household_members m ON m.household_id = h.id WHERE m.user_id = ? AND m.status = 'active'");
     $q->execute([$uid]); return $q->fetch() ?: null;
 }
+require_once __DIR__ . '/playbilling.php';
 function subscription_of(int $hid): array {
     $q = db()->prepare('SELECT * FROM subscriptions WHERE household_id = ?'); $q->execute([$hid]);
     return $q->fetch() ?: ['household_id' => $hid, 'status' => 'none', 'plan_key' => 'individual', 'comped' => 0, 'trial_end' => 0, 'period_start' => 0, 'period_end' => 0, 'seat_limit' => 1, 'cancel_at_period_end' => 0, 'pending_plan_key' => '', 'pending_keep' => ''];
@@ -97,7 +98,9 @@ function billing_period_key(array $sub): string {
 }
 /** Everything the screens and checks need about one person's billing, in one call. */
 function billing_for(int $uid): array {
-    $h = household_ensure($uid); $sub = subscription_of((int)$h['id']); $state = billing_state($sub);
+    $h = household_ensure($uid); $sub = subscription_of((int)$h['id']);
+    if (($sub['source'] ?? 'stripe') === 'play') { play_refresh_if_due((int)$h['id'], $sub); $sub = subscription_of((int)$h['id']); }
+    $state = billing_state($sub);
     $plan = plan_for($sub['plan_key']) ?? plan_for('individual');
     $isOwner = (int)$h['owner_user_id'] === $uid;
     return ['household' => $h, 'sub' => $sub, 'state' => $state, 'plan' => $plan, 'is_owner' => $isOwner,

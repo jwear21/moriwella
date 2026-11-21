@@ -107,7 +107,7 @@ function billing_sync_subscription(array $sub, ?array $household = null): ?array
         db()->prepare("INSERT INTO subscriptions (household_id, stripe_subscription_id, plan_key, status, period_start, period_end, cancel_at_period_end, seat_limit, interval_key, trial_start, trial_end, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(household_id) DO UPDATE SET stripe_subscription_id = excluded.stripe_subscription_id, plan_key = excluded.plan_key, status = excluded.status, period_start = excluded.period_start,
-              period_end = excluded.period_end, cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = excluded.interval_key, updated_at = excluded.updated_at,
+              period_end = excluded.period_end, cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = excluded.interval_key, updated_at = excluded.updated_at, source = 'stripe', play_token = '', play_product = '',
               pending_plan_key = CASE WHEN ? THEN '' ELSE pending_plan_key END, pending_keep = CASE WHEN ? THEN '' ELSE pending_keep END")
             ->execute([$hid, $sub['id'], $planKey, (string)$sub['status'], $ps, $pe, stripe_sub_cancelling($sub) ? 1 : 0, $limit, $iv ?: 'month', (int)$cur['trial_start'], (int)$cur['trial_end'], time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
         // Cancelling releases any scheduled plan change in Stripe, so forget it here too.

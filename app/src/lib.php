@@ -472,6 +472,11 @@ function migrate(PDO $p): void {
         $p->exec("CREATE TABLE tracker_custom (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, label TEXT NOT NULL, unit TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL);
           CREATE INDEX tracker_custom_user ON tracker_custom(user_id); PRAGMA user_version = 25;");
     }
+    if ($v < 26) {
+        /* Where a household's subscription is billed: 'stripe' (website) or 'play' (Google Play, in the Android app). */
+        $p->exec("ALTER TABLE subscriptions ADD COLUMN source TEXT NOT NULL DEFAULT 'stripe'; ALTER TABLE subscriptions ADD COLUMN play_token TEXT NOT NULL DEFAULT ''; ALTER TABLE subscriptions ADD COLUMN play_product TEXT NOT NULL DEFAULT '';
+          CREATE UNIQUE INDEX subscriptions_play_token ON subscriptions(play_token) WHERE play_token <> ''; PRAGMA user_version = 26;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

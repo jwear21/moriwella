@@ -30,7 +30,6 @@ function stripe_webhook(): never {
 if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/household') === 0) {
     $uid = (int)$user['id']; $b = billing_for($uid); $isOwner = $b['is_owner'];
 
-    if ($path === '/pricing' && in_app()) { billing_back(); }
     if ($path === '/pricing') { render('pricing', ['b' => $b, 'packs' => credit_packs(), 'ready' => stripe_ready()], 'Plans'); exit; }
 
     if ($path === '/billing') {
@@ -40,6 +39,11 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
         unset($_SESSION['new_link']); exit;
     }
 
+    if ($post && $path === '/billing/play/verify') {   // the Android app finished a Google Play purchase
+        if (!$isOwner) json_out(['ok' => false, 'error' => tt('billing.err_owner_only')]);
+        $err = play_verify_purchase((int)$b['household']['id'], trim((string)($_POST['token'] ?? '')));
+        json_out(['ok' => $err === null, 'error' => $err ? tt($err) : null]);
+    }
     if ($post && in_app() && in_array($path, ['/billing/subscribe', '/billing/credits', '/billing/portal', '/billing/change'], true)) { billing_back(); }
     if ($post && in_array($path, ['/billing/subscribe', '/billing/credits', '/billing/portal', '/billing/change'], true)) {
         if (!stripe_ready() || stripe_live_blocked()) { flash('err', tt('billing.err_not_ready')); billing_back(); }
@@ -67,6 +71,7 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
             $sub = $b['sub'];
             if ($path === '/billing/subscribe') {
                 if (!empty($sub['stripe_subscription_id']) && in_array($sub['status'], ['active', 'trialing', 'past_due'], true)) billing_back();
+                if (($sub['source'] ?? 'stripe') === 'play' && in_array($sub['status'], ['active', 'past_due'], true)) { flash('err', tt('billing.err_play_managed')); billing_back(); }
                 $data = ['metadata' => ['household_id' => $hid, 'plan_key' => $planKey]];
                 /* the trial was ours: a card captured during it is charged only when it ends (Stripe needs the end date at least two days away) */
                 $cardTrial = card_trial_pending($hid); $notice = '';

@@ -99,5 +99,25 @@ ok('18 pending until a subscription starts, then no longer pending', card_trial_
 ok('19 a trialing card-on-file account is active (full plan access)', bal($d)['state'] === 'active' && billing_can($d, 'movies'));
 $r = stripe_handle_event(ev('evt_tw', 'customer.subscription.trial_will_end', ['id' => 'sub_dana', 'customer' => 'cus_dana', 'trial_end' => time() + 3 * 86400, 'items' => ['data' => [['price' => ['id' => 'price_fam']]]], 'metadata' => ['plan_key' => 'family']]));
 ok('20 trial-ending event finds the account and tries the reminder email (' . $r . ')', in_array($r, ['emailed', 'email failed'], true));
+
+/* 21-26 Google Play: a purchase from the Android app becomes the same household subscription */
+$k = openssl_pkey_new(['private_key_bits' => 2048]); openssl_pkey_export($k, $pem);
+file_put_contents("$dir/play_service_account.json", json_encode(['client_email' => 'svc@example.iam.gserviceaccount.com', 'private_key' => $pem]));
+$GLOBALS['play_resp'] = null;
+$GLOBALS['mw_play_http'] = function ($m, $url, $h, $body) { if (strpos($url, 'oauth2') !== false) return [200, ['access_token' => 'tok', 'expires_in' => 3000]]; return [200, $GLOBALS['play_resp']]; };
+function playresp(string $state, string $tag, string $product = 'moriwella_family', int $days = 30): array { return ['subscriptionState' => $state, 'acknowledgementState' => 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED', 'externalAccountIdentifiers' => ['obfuscatedExternalAccountId' => $tag],
+    'lineItems' => [['productId' => $product, 'expiryTime' => gmdate('Y-m-d\\TH:i:s\\Z', time() + $days * 86400), 'autoRenewingPlan' => ['autoRenewEnabled' => true]]]]; }
+$e = mkuser('erin@x.com'); bal($e); $he = household_of($e); $tag = play_account_tag((int)$he['id']);
+$GLOBALS['play_resp'] = playresp('SUBSCRIPTION_STATE_ACTIVE', 'wrongtag');
+ok('21 a Google purchase with the wrong account tag is refused', play_verify_purchase((int)$he['id'], 'tokE') === 'billing.err_play' && card_trial_pending((int)$he['id']) !== null);
+$GLOBALS['play_resp'] = playresp('SUBSCRIPTION_STATE_ACTIVE', $tag);
+ok('22 a verified Google purchase starts the plan', play_verify_purchase((int)$he['id'], 'tokE') === null && subscription_of((int)$he['id'])['source'] === 'play' && subscription_of((int)$he['id'])['plan_key'] === 'family' && bal($e)['state'] === 'active');
+ok('23 the plan gives its monthly movie credits', bal($e)['included'] === 2 && billing_can($e, 'family_sharing'));
+$f2 = mkuser('frank@x.com'); bal($f2); $hf = household_of($f2); $GLOBALS['play_resp'] = playresp('SUBSCRIPTION_STATE_ACTIVE', play_account_tag((int)$hf['id']));
+ok('24 one Google purchase cannot be used by a second household', play_verify_purchase((int)$hf['id'], 'tokE') === 'billing.err_play');
+ok('25 an account already billed on the website cannot also buy through Google', play_verify_purchase((int)$hd['id'], 'tokD') === 'billing.err_has_web_plan');
+db()->prepare('UPDATE subscriptions SET updated_at = 1 WHERE household_id = ?')->execute([$he['id']]);
+$GLOBALS['play_resp'] = playresp('SUBSCRIPTION_STATE_EXPIRED', $tag, 'moriwella_family', -2);
+ok('26 a stale Google plan is re-checked, and an expired one limits the account', bal($e)['state'] === 'limited');
 if ($madeCfg) @unlink('src/config.php');
 echo "\n$pass passed, $fail failed\n"; exit($fail ? 1 : 0);
