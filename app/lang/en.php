@@ -612,7 +612,7 @@ return [
  'day.btn_add_day' => 'Add to this day',
  'day.btn_add_today' => 'Add to your day',
  'day.cta_write' => 'Write in your journal',
- 'day.cta_read' => 'Read your journal as a book',
+ 'day.cta_read' => 'Read your journal',
  'day.cta_more_today' => 'Add more to today whenever you like.',
  'day.cta_more_day' => 'Add more to this day.',
  'day.btn_save' => 'Save entry',

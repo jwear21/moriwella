@@ -431,6 +431,8 @@ if ($path === '/journal/book') {
     exit;
 }
 if ($path === '/journal') {
+    /* The journal is always the book. The old list stays reachable only at /journal?list=1 (not linked anywhere). */
+    if (!isset($_GET['list'])) redirect(url('/journal/book'));
     $s = db()->prepare('SELECT * FROM entries WHERE user_id = ? ORDER BY entry_date DESC, id DESC LIMIT 500');
     $s->execute([$uid]);
     $rows = $s->fetchAll();
