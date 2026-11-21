@@ -262,7 +262,7 @@
 .wrow label{font:600 13px var(--sans); color:var(--sub)}
 .wrow input,.wrow select{font:400 16px var(--sans); color:var(--text); background:var(--chip); border:1px solid var(--chipb); border-radius:8px; padding:8px 10px; max-width:100%; flex:1 1 11em}
 .wfaces{display:flex; flex-wrap:wrap; gap:6px}
-.wface{flex:1 1 4.2em; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; min-height:60px; border:1px solid var(--chipb); border-radius:12px; background:var(--chip); color:var(--text); cursor:pointer; font:inherit}
+.wface{flex:1 1 52px; min-width:0; display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; min-height:60px; border:1px solid var(--chipb); border-radius:12px; background:var(--chip); color:var(--text); cursor:pointer; font:inherit}
 .wface .e{font-size:26px; line-height:1.1} .wface .l{font:400 12px/1.2 var(--sans); color:var(--sub); overflow-wrap:anywhere; text-align:center}
 .wface[aria-checked=true]{background:var(--head); border-color:var(--head)} .wface[aria-checked=true] .l{color:var(--paper); font-weight:600}
 .wlink{margin-top:8px; background:none; border:0; padding:8px 2px; min-height:40px; font:500 14px var(--sans); color:var(--head); text-decoration:underline; cursor:pointer}
@@ -284,3 +284,12 @@
 .wdel{color:#b3261e; border-color:#e3b9b6; background:transparent}
 .wtoast{position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:50; max-width:min(440px,calc(100% - 24px)); background:#21362F; color:#fff; font:500 14px/1.4 var(--sans); border-radius:12px; padding:12px 16px; box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .wtoast[hidden]{display:none}
+
+/* opening loader: the logo, pulsing, until the book is ready */
+.bkld{position:absolute; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:radial-gradient(120% 90% at 50% 30%, var(--desk-a) 0%, var(--desk-b) 60%, var(--desk-c) 100%); transition:opacity .35s}
+.bkld i{width:84px; height:84px; background:var(--emb) center/contain no-repeat; opacity:.9; animation:bkpulse 1.4s ease-in-out infinite}
+.bkld.out{opacity:0; pointer-events:none}
+@keyframes bkpulse{0%,100%{transform:scale(.88); opacity:.5}50%{transform:scale(1.06); opacity:1}}
+@media (prefers-reduced-motion: reduce){.bkld i{animation:none}}
+.earlierb{margin-top:1.1em; font:500 .8em var(--sans); color:var(--head); background:transparent; border:1px solid var(--rule); border-radius:999px; padding:.55em 1.1em; cursor:pointer}
+.earlierb:disabled{opacity:.6}
