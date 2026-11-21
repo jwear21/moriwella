@@ -60,7 +60,10 @@ function household_ensure(int $uid): array {
                 $norm = billing_norm_email((string)$u['email']);
                 $claim = db()->prepare('INSERT OR IGNORE INTO trial_claims (email_norm, household_id, user_id, claimed_at) VALUES (?, ?, ?, ?)');
                 $claim->execute([$norm, $hid, $uid, $now]);
-                if ($claim->rowCount() === 1) {
+                if ($claim->rowCount() === 1 && (int)($u['referred_by'] ?? 0) > 0 && referral_of_friend($uid)) {
+                    /* referred by a member: no app-side trial. They start 30 days with a card on file (see billing.php), so until then the account is limited */
+                    db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, seat_limit, updated_at) VALUES (?, 'family', 'none', ?, ?)")->execute([$hid, plan_for('family')['seats'], $now]);
+                } elseif ($claim->rowCount() === 1) {
                     /* trial: family-sized so people can try sharing; one free credit for the whole household, never renewed */
                     db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, trial_start, trial_end, seat_limit, updated_at) VALUES (?, 'family', 'none', ?, ?, ?, ?)")->execute([$hid, $now, $now + TRIAL_DAYS * 86400, plan_for('family')['seats'], $now]);
                     credits_grant($uid, $hid, 'trial', 1, 'trial', 'trial:' . $norm, '', 'Free trial movie');

@@ -165,8 +165,8 @@ function stripe_dispatch(string $type, array $o, array $ev): string {
             return 'payment failed';
         }
         case 'customer.subscription.trial_will_end': billing_log('trial ending soon: ' . ($o['id'] ?? '?')); return 'noted';
-        case 'charge.refunded': return stripe_on_refund($o);
-        case 'charge.dispute.created': return stripe_on_dispute($o);
+        case 'charge.refunded': referral_on_charge_problem($o); return stripe_on_refund($o);
+        case 'charge.dispute.created': referral_on_charge_problem($o, true); return stripe_on_dispute($o);
         case 'payment_intent.succeeded': return 'noted';   // credits and plans are granted from the checkout session, which carries our metadata
         default: return 'ignored';
     }
@@ -191,7 +191,7 @@ function stripe_on_checkout(array $s): string {
         $h = $hid ? (function ($id) { $q = db()->prepare('SELECT * FROM households WHERE id = ?'); $q->execute([$id]); return $q->fetch() ?: null; })($hid) : billing_household_by_customer((string)($s['customer'] ?? ''));
         if (!$h) return 'no household';
         if (!empty($s['customer'])) db()->prepare('UPDATE households SET stripe_customer_id = ? WHERE id = ? AND (stripe_customer_id IS NULL OR stripe_customer_id = ?)')->execute([$s['customer'], $h['id'], $s['customer']]);
-        if (!empty($s['subscription'])) { try { $sub = stripe_api('GET', '/v1/subscriptions/' . $s['subscription']); billing_sync_subscription($sub, $h); } catch (Throwable $t) { billing_log('could not read subscription after checkout: ' . $t->getMessage()); } }
+        if (!empty($s['subscription'])) { try { $sub = stripe_api('GET', '/v1/subscriptions/' . $s['subscription']); billing_sync_subscription($sub, $h); referral_on_started($h, $sub); } catch (Throwable $t) { billing_log('could not read subscription after checkout: ' . $t->getMessage()); } }
         return 'subscribed';
     }
     return 'ignored';
@@ -207,6 +207,7 @@ function stripe_on_invoice_paid(array $inv): string {
         db()->prepare("UPDATE subscriptions SET status = 'active', period_start = ?, period_end = ?, updated_at = ? WHERE household_id = ?")->execute([$ps, $pe ?: $ps + 30 * 86400, time(), $h['id']]);
         $sub = subscription_of((int)$h['id']);
         $n = credits_grant_period((int)$h['id'], 'p' . $ps, (int)(plan_for($sub['plan_key'])['credits_per_member'] ?? 2));
+        referral_on_paid($h, $inv);
         return "renewed, $n members credited";
     }
     db()->prepare("UPDATE subscriptions SET status = CASE WHEN status = 'past_due' THEN 'active' ELSE status END, updated_at = ? WHERE household_id = ?")->execute([time(), $h['id']]);

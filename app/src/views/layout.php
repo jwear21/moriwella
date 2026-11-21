@@ -60,6 +60,7 @@
         <a role="menuitem" href="<?= url('/billing') ?>"><?= t('menu.plan_and_credits') ?></a>
         <?php if ($am['owner']): ?><a role="menuitem" href="<?= url('/billing') ?>#members"><?= t('menu.people') ?></a><?php endif; ?>
         <?php endif; ?>
+        <a role="menuitem" href="<?= url('/invite') ?>"><?= t('menu.invite') ?></a>
         <a role="menuitem" href="<?= url('/settings') ?>"><?= t('menu.settings') ?></a>
         <?php if ($user['role'] === 'admin'): ?><a role="menuitem" href="<?= url('/admin') ?>"><?= t('common.admin') ?></a><?php endif; ?>
         <form method="post" action="<?= url('/logout') ?>"><?= csrf_field() ?><button type="submit" role="menuitem" class="acct-out"><?= t('common.sign_out') ?></button></form>

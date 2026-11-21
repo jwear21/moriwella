@@ -9,6 +9,8 @@ require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/movie_render.php';
 require __DIR__ . '/src/albums.php';
 require __DIR__ . '/src/scrapbooks.php';
+require_once __DIR__ . '/src/referrals.php';
+require_once __DIR__ . '/src/billing.php';
 
 if (in_array('--selftest', $argv ?? [], true)) {
     $t0 = microtime(true); $dir = sys_get_temp_dir() . '/mw-selftest-' . getmypid(); @mkdir($dir, 0700, true);
@@ -33,3 +35,4 @@ if (in_array('--selftest', $argv ?? [], true)) {
 }
 mv_worker_run();
 sb_worker_run();
+try { referrals_worker_run(); } catch (Throwable $e) { billing_log('referral worker: ' . $e->getMessage()); }
