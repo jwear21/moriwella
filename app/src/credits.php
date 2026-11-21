@@ -49,7 +49,10 @@ function household_ensure(int $uid): array {
         else {
             db()->prepare('INSERT INTO households (owner_user_id, name, created_at) VALUES (?, ?, ?)')->execute([$uid, trim((string)$u['name']) . '\'s household', $now]);
             $hid = (int)db()->lastInsertId();
-            db()->prepare("INSERT INTO household_members (household_id, user_id, role, status, joined_at) VALUES (?, ?, 'owner', 'active', ?)")->execute([$hid, $uid, $now]);
+            /* someone who was removed from another household still has a membership row (user_id is unique): reuse it */
+            $ex = db()->prepare('SELECT id FROM household_members WHERE user_id = ?'); $ex->execute([$uid]);
+            if ($ex->fetch()) db()->prepare("UPDATE household_members SET household_id = ?, role = 'owner', status = 'active', joined_at = ?, removed_at = 0 WHERE user_id = ?")->execute([$hid, $now, $uid]);
+            else db()->prepare("INSERT INTO household_members (household_id, user_id, role, status, joined_at) VALUES (?, ?, 'owner', 'active', ?)")->execute([$hid, $uid, $now]);
             $comped = $u['role'] === 'admin' || in_array($u['plan'], ['beta_free', 'demo', 'admin'], true);
             if ($comped) {
                 db()->prepare("INSERT INTO subscriptions (household_id, plan_key, status, comped, seat_limit, updated_at) VALUES (?, 'individual', 'comped', 1, 1, ?)")->execute([$hid, $now]);
