@@ -293,3 +293,32 @@
 @media (prefers-reduced-motion: reduce){.bkld i{animation:none}}
 .earlierb{margin-top:1.1em; font:500 .8em var(--sans); color:var(--head); background:transparent; border:1px solid var(--rule); border-radius:999px; padding:.55em 1.1em; cursor:pointer}
 .earlierb:disabled{opacity:.6}
+
+/* ---------- large phone text (1.2x to 2x and beyond). textscale.js flags <html class="ts-lg"> at 1.2x and above, "ts-xl" at 1.5x ----------
+   The top buttons stop floating over the book and become a bar above it, so the book is fitted into what is left. */
+.topbar{display:contents}
+.sheet{max-height:calc(100% - 20px); overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain}
+html.ts-lg .bk{display:flex; flex-direction:column}
+html.ts-lg .desk{flex:1; min-height:0; height:auto}
+html.ts-lg .topbar{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; order:-1; flex:none; padding:8px 12px 2px}
+html.ts-lg .home,html.ts-lg .tools,html.ts-lg .tools .gear{position:static}
+html.ts-lg .tools{height:auto; max-width:none; flex:1 1 auto}
+html.ts-lg .home,html.ts-lg .gear,html.ts-lg .zoom,html.ts-lg .label{white-space:normal; text-align:center; line-height:1.25}
+html.ts-lg .home{flex:0 1 auto; max-width:100%}
+html.ts-lg .controls{flex-wrap:wrap; justify-content:center; max-width:100%; padding:0 8px; gap:8px}
+html.ts-lg .label{min-width:0; flex:1 1 7em}
+html.ts-lg .arrow{width:auto; min-width:46px; height:auto; min-height:46px; padding:0 10px}
+html.ts-lg .scrub{width:calc(100% - 28px); max-width:360px}
+html.ts-lg .sheet{width:min(460px,calc(100% - 20px)); bottom:max(10px,env(safe-area-inset-bottom))}
+html.ts-lg .sheet #fonts{flex-wrap:wrap; overflow-x:visible}
+html.ts-lg .seg3{flex-wrap:wrap}
+html.ts-lg .seg3 button,html.ts-lg .themes button{min-height:44px; white-space:normal; text-align:center}
+html.ts-lg .sheet #themes button{min-width:44px; min-height:44px; justify-content:center}
+html.ts-lg .wbtn,html.ts-lg .wlink{white-space:normal; line-height:1.25}
+html.ts-lg .wpaper{padding:14px 12px 16px}
+html.ts-lg .whead h2{font-size:calc(22px*min(var(--ts),1.4))}
+html.ts-lg .wchip{overflow-wrap:anywhere}
+html.ts-lg .wface .l{overflow-wrap:normal; hyphens:none}
+html.ts-xl .wface{flex:1 1 calc(33% - 6px)}
+/* the ruled lines grow with the text, so a page holds fewer, larger lines instead of text jammed onto them */
+html.ts-lg .bk{--line:calc(31px*min(var(--ts),2.2))}

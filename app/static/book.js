@@ -21,8 +21,8 @@
     '<div class="controls"><button class="arrow" id="prev" type="button" aria-label="'+esc(L.back_page)+'">&#8249;</button><div class="label" id="label" aria-live="polite"></div>'+
     '<button class="arrow" id="next" type="button" aria-label="'+esc(L.next_page)+'">&#8250;</button><button class="zoom" id="zoom" type="button"></button></div>'+
     '<input class="scrub" id="scrub" type="range" min="0" max="1" value="0" aria-label="'+esc(L.scrub)+'"></main>'+
-    '<a class="home" href="'+esc(C.home)+'">&#8249; '+esc(L.home)+'</a>'+
-    '<div class="tools"><button class="gear penb" id="wbtn" type="button" aria-haspopup="dialog" aria-controls="wsheet">'+esc(L.write)+'</button><button class="gear" id="gear" type="button" aria-haspopup="dialog" aria-controls="sheet">'+esc(L.customize)+'</button></div><div class="scrim" id="scrim" hidden></div>'+
+    '<div class="topbar"><a class="home" href="'+esc(C.home)+'">&#8249; '+esc(L.home)+'</a>'+
+    '<div class="tools"><button class="gear penb" id="wbtn" type="button" aria-haspopup="dialog" aria-controls="wsheet">'+esc(L.write)+'</button><button class="gear" id="gear" type="button" aria-haspopup="dialog" aria-controls="sheet">'+esc(L.customize)+'</button></div></div><div class="scrim" id="scrim" hidden></div>'+
     '<section class="wsheet" id="wsheet" role="dialog" aria-modal="true" aria-labelledby="wT" hidden><div class="wpaper">'+
       '<header class="whead"><h2 id="wT"></h2><button type="button" id="wX" aria-label="'+esc(L.close)+'">&times;</button></header>'+
       '<p class="wnote" id="wNote" hidden></p>'+
@@ -262,6 +262,8 @@
     if(focus==='both'){ var r=book.getBoundingClientRect(); focus=(e.clientX<r.left+r.width/2)?'left':'right'; layout(); }
   });
   window.addEventListener('resize',function(){ focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); });
+  /* when the phone's text size makes the top bar or the controls taller or shorter, the room left for the book changes: lay it out again */
+  if(window.ResizeObserver){ var lastWH=''; new ResizeObserver(function(){ var k=wrap.clientWidth+'x'+wrap.clientHeight; if(k===lastWH) return; lastWH=k; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); }).observe(wrap); }
   window.addEventListener('orientationchange',function(){ setTimeout(function(){ focus=narrow()?'right':'both'; layout(); },250); });
 
   /* ---------- customize ---------- */
