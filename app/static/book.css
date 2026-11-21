@@ -325,3 +325,23 @@ html.ts-lg .bk{--line:calc(31px*min(var(--ts),2.2))}
 
 /* phone: the bottom tab bar stays visible under the book, so there is always a way to Today, Lists, Experiences and Track */
 @media (max-width:720px){ .bk{bottom:var(--tabbar-h,4.5rem); padding-bottom:0} }
+
+/* ---- button polish (tap size and spacing only; page layout and flip are untouched) ---- */
+.home,.gear{display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:0 16px; font-size:13px; line-height:1.1; white-space:nowrap}
+.home{top:calc(8px + env(safe-area-inset-top))}
+.tools{top:calc(8px + env(safe-area-inset-top)); align-items:center}
+.gear:active,.home:active{background:rgba(255,255,255,.18)}
+.gear:focus-visible,.home:focus-visible,.arrow:focus-visible,.pedit:focus-visible,.tdyb:focus-visible,.scrub:focus-visible{outline:3px solid #D9A02B; outline-offset:2px}
+.penb:active{background:#c4901f}
+.tdy button.tdyb,.tdy a{display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 20px}
+.pedit{position:relative}
+.pedit::after{content:""; position:absolute; inset:-8px}
+.scrub{padding:14px 0; box-sizing:content-box; cursor:pointer}
+.sheet header button{min-width:44px; min-height:44px; padding:0 8px}
+.seg3 button{min-height:40px}
+.themes button{min-height:36px}
+.sheet #themes button{padding:5px}
+html.ts-lg .home,html.ts-lg .gear{min-height:44px; padding:6px 16px}
+/* phones: leave a clear strip above the page for Back / Write / Customize so they never sit on the paper */
+@media (max-width:720px){ html:not(.ts-lg) .desk{padding-top:56px} }
+.tools{height:auto}
