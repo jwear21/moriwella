@@ -427,6 +427,28 @@ function migrate(PDO $p): void {
           CREATE INDEX scrapbooks_event ON scrapbooks (event_id, id);
           PRAGMA user_version = 18;");
     }
+    if ($v < 19) {
+        $p->exec("ALTER TABLE users ADD COLUMN referral_code TEXT;
+          ALTER TABLE users ADD COLUMN referred_by INTEGER NOT NULL DEFAULT 0;
+          CREATE UNIQUE INDEX users_referral_code ON users (referral_code) WHERE referral_code IS NOT NULL;
+          CREATE TABLE referrals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            referrer_id INTEGER NOT NULL,
+            friend_id INTEGER NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'signed_up',   -- signed_up, started (30 days running), qualified (first payment in), rewarded, reversed
+            created_at INTEGER NOT NULL,
+            started_at INTEGER NOT NULL DEFAULT 0,
+            qualified_at INTEGER NOT NULL DEFAULT 0,
+            first_amount INTEGER NOT NULL DEFAULT 0,
+            reward_kind TEXT NOT NULL DEFAULT '',      -- month (Stripe account credit) or credits (movie credits)
+            reward_ref TEXT NOT NULL DEFAULT '',
+            reward_amount INTEGER NOT NULL DEFAULT 0,
+            rewarded_at INTEGER NOT NULL DEFAULT 0,
+            reversed_at INTEGER NOT NULL DEFAULT 0
+          );
+          CREATE INDEX referrals_referrer ON referrals (referrer_id, id);
+          PRAGMA user_version = 19;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

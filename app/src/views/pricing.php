@@ -1,6 +1,7 @@
-<?php $cur = $b['sub']['plan_key']; $paid = $b['state'] === 'active'; ?>
+<?php $cur = $b['sub']['plan_key']; $paid = $b['state'] === 'active'; $ref = referral_pending_start((int)$b['household']['id']); ?>
 <h1 class="page-title"><?= t('billing.plans_title') ?></h1>
 <p class="subtle"><?= t('billing.plans_intro') ?></p>
+<?php if ($ref): ?><p class="notice"><?= t('referral.friend_note', ['name' => $ref['referrer_name']]) ?></p><?php endif; ?>
 <?php if ($b['state'] === 'trial'): ?><p class="notice"><?= t('billing.trial_note', ['date' => ldate('F j', (int)$b['sub']['trial_end'])]) ?></p><?php endif; ?>
 <div class="plans">
 <?php foreach (plans() as $k => $p): ?>
@@ -16,11 +17,11 @@
     <?php elseif (!$b['is_owner']): ?><p class="hint"><?= t('billing.owner_manages') ?></p>
     <?php else: ?>
     <form method="post" action="<?= url($paid ? '/billing/change' : '/billing/subscribe') ?>"><?= csrf_field() ?><input type="hidden" name="plan" value="<?= e($k) ?>">
-      <button class="btn" type="submit"<?= $ready ? '' : ' disabled' ?>><?= $paid ? t('billing.switch_to', ['plan' => $p['name']]) : ($b['state'] === 'trial' ? t('billing.choose_plan', ['plan' => $p['name']]) : t('billing.subscribe')) ?></button>
+      <button class="btn" type="submit"<?= $ready ? '' : ' disabled' ?>><?= $ref ? t('referral.start_plan', ['plan' => $p['name']]) : ($paid ? t('billing.switch_to', ['plan' => $p['name']]) : ($b['state'] === 'trial' ? t('billing.choose_plan', ['plan' => $p['name']]) : t('billing.subscribe'))) ?></button>
     </form>
     <?php endif; ?>
   </section>
 <?php endforeach; ?>
 </div>
-<p class="hint"><?= t('billing.trial_terms') ?></p>
+<p class="hint"><?= $ref ? t('referral.friend_terms') : t('billing.trial_terms') ?></p>
 <p class="hint"><a class="link" href="<?= url('/billing') ?>"><?= t('billing.go_to_billing') ?></a></p>

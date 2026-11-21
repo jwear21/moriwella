@@ -547,3 +547,10 @@ label.check input { width: auto; margin-top: .3rem; }
 .warn-text{color:#7a4f10;background:#f6ebd0;border-radius:8px;padding:.55rem .75rem;margin:.2rem 0}
 .keep-acts{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}.keep-acts form{display:inline}
 .keep-new label.check{display:flex;gap:.6rem;align-items:center;margin:.4rem 0}.keep-new label.check input{width:auto;flex:none}
+.invite-card label{display:block;font-weight:600;margin-bottom:.4rem}
+.invite-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.invite-row input{flex:1 1 14rem;min-width:0;padding:.7rem .8rem;border:1px solid #D9D2BF;border-radius:10px;background:#FCFAF4;font:inherit}
+.invite-steps{padding-left:1.2rem;line-height:1.55}
+.invite-list{list-style:none;padding:0;margin:0}
+.invite-list li{display:flex;flex-direction:column;gap:.15rem;padding:.7rem 0;border-bottom:1px solid #E8E1CE}
+.invite-list li span{color:#5B6B61;font-size:.95rem}

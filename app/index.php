@@ -11,6 +11,7 @@ require __DIR__ . '/src/trackers.php';
 require __DIR__ . '/src/feelings.php';
 require __DIR__ . '/src/albums.php';
 require __DIR__ . '/src/scrapbooks.php';
+require __DIR__ . '/src/referrals.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -95,6 +96,7 @@ if ($path === '/login') {
     exit;
 }
 /* ---------- public sign-up and forgotten password: both email a link that lets the person choose a password ---------- */
+referrals_public_route($path);
 if ($path === '/signup') {
     if (current_user()) redirect(url('/'));
     $err = null; $name = ''; $email = ''; $done = false;
@@ -110,7 +112,7 @@ if ($path === '/signup') {
             $q = db()->prepare('SELECT * FROM users WHERE lower(email) = ?'); $q->execute([$email]); $t = $q->fetch();
             if (!$t) {
                 db()->prepare("INSERT INTO users (email, name, role, plan, status, created_at) VALUES (?, ?, 'member', 'member', 'invited', ?)")->execute([$email, $name, time()]);
-                $nid = (int)db()->lastInsertId(); signup_email($name, $email, make_invite($nid));
+                $nid = (int)db()->lastInsertId(); referral_record_signup($nid, $email); signup_email($name, $email, make_invite($nid));
             } elseif ($t['status'] === 'invited') { signup_email((string)$t['name'], (string)$t['email'], make_invite((int)$t['id'])); }
             elseif ($t['status'] === 'active') { reset_email((string)$t['name'], (string)$t['email'], make_invite((int)$t['id']), true); }
             $done = true;
@@ -378,6 +380,7 @@ require __DIR__ . '/src/billing.php';
 require __DIR__ . '/src/movies.php';
 albums_member_routes($uid, $user, $post, $path);
 scrapbooks_member_routes($uid, $user, $post, $path);
+referrals_member_routes($uid, $user, $path);
 require __DIR__ . '/src/experiences.php';
 require __DIR__ . '/src/track.php';
 require __DIR__ . '/src/transfer.php';
