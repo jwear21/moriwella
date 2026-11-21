@@ -115,8 +115,15 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
         $hid = (int)$b['household']['id'];
         $q = db()->prepare('SELECT * FROM users WHERE email = ?'); $q->execute([$email]); $t = $q->fetch();
         $link = null;
-        if ($t) { $err = household_add_member($hid, (int)$t['id']); }
-        else {
+        if ($t) {
+            $err = household_add_member($hid, (int)$t['id']);
+            /* someone who was invited before but never signed in: use the name just typed and send a fresh invitation */
+            if (!$err && $t['status'] === 'invited') {
+                if ($name !== '') { db()->prepare('UPDATE users SET name = ? WHERE id = ?')->execute([$name, (int)$t['id']]); }
+                else { $name = (string)$t['name']; }
+                $link = make_invite((int)$t['id']);
+            } elseif (!$err) { $name = $name !== '' ? $name : (string)$t['name']; }
+        } else {
             if ($name === '') $name = explode('@', $email)[0];
             $err = billing_tx(function () use ($hid, $email, $name, &$link) {
                 $sub = subscription_of($hid);
