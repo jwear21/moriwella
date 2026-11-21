@@ -456,6 +456,10 @@ function migrate(PDO $p): void {
         /* One row per save sent from the journal book, so a retry after a bad connection never writes the same words twice. */
         $p->exec("CREATE TABLE entry_saves (user_id INTEGER NOT NULL, cid TEXT NOT NULL, entry_id INTEGER NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (user_id, cid)); PRAGMA user_version = 21;");
     }
+    if ($v < 22) {
+        /* The journal book's look (cover, writing style, text size) follows the person to any phone or computer. */
+        $p->exec("CREATE TABLE book_prefs (user_id INTEGER PRIMARY KEY, theme TEXT NOT NULL DEFAULT 'classic', font TEXT NOT NULL DEFAULT 'auto', size TEXT NOT NULL DEFAULT 'm', updated_at INTEGER NOT NULL DEFAULT 0); PRAGMA user_version = 22;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */
