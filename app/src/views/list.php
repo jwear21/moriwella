@@ -92,14 +92,8 @@ $reps = function ($sel) { $h = ''; foreach ([''=>t('list.rep_none'),'daily'=>t('
     <button class="btn" type="submit"><?= t('list.save_sharing') ?></button>
   </form>
   <?php endif; ?>
+  <?php if ($isOwner && !$family): ?><p class="subtle"><?= t('list.no_family_yet') ?> <a class="link" href="<?= url('/billing') ?>#members"><?= t('menu.people') ?></a></p><?php endif; ?>
   <?php if ($isOwner): ?>
-  <p class="subtle"><?= $family ? t('list.someone_outside_family') : t('list.share_by_email') ?></p>
-  <form method="post" action="<?= $base ?>/share" class="inline-form">
-    <?= csrf_field() ?>
-    <label class="sr-only" for="semail"><?= t('list.email_of_a_moriwella') ?></label>
-    <input id="semail" type="email" name="email" placeholder="<?= t('list.their_moriwella_email') ?>" required class="title-in">
-    <button class="btn" type="submit"><?= t('list.share') ?></button>
-  </form>
   <form method="post" action="<?= $base ?>/delete" class="danger" data-confirm="<?= t('list.delete_this_list_for') ?>"><?= csrf_field() ?><button class="btn btn--quiet" type="submit"><?= t('list.delete_list') ?></button></form>
   <?php endif; ?>
 </section>

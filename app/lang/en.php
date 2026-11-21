@@ -872,6 +872,7 @@ return [
  'list.share' => 'Share',
  'list.share_with_family' => 'Tick the people in your family who should see this list.',
  'list.save_sharing' => 'Save sharing',
+ 'list.no_family_yet' => 'Lists are shared with the people in your family. Add them first:',
  'list.someone_outside_family' => 'Someone outside your family? Enter their Moriwella email.',
  'list.share_by_email' => 'Share with someone by their Moriwella email.',
  'msg.sharing_saved' => 'Sharing saved.',
