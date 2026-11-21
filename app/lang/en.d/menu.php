@@ -10,6 +10,7 @@ return [
  'menu.get_credit' => 'Get a movie credit',
  'menu.plan' => 'Your plan',
  'menu.plan_beta' => 'Free beta access',
+ 'menu.plan_free' => '{plan}, free',
  'menu.plan_trial' => 'Free trial until {date}',
  'menu.plan_none' => 'No plan yet',
  'menu.upgrade' => 'Upgrade your plan',

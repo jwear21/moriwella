@@ -52,7 +52,7 @@
         </div>
         <div class="acct-plan"><span><?= t('menu.plan') ?></span>
           <strong><?php
-            if ($st === 'comped') echo t('menu.plan_beta');
+            if ($st === 'comped') echo e(t('menu.plan_free', ['plan' => $am['plan']['name']]));
             elseif ($st === 'trial') echo t('menu.plan_trial', ['date' => ldate('F j', (int)$am['sub']['trial_end'])]);
             elseif ($st === 'active') echo e($am['plan']['name']);
             else echo t('menu.plan_none'); ?></strong></div>
