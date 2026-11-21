@@ -61,6 +61,7 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
   <p class="subtle"><?= $hasDay ? ($isToday ? t('day.cta_more_today') : t('day.cta_more_day')) : ($isToday ? $todayPrompt : t('day.ph_this_day')) ?></p>
   <a class="btn" href="<?= url('/journal/book?write=' . $day) ?>"><?= $hasDay ? ($isToday ? t('day.btn_add_today') : t('day.btn_add_day')) : t('day.cta_write') ?></a>
   <a class="link" href="<?= url('/journal/book') ?>"><?= t('day.cta_read') ?></a>
+  <a class="link" href="<?= url('/calendar') ?>"><?= t('journal.open_the_calendar') ?></a>
 </section>
 
 <h2 class="section-h"><?= $isToday ? t('day.h_so_far') : t('day.h_this_day') ?></h2>

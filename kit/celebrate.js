@@ -529,6 +529,13 @@
   }
 
   w.Moriwella = w.Moriwella || {};
+  /* Stop whatever celebration is playing, sound included (used when a new preview starts or a different style is chosen). */
+  w.Moriwella = w.Moriwella || {};
+  w.Moriwella.stop = function () {
+    if (openBadge) openBadge();
+    if (actx) { try { actx.close(); } catch (e) {} actx = null; }
+    if (navigator.vibrate) { try { navigator.vibrate(0); } catch (e) {} }
+  };
   var WALKONS = { kitten: kitten, baboon: baboon, rocket: rocket, balloons: balloons, puppy: puppy, bunny: bunny, owl: owl, penguin: penguin };
   w.Moriwella.celebrate = function (o) { o = o || {}; var st = o.style || (document.body && document.body.getAttribute("data-celebrate-style")); if (o.level === "milestone" && WALKONS[st]) return WALKONS[st](o); return o.level === "small" ? sparkle(o.origin) : o.level === "splash" ? splash(o.origin) : o.level === "burst" ? burst(o.origin) : milestone(o); };
 })(window);

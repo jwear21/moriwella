@@ -1,6 +1,7 @@
 /* Celebrations */
 .mw-fx { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
-.mw-cele { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(7,59,43,.5); }
+.mw-cele { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: rgba(7,59,43,.5); pointer-events: none; }
+.mw-cele .mw-card, .mw-cele button, .mw-cele a { pointer-events: auto; }
 .mw-card { background: var(--paper); border-radius: 8px; padding: 2rem 2.25rem 1.6rem; text-align: center; max-width: min(22rem, 88vw); display: grid; gap: .4rem; justify-items: center; box-shadow: 0 30px 60px -20px rgba(0,0,0,.6); }
 .mw-medal { width: 6.5rem; height: 6.5rem; filter: drop-shadow(0 6px 10px rgba(201,167,99,.5)); }
 .mw-t { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; color: var(--deep); line-height: 1.15; }

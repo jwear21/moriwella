@@ -345,3 +345,9 @@ html.ts-lg .home,html.ts-lg .gear{min-height:44px; padding:6px 16px}
 /* phones: leave a clear strip above the page for Back / Write / Customize so they never sit on the paper */
 @media (max-width:720px){ html:not(.ts-lg) .desk{padding-top:56px} }
 .tools{height:auto}
+
+/* slider date bubble */
+.scrubtip{position:fixed; z-index:25; transform:translateX(-50%); pointer-events:none; padding:5px 11px; border-radius:999px; background:#F3EAD2; color:#21362F; font:600 13px/1.2 var(--sans); white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.scrubtip::after{content:""; position:absolute; left:50%; bottom:-5px; width:10px; height:10px; background:#F3EAD2; transform:translateX(-50%) rotate(45deg); border-radius:2px}
+.scrubtip[hidden]{display:none}
+.scrub{touch-action:none}

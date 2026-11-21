@@ -133,7 +133,7 @@
   function rigidPose(){
     for(var j=0;j<nLeaf;j++){ var Lf=leaves[j]; if(!Lf||Lf.el.classList.contains('flexing')) continue;
       Lf.el.style.transform='rotateY('+(-P[j]*180)+'deg)';
-      Lf.el.style.zIndex=(j<cur?100+j:100-j);
+      Lf.el.style.zIndex=(j<cur?200+(j-cur):150-(j-cur)); /* relative to the open spread, so a long journal (over 100 spreads) never pushes the visible leaf behind the page block */
       Lf.el.style.visibility=(j<cur-2||j>cur+1)?'hidden':'visible'; }
   }
   function startFlex(j){ var Lf=ensure(j); buildFlex(Lf); Lf.el.classList.add('flexing'); Lf.el.style.transform='none'; Lf.el.style.zIndex=1000; Lf.el.style.visibility='visible'; }
@@ -210,7 +210,8 @@
     pages.push({k:'today'}); pages.push({k:'blank'});
     nLeaf=pages.length/2; MAXCUR=nLeaf-1; leaves=[]; book.innerHTML='';
     book.appendChild(el('div','cover')); book.appendChild(el('div','blockL')); book.appendChild(el('div','blockR')); book.appendChild(castL); book.appendChild(castR);
-    var c=MAXCUR, fo='right';
+    var c=MAXCUR, fo='right'; if(anchorId===-1) c=0; else if(anchorId===-2) c=1;
+    if(anchorId<0) anchorId=0;
     if(anchorId){ var hit=-1; fo='right'; for(var i=3;i<pages.length;i++){ if(pages[i].k==='day'&&pages[i].e.id===anchorId){ if(last||pages[i].first) hit=i; if(!last&&hit>=0) break; } } if(hit>=0){ c=Math.max(1,Math.min(MAXCUR,Math.ceil(hit/2))); fo=(hit%2===0)?'right':'left'; } }
     P=[]; for(var j=0;j<nLeaf;j++) P[j]=j<c?1:0;
     scrub.max=MAXCUR; isOpen=true; book.classList.remove('closed'); cur=c; busy=false;
@@ -228,7 +229,27 @@
 
   /* ---------- input ---------- */
   prevB.onclick=function(){go(-1)}; nextB.onclick=function(){go(1)};
-  scrub.addEventListener('input',function(){ if(!busy) setCur(parseInt(scrub.value,10)||0); });
+  /* Page slider: while it is being dragged a small bubble above the thumb names the date it is on; the book jumps once, on release, without turning every page in between. Keyboard steps jump at once. */
+  var tip=el('div','scrubtip'); tip.setAttribute('aria-hidden','true'); tip.hidden=true; root.appendChild(tip);
+  var dragging=false, tipTimer=0;
+  function labelFor(c){
+    var l=pages[2*c-1], r=pages[2*c];
+    return (c===0)?L.cover:(c===1)?L.title_page:(nm(l)&&nm(r)?nm(l)+'  ·  '+nm(r):(nm(r)||nm(l)||''));
+  }
+  function showTip(){
+    var v=Math.max(0,Math.min(MAXCUR,parseInt(scrub.value,10)||0)), t=labelFor(v); tip.textContent=t; scrub.setAttribute('aria-valuetext',t);
+    var r=scrub.getBoundingClientRect(), th=26, frac=MAXCUR>0?v/MAXCUR:0, x=r.left+th/2+frac*(r.width-th);
+    tip.hidden=false; var w=tip.offsetWidth; x=Math.max(8+w/2,Math.min(innerWidth-8-w/2,x));
+    tip.style.left=x+'px'; tip.style.top=(r.top+r.height/2-th/2-tip.offsetHeight-6)+'px';
+    clearTimeout(tipTimer);
+  }
+  function hideTip(ms){ clearTimeout(tipTimer); tipTimer=setTimeout(function(){ tip.hidden=true; },ms||0); }
+  function commitScrub(){ var v=parseInt(scrub.value,10)||0; if(!busy&&v!==cur) setCur(v); }
+  scrub.addEventListener('pointerdown',function(){ dragging=true; });
+  function endScrub(){ if(!dragging) return; dragging=false; commitScrub(); scrub.value=cur; hideTip(500); }
+  scrub.addEventListener('pointerup',endScrub); scrub.addEventListener('pointercancel',endScrub); window.addEventListener('pointerup',endScrub);
+  scrub.addEventListener('blur',function(){ if(dragging) endScrub(); hideTip(0); });
+  scrub.addEventListener('input',function(){ showTip(); if(!dragging){ commitScrub(); hideTip(900); } });
   document.addEventListener('keydown',function(e){ if(/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||'')) return; if(e.key==='ArrowLeft') go(-1); if(e.key==='ArrowRight') go(1); });
   book.addEventListener('pointerdown',function(e){
     if(busy||e.target.closest('textarea,input,button,label,a')) return;
@@ -270,7 +291,7 @@
     if(!narrow()||busy) return; if(e.target.closest('textarea,input,button,label,a')) return;
     if(focus==='both'){ var r=book.getBoundingClientRect(); focus=(e.clientX<r.left+r.width/2)?'left':'right'; layout(); }
   });
-  function modeChanged(){ if(DATA&&single!==narrow()){ rebuild(anchorNow()); return true; } return false; }
+  function modeChanged(){ if(DATA&&single!==narrow()){ rebuild(cur===0?-1:(cur===1?-2:anchorNow())); return true; } return false; }
   window.addEventListener('resize',function(){ if(modeChanged()) return; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); });
   /* when the phone's text size makes the top bar or the controls taller or shorter, the room left for the book changes: lay it out again */
   if(window.ResizeObserver){ var lastWH=''; new ResizeObserver(function(){ var k=wrap.clientWidth+'x'+wrap.clientHeight; if(k===lastWH) return; lastWH=k; if(modeChanged()) return; focus=narrow()?(focus==='both'?'right':focus):'both'; layout(); }).observe(wrap); }
@@ -436,10 +457,21 @@
   function dictStop(){ dOn=false; dBtn.setAttribute('aria-pressed','false'); dBtn.textContent=L.w_dictate; if(dRec){ try{dRec.stop();}catch(e){} dRec=null; } }
   if(SR){ dBtn.hidden=false; dBtn.onclick=function(){
     if(dOn){ dictStop(); return; }
-    var rec=new SR(), base=wBody.value&&!/\s$/.test(wBody.value)?wBody.value+' ':wBody.value, fin=''; rec.lang=navigator.language||'en-US'; rec.continuous=true; rec.interimResults=true;
-    rec.onresult=function(ev){ var interim=''; for(var i=ev.resultIndex;i<ev.results.length;i++){ var t=ev.results[i][0].transcript; if(ev.results[i].isFinal) fin+=t+' '; else interim+=t; } wBody.value=base+fin+interim; draftSoon(); };
+    var rec=new SR(), base='', used=0, lastDict=''; rec.lang=navigator.language||'en-US'; rec.continuous=true; rec.interimResults=true;
+    function rebase(){ var v=wBody.value; base=v&&!/\s$/.test(v)?v+' ':v; used=0; lastDict=''; }
+    /* Join speech segments; some engines (Android) resend the whole phrase so far, so a segment that repeats or extends the one before replaces it instead of being added twice. */
+    function addSeg(segs,next){ next=(next||'').trim(); if(!next) return; var last=segs.length?segs[segs.length-1]:'', l=last.toLowerCase(), n=next.toLowerCase();
+      if(last&&l.length>=8&&n.indexOf(l)===0) segs[segs.length-1]=next; else if(last&&n.length>=8&&l.slice(-n.length)===n) return; else segs.push(next); }
+    rebase();
+    rec.onresult=function(ev){
+      var cur=wBody.value;
+      if(lastDict){ if(cur.slice(-lastDict.length)===lastDict){ base=cur.slice(0,cur.length-lastDict.length); }
+        else { /* the writer typed or edited meanwhile: keep their text, and carry on after it */ base=cur&&!/\s$/.test(cur)?cur+' ':cur; var f=0; while(f<ev.results.length&&ev.results[f].isFinal) f++; used=f; } }
+      var segs=[]; for(var i=used;i<ev.results.length;i++) addSeg(segs,ev.results[i][0].transcript);
+      var out=segs.join(' '); lastDict=out; wBody.value=base+out; draftSoon();
+    };
     rec.onerror=function(ev){ if(ev.error==='not-allowed') setMsg(L.w_mic,true); dictStop(); };
-    rec.onend=function(){ if(dOn){ try{ rec.start(); }catch(e){ dictStop(); } } };
+    rec.onend=function(){ if(dOn){ rebase(); try{ rec.start(); }catch(e){ dictStop(); } } };
     try{ rec.start(); dRec=rec; dOn=true; dBtn.setAttribute('aria-pressed','true'); dBtn.textContent=L.w_dictate_stop; setMsg(''); }catch(e){ dictStop(); } }; }
   var toastT=null; function toast(t){ var b=$w('wToast'); if(!b){ b=el('div','wtoast'); b.id='wToast'; b.setAttribute('role','status'); root.appendChild(b); } b.textContent=t; b.hidden=false; clearTimeout(toastT); toastT=setTimeout(function(){ b.hidden=true; },6000); }
   wSave.onclick=doSave; wDel.onclick=function(){ if(!W.eid) return; if(!confirm(L.w_delete_ask)) return; var fd=new FormData(); fd.append('_csrf',C.csrf); fd.append('delete','1');

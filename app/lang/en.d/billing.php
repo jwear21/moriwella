@@ -28,7 +28,7 @@ return [
  'billing.switch_to' => 'Switch to {plan}',
  'billing.choose_plan' => 'Choose {plan}',
  'billing.subscribe' => 'Subscribe',
- 'billing.trial_terms' => 'If you add a card during your trial, you are charged only when it ends. If you do not subscribe, nothing is charged and your memories stay yours to read and export.',
+ 'billing.trial_terms' => 'Every plan starts with free days. Your card is charged only when they end, and you can cancel any time before then. If you do not subscribe, nothing is charged and your memories stay yours to read and export.',
  'billing.go_to_billing' => 'Plan and credits',
  'billing.thanks_subscribed' => 'Thank you. Your plan is being set up and will show here in a moment.',
  'billing.thanks_bought' => 'Thank you. Your credits will appear here in a moment.',

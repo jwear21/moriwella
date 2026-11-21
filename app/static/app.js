@@ -394,8 +394,11 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function () 
 /* settings: preview the chosen goal celebration */
 (function () {
   var b = document.getElementById('style-preview'); if (!b) return;
+  /* Choosing another style while a preview plays stops that preview, sound included. */
+  document.querySelectorAll('input[name=celebrate_style]').forEach(function (i) { i.addEventListener('change', function () { if (window.Moriwella && Moriwella.stop) Moriwella.stop(); }); });
   b.addEventListener('click', function () {
     var r = document.querySelector('input[name=celebrate_style]:checked');
+    if (window.Moriwella && Moriwella.stop) Moriwella.stop();
     if (window.Moriwella) Moriwella.celebrate({ level: 'milestone', style: r ? r.value : 'fireworks', title: T('js.goal_reached', 'Goal reached'), sub: T('js.goal_reached_sub', 'You hit {what}.').replace('{what}', '8 glasses of water') });
   });
 })();

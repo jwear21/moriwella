@@ -10,7 +10,7 @@
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
-<link rel="stylesheet" href="/kit/kit.css">
+<link rel="stylesheet" href="/kit/kit.css?v=<?= kit_v('kit.css') ?>">
 <link rel="stylesheet" href="/app/static/app.css?v=<?= asset_v('static/app.css') ?>">
 <link rel="stylesheet" href="/app/static/editor.css?v=<?= asset_v('static/editor.css') ?>">
 <link rel="stylesheet" href="/app/static/textscale.css?v=<?= asset_v('static/textscale.css') ?>">
@@ -84,7 +84,7 @@
 <?php endif; ?>
 <script type="application/json" id="mw-i18n"><?= json_encode(js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
-<script src="/kit/celebrate.js"></script>
+<script src="/kit/celebrate.js?v=<?= kit_v('celebrate.js') ?>"></script>
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
 <?php if ($user): ?><script src="/app/static/editor.js?v=<?= asset_v('static/editor.js') ?>" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>

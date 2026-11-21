@@ -480,6 +480,8 @@ function migrate(PDO $p): void {
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */
+/* Version stamp for files in the site-root kit/ folder, so a changed celebration file is never served stale. */
+function kit_v(string $rel): string { $f = __DIR__ . '/../../kit/' . $rel; return is_file($f) ? (string)filemtime($f) : '0'; }
 function asset_v(string $rel): string { $f = __DIR__ . '/../' . $rel; return is_file($f) ? (string)filemtime($f) : '0'; }
 
 /* ---------- request setup ---------- */
