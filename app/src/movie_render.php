@@ -37,7 +37,13 @@ function mv_cjk_region(string $t): string {
     if (in_array($l, ['zh', 'zh-cn', 'zh-hans', 'zh-sg'], true)) return 'SC';
     return preg_match('/[们这个来时会过对说学国发后么书见长门开关车东马鸟鱼风飞电话谢礼爱听让总没经现还为与产业兴师专乐医务华单参历压变员图场声处头实写应带虽乡际该战无张岁气汉龙]/u', $t) ? 'SC' : 'TC';
 }
+/* Other scripts the Latin fonts lack: one serif and one handwriting face each (Caveat means handwriting). */
+function mv_script_fonts(string $t): ?array {
+    if (preg_match('/[\x{0E00}-\x{0E7F}]/u', $t)) return ['NotoSerifThai', 'Mali'];
+    return null;
+}
 function mv_pick(string $font, string $t): string {
+    if ($sf = mv_script_fonts($t)) return mv_font(strpos(basename($font, '.ttf'), 'Caveat') === 0 ? $sf[1] : $sf[0]);
     if (!mv_is_cjk($t)) return $font;
     $r = mv_cjk_region($t); $b = basename($font, '.ttf');
     $hand = ['JP' => 'KleeOne', 'TC' => 'Iansui', 'SC' => 'MaShanZheng', 'KR' => 'NanumPenScript']; $serif = ['JP' => 'NotoSerifJP', 'TC' => 'NotoSerifTC', 'SC' => 'NotoSerifSC', 'KR' => 'NotoSerifKR'];
