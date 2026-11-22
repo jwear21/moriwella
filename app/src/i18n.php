@@ -107,6 +107,7 @@ function lang_picker(string $class = 'lang-pick'): string {
     $cur = current_lang();
     $back = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $o = '';
+    uksort($have, fn($a, $b) => $a === 'en' ? -1 : ($b === 'en' ? 1 : strcasecmp(lang_english_name($a) ?: $a, lang_english_name($b) ?: $b)));
     foreach ($have as $code => $name) $o .= '<option value="' . e($code) . '"' . ($code === $cur ? ' selected' : '') . ' lang="' . e($code) . '">' . e($name) . (($en = lang_english_name($code)) !== '' && $en !== $name ? ' (' . e($en) . ')' : '') . '</option>';
     return '<form method="post" action="' . e(url('/lang')) . '" class="' . e($class) . '">' . csrf_field()
         . '<input type="hidden" name="back" value="' . e($back) . '">'
@@ -118,7 +119,7 @@ function lang_picker(string $class = 'lang-pick'): string {
 /** English names, shown beside each language's own name so people can recognise a script they cannot read. */
 function lang_english_name(string $code): string {
     static $n = ['en'=>'English','es'=>'Spanish','fr'=>'French','it'=>'Italian','de'=>'German','nl'=>'Dutch','ja'=>'Japanese','ko'=>'Korean',
-        'zh'=>'Mandarin Chinese','zh-HK'=>'Cantonese, Hong Kong','pt'=>'Portuguese','ru'=>'Russian','uk'=>'Ukrainian','tr'=>'Turkish',
+        'zh'=>'Chinese, Mandarin','zh-HK'=>'Chinese, Cantonese','pt'=>'Portuguese','ru'=>'Russian','uk'=>'Ukrainian','tr'=>'Turkish',
         'id'=>'Indonesian','vi'=>'Vietnamese','pl'=>'Polish','th'=>'Thai','hi'=>'Hindi','mr'=>'Marathi','bn'=>'Bengali','te'=>'Telugu','ta'=>'Tamil',
         'ar'=>'Arabic','ur'=>'Urdu','he'=>'Hebrew','fa'=>'Persian, Farsi'];
     return $n[$code] ?? '';
@@ -130,6 +131,7 @@ function lang_menu_picker(): string {
     $cur = current_lang();
     $back = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $o = '';
+    uksort($have, fn($a, $b) => $a === 'en' ? -1 : ($b === 'en' ? 1 : strcasecmp(lang_english_name($a) ?: $a, lang_english_name($b) ?: $b)));
     foreach ($have as $code => $name) $o .= '<option value="' . e($code) . '"' . ($code === $cur ? ' selected' : '') . ' lang="' . e($code) . '">' . e($name) . (($en = lang_english_name($code)) !== '' && $en !== $name ? ' (' . e($en) . ')' : '') . '</option>';
     return '<form method="post" action="' . e(url('/lang')) . '" class="acct-lang">' . csrf_field()
         . '<input type="hidden" name="back" value="' . e($back) . '">'
