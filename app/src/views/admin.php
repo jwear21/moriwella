@@ -98,6 +98,18 @@
   To do this automatically, add a weekly cron job: <code>/usr/local/bin/php /home/coyotejo/moriwella.com/app/bin/translate.php</code>. To only check, add <code>--check</code>.</p>
 </section>
 <script src="/app/static/admin-translate.js?v=<?= asset_v('static/admin-translate.js') ?>"></script>
+<h2 class="section-h" id="legal">Legal pages in other languages</h2>
+<section class="card" id="lg-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/legal') ?>" data-pieces='<?= e(json_encode(array_combine(array_keys(legal_docs()), $legal['pieces']))) ?>'>
+  <p>The English privacy policy, terms and delete-account pages stay the official text. Translations are courtesy copies shown at <code>/app/legal/privacy?lang=es</code> with a notice that the English governs. They are checked to keep the page structure exactly, and a page is re-translated only when its English changes.</p>
+  <?php if ($legal['todo'] === 0): ?>
+    <p>All three pages are translated and current in all <?= count(tr_codes()) ?> other languages.</p>
+  <?php else: ?>
+    <p><b><?= (int)$legal['todo'] ?></b> translations are missing or out of date (3 pages x <?= count(tr_codes()) ?> languages). Translating all of them costs roughly <b>$2</b>.</p>
+    <p><button class="btn" type="button" id="lg-go"<?= $trKey ? '' : ' disabled' ?>>Translate legal pages</button> <span id="lg-status" role="status"></span></p>
+    <script type="application/json" id="lg-todo"><?= json_encode(array_map(fn($r) => array_keys(array_filter($r, fn($ok) => !$ok)), $legal['rows'])) ?></script>
+  <?php endif; ?>
+</section>
+<script src="/app/static/admin-legal.js?v=<?= asset_v('static/admin-legal.js') ?>"></script>
 
 <h2 class="section-h">Movie credits</h2>
 <p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>

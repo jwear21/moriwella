@@ -15,6 +15,7 @@ require __DIR__ . '/src/referrals.php';
 require __DIR__ . '/src/devices.php';
 require __DIR__ . '/src/passkeys.php';
 require __DIR__ . '/src/translate.php';
+require __DIR__ . '/src/legal.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -75,6 +76,7 @@ if ($path === '/setup') {
 }
 
 /* ---------- sign in / out ---------- */
+legal_routes($path);
 device_routes($path, $post);
 passkey_routes($path, $post);
 if ($path === '/login') {
@@ -753,6 +755,13 @@ if (strpos($path, '/admin') === 0) {
         echo "\nImagick ext: " . (extension_loaded('imagick') ? 'yes' : 'no') . "\n";
         exit;
     }
+    if ($path === '/admin/legal' && $post) {
+        header('Content-Type: application/json; charset=utf-8'); $c = (string)($_POST['lang'] ?? ''); $d = (string)($_POST['doc'] ?? ''); $i = (int)($_POST['piece'] ?? 0);
+        if (!in_array($c, tr_codes(), true) || !isset(legal_docs()[$d])) { echo json_encode(['ok' => false, 'error' => 'Unknown language or page.']); exit; }
+        try { $r = legal_run($d, $c, $i); echo json_encode(['ok' => true] + $r + ['spent' => tr_spent()['cost']]); }
+        catch (Throwable $e) { echo json_encode(['ok' => false, 'error' => $e->getMessage()]); }
+        exit;
+    }
     if ($path === '/admin/translate' && $post) {
         header('Content-Type: application/json; charset=utf-8'); $c = (string)($_POST['lang'] ?? '');
         if (!in_array($c, tr_codes(), true)) { echo json_encode(['ok' => false, 'error' => 'Unknown language.']); exit; }
@@ -836,7 +845,7 @@ if (strpos($path, '/admin') === 0) {
             $sub = $h ? subscription_of((int)$h['id']) : null;
             $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
         }
-        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => tr_overview(), 'trSpent' => tr_spent(), 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
+        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => tr_overview(), 'trSpent' => tr_spent(), 'legal' => legal_overview(), 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
         exit;
     }
 }
