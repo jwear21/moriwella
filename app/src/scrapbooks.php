@@ -126,20 +126,20 @@ function sb_cells(array $ars, int $x, int $y, int $w, int $h, int $gap): array {
 function sb_header($im, array $c, string $label): int {
     $acc = mv_col($im, $c['accent']); $f = mv_font('Lora'); $k = $c['k'];
     $y = $c['M'] + (int)(44 * $k); $lab = mv_wrap($label, 44 * $k, $f, $c['W'] - 2 * $c['M'], 2);
-    foreach ($lab as $l) { mv_text($im, 44 * $k, 0, $c['M'], $y, $acc, $f, $l); $y += (int)(60 * $k); }
+    foreach ($lab as $l) { mv_text($im, 44 * $k, 0, mv_ax(44 * $k, $f, $l, $c['M'], $c['W'] - 2 * $c['M']), $y, $acc, $f, $l); $y += (int)(60 * $k); }
     imagesetthickness($im, max(2, (int)(3 * $k))); imageline($im, $c['M'], $y - (int)(30 * $k), $c['W'] - $c['M'], $y - (int)(30 * $k), mv_col($im, $c['accent'], 70));
     return $y + (int)(30 * $k);
 }
 function sb_title($im, array $c, string $title, int $y): int {
     if ($title === '') return $y; $k = $c['k']; $pf = mv_font('PlayfairDisplay'); $ink = mv_col($im, $c['ink']); $sz = 92 * $k;
-    foreach (mv_wrap($title, $sz, $pf, $c['W'] - 2 * $c['M'], 2) as $l) { $y += (int)($sz * 1.05); mv_text($im, $sz, 0, $c['M'], $y, $ink, $pf, $l); $y += (int)($sz * 0.2); }
+    foreach (mv_wrap($title, $sz, $pf, $c['W'] - 2 * $c['M'], 2) as $l) { $y += (int)($sz * 1.05 * mv_lhx($l)); mv_text($im, $sz, 0, mv_ax($sz, $pf, $l, $c['M'], $c['W'] - 2 * $c['M']), $y, $ink, $pf, $l); $y += (int)($sz * 0.2); }
     return $y + (int)(30 * $k);
 }
 function sb_text_lines(array $c, string $text, string $mode, bool $roomy): array {
     $k = $c['k']; $text = trim(preg_replace('/[ \t]+/', ' ', $text)); if ($text === '') return ['lines' => [], 'size' => 0, 'lh' => 0, 'font' => ''];
     if ($mode === 'excerpt' || $roomy) { $sz = ($roomy ? 62 : 48) * $k; $font = mv_font($roomy ? 'Lora-Italic' : 'Lora'); $max = $roomy ? 16 : 14; $t = mb_strlen($text) > 1100 ? rtrim(mb_substr($text, 0, 1097), ' ,;:') . '…' : $text; $lh = 1.5; }
     else { $sz = 54 * $k; $font = mv_font('Lora-Italic'); $max = 4; $t = mv_first_sentence($text, 240); $lh = 1.45; }
-    return ['lines' => $t === '' ? [] : mv_wrap($t, $sz, $font, $c['W'] - 2 * $c['M'], $max), 'size' => $sz, 'lh' => (int)($sz * $lh), 'font' => $font];
+    return ['lines' => $t === '' ? [] : mv_wrap($t, $sz, $font, $c['W'] - 2 * $c['M'], $max), 'size' => $sz, 'lh' => (int)($sz * $lh * mv_lhx($t)), 'font' => $font];
 }
 function sb_cover(array $c, $hero, string $by, string $title, string $where, string $dates, string $opening) {
     $W = $c['W']; $H = $c['H']; $k = $c['k']; $im = sb_canvas($W, $H, $c['style']['paper']);
@@ -170,13 +170,13 @@ function sb_entry_page(array $c, array $it, array $photos, string $mode, int $no
     $cells = $imgs ? sb_cells($ars, $M, $y, $W - 2 * $M, $y1 - $y, $gap) : [];
     $tilts = [-2.2, 2.0, -1.6, 2.4];
     foreach ($imgs as $i => $g) { sb_draw_photo($im, $g, $cells[$i], $c, $soft, $c['style']['frame'] === 'polaroid' ? $tilts[$i % 4] : 0.0); imagedestroy($g); }
-    if ($tx['lines']) { $ink = mv_col($im, $c['ink']); $ty = $y1 + (int)(40 * $k); foreach ($tx['lines'] as $l) { $ty += $tx['lh']; mv_text($im, $tx['size'], 0, $M, $ty - (int)($tx['lh'] * 0.2), $ink, $tx['font'], $l); } }
+    if ($tx['lines']) { $ink = mv_col($im, $c['ink']); $ty = $y1 + (int)(40 * $k); foreach ($tx['lines'] as $l) { $ty += $tx['lh']; mv_text($im, $tx['size'], 0, mv_ax($tx['size'], $tx['font'], $l, $M, $c['W'] - 2 * $M), $ty - (int)($tx['lh'] * 0.2), $ink, $tx['font'], $l); } }
     sb_footer($im, $c, $c['title'], $no); return $im;
 }
 function sb_text_page(array $c, array $it, int $no) {
     $W = $c['W']; $H = $c['H']; $M = $c['M']; $im = sb_canvas($W, $H, $c['style']['paper']);
     $y = sb_title($im, $c, $it['title'], sb_header($im, $c, $it['label'])); $tx = sb_text_lines($c, $it['text'], 'excerpt', true); $ink = mv_col($im, $c['ink']);
-    $y += (int)(60 * $c['k']); foreach ($tx['lines'] as $l) { $y += $tx['lh']; mv_text($im, $tx['size'], 0, $M, $y, $ink, $tx['font'], $l); }
+    $y += (int)(60 * $c['k']); foreach ($tx['lines'] as $l) { $y += $tx['lh']; mv_text($im, $tx['size'], 0, mv_ax($tx['size'], $tx['font'], $l, $M, $c['W'] - 2 * $M), $y, $ink, $tx['font'], $l); }
     sb_footer($im, $c, $c['title'], $no); return $im;
 }
 function sb_more_page(array $c, array $it, array $photos, int $no, int &$soft, int $uid) {

@@ -139,11 +139,19 @@ function lang_menu_picker(): string {
         . '<noscript><button class="btn btn--quiet" type="submit">' . t('lang.change') . '</button></noscript></form>';
 }
 
-/** Plural form for a count: 'one' or 'other'. French counts 0 as singular; Japanese and Chinese have no plural. */
+/** Plural form for a count: 'one', 'two', 'few', 'many' or 'other'. Missing forms fall back to 'other' in tn(). French counts 0 as singular; Japanese, Chinese and Korean have no plural. */
 function plural_form(string $lang, int $n): string {
     $base = substr($lang, 0, 2);
     if (in_array($base, ['ja', 'zh', 'ko'], true)) return 'other';
     if ($base === 'fr') return ($n === 0 || $n === 1) ? 'one' : 'other';
+    if ($base === 'ar') {
+        $m = $n % 100;
+        if ($n === 1) return 'one';
+        if ($n === 2) return 'two';
+        if ($m >= 3 && $m <= 10) return 'other';
+        return $n === 0 ? 'other' : 'many';
+    }
+    if ($base === 'he' && $n === 2) return 'two';
     return $n === 1 ? 'one' : 'other';
 }
 

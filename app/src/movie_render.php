@@ -42,7 +42,7 @@ function mv_cjk_region(string $t): string {
    on this host, so those strings are drawn by ffmpeg's drawtext (HarfBuzz) and pasted in. Thai needs no shaping. */
 function mv_script_fonts(string $t): ?array {
     static $map = [
-        ['/[\x{0E00}-\x{0E7F}]/u', 'NotoSerifThai', 'Mali', false],
+        ['/[\x{0E00}-\x{0E7F}]/u', 'NotoSerifThai', 'Mali', true],
         ['/[\x{0900}-\x{097F}]/u', 'NotoSerifDevanagari', 'Kalam', true],
         ['/[\x{0980}-\x{09FF}]/u', 'NotoSerifBengali', 'Galada', true],
         ['/[\x{0C00}-\x{0C7F}]/u', 'NotoSerifTelugu', 'Gidugu', true],
@@ -56,7 +56,7 @@ function mv_script_fonts(string $t): ?array {
 }
 /* Draw one shaped string with pango-view (full HarfBuzz shaping: Indic conjuncts, Arabic joining, right-to-left) into a transparent PNG,
    trimmed to its ink. Returns [GD image, bottom row of ink, left bearing] or null so the caller can fall back to plain GD. */
-const MV_FAMILY = ['NotoSerifDevanagari' => 'Noto Serif Devanagari', 'Kalam' => 'Kalam', 'NotoSerifBengali' => 'Noto Serif Bengali', 'Galada' => 'Galada', 'NotoSerifTelugu' => 'Noto Serif Telugu', 'Gidugu' => 'Gidugu', 'NotoSerifTamil' => 'Noto Serif Tamil', 'Kavivanar' => 'Kavivanar', 'NotoNaskhArabic' => 'Noto Naskh Arabic', 'ArefRuqaa' => 'Aref Ruqaa', 'NotoNastaliqUrdu' => 'Noto Nastaliq Urdu', 'NotoSerifHebrew' => 'Noto Serif Hebrew', 'GveretLevin' => 'Gveret Levin'];
+const MV_FAMILY = ['NotoSerifThai' => 'Noto Serif Thai', 'Mali' => 'Mali', 'NotoSerifDevanagari' => 'Noto Serif Devanagari', 'Kalam' => 'Kalam', 'NotoSerifBengali' => 'Noto Serif Bengali', 'Galada' => 'Galada', 'NotoSerifTelugu' => 'Noto Serif Telugu', 'Gidugu' => 'Gidugu', 'NotoSerifTamil' => 'Noto Serif Tamil', 'Kavivanar' => 'Kavivanar', 'NotoNaskhArabic' => 'Noto Naskh Arabic', 'ArefRuqaa' => 'Aref Ruqaa', 'NotoNastaliqUrdu' => 'Noto Nastaliq Urdu', 'NotoSerifHebrew' => 'Noto Serif Hebrew', 'GveretLevin' => 'Gveret Levin'];
 function mv_fontconf(): string {
     $f = sys_get_temp_dir() . '/mw-fonts-' . md5(dirname(__DIR__)) . '.conf';
     if (!is_file($f)) {
@@ -117,8 +117,31 @@ function mv_w(float $size, string $font, string $t): int {
     if (mv_shaped_script($t) && ($g = mv_shape($t, $size, mv_pick($font, $t), [255, 255, 255, 1]))) return imagesx($g[0]);
     $b = imagettfbbox($size, 0, mv_pick($font, $t), $t); return (int)($b[2] - $b[0]);
 }
+/* Thai has no spaces between words. Break points come from ICU's Thai dictionary when the intl extension is present, otherwise at syllable-sized chunks (never between a consonant and its vowel or tone marks). */
+function mv_thai_pieces(string $t): array {
+    if (class_exists('IntlBreakIterator')) {
+        $it = IntlBreakIterator::createWordInstance('th'); $it->setText($t); $out = []; $p = 0;
+        foreach ($it as $b) { if ($b > 0) $out[] = substr($t, $p, $b - $p); $p = $b; }
+        if ($out) return $out;
+    }
+    preg_match_all('/[\x{0E40}-\x{0E44}]?[^\x{0E40}-\x{0E44}\x{0E31}\x{0E34}-\x{0E3A}\x{0E47}-\x{0E4E}\s][\x{0E31}\x{0E34}-\x{0E3A}\x{0E47}-\x{0E4E}]*|\s+|./u', $t, $m);
+    return $m[0];
+}
+function mv_wrap_thai(string $t, float $size, string $font, int $maxW, int $maxLines): array {
+    $lines = []; $cur = ''; $space = false;
+    foreach (mv_thai_pieces(trim($t)) as $piece) {
+        if (trim($piece) === '') { $space = $cur !== ''; continue; }
+        $try = $cur . ($space ? ' ' : '') . $piece;
+        if ($cur !== '' && mv_w($size, $font, $try) > $maxW) { $lines[] = $cur; $cur = $piece; } else { $cur = $try; }
+        $space = false;
+    }
+    if ($cur !== '') $lines[] = $cur;
+    if (count($lines) > $maxLines) { $lines = array_slice($lines, 0, $maxLines); $lines[$maxLines - 1] = rtrim($lines[$maxLines - 1], ' ,.;:') . '…'; }
+    return $lines;
+}
 /* Words are split at spaces; Japanese and Chinese have none, so each character is a break point (never starting a line with closing punctuation). */
 function mv_wrap(string $t, float $size, string $font, int $maxW, int $maxLines = 6): array {
+    if (preg_match('/\p{Thai}/u', $t)) return mv_wrap_thai($t, $size, $font, $maxW, $maxLines);
     $lines = []; $cur = ''; $noStart = '、。，．！？）」』】〉》,.!?:;)…・ー';
     preg_match_all('/[\x{3040}-\x{30FF}\x{3400}-\x{9FFF}\x{F900}-\x{FAFF}\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]|[^\s\x{3040}-\x{30FF}\x{3400}-\x{9FFF}\x{F900}-\x{FAFF}\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]+/u', trim($t), $m);
     $tokens = $m[0]; $prevCjk = false; $prevEnd = -1; $pos = 0;
@@ -136,6 +159,12 @@ function mv_wrap(string $t, float $size, string $font, int $maxW, int $maxLines 
     if (count($lines) > $maxLines) { $lines = array_slice($lines, 0, $maxLines); $lines[$maxLines - 1] = rtrim($lines[$maxLines - 1], ' ,.;:、。，') . '…'; }
     return $lines;
 }
+/* Right-to-left lines (Arabic, Urdu, Persian, Hebrew) sit against the right edge of their box instead of the left. */
+function mv_ax(float $size, string $font, string $t, int $x, int $boxW): int {
+    return preg_match('/[\x{0590}-\x{08FF}\x{FB1D}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', $t) ? $x + $boxW - mv_w($size, $font, $t) : $x;
+}
+/* Urdu's Nastaliq script is tall and needs extra space between lines. */
+function mv_lhx(string $t): float { return preg_match('/[\x{0679}\x{0688}\x{0691}\x{06BA}\x{06D2}\x{06C1}\x{06BE}]/u', $t) ? 1.3 : 1.0; }
 function mv_center($im, int $y, string $t, float $size, string $font, int $col, int $w = MV_W): void {
     mv_text($im, $size, 0, (int)(($w - mv_w($size, $font, $t)) / 2), $y, $col, $font, $t);
 }
@@ -191,10 +220,10 @@ function mv_title_card(array $th, $photo, string $by, string $title, string $whe
             if (count($lines) === 1 || (count($lines) === 2 && mb_strlen($lines[1]) >= 3)) break;
         }
     } elseif (count($lines) > 2) { $size = 84; $lines = mv_wrap($title, $size, $pf, MV_W - 360, 3); }
-    $block = count($lines) * ($size + 14);
+    $lhx = mv_lhx($title); $block = count($lines) * ($size * $lhx + 14);
     $y = (int)(MV_H / 2 - $block / 2 + 10);
     if ($by !== '') mv_center($im, $y - 70, $by, 38, $li, $acc);
-    foreach ($lines as $l) { $y += $size; mv_center($im, $y, $l, $size, $pf, $ink); $y += 14; }
+    foreach ($lines as $l) { $y += (int)($size * $lhx); mv_center($im, $y, $l, $size, $pf, $ink); $y += 14; }
     mv_rule($im, $y + 30, $th);
     $y += 100;
     $sub = trim($where); if ($sub !== '') { mv_center($im, $y, $sub, 44, $lo, $ink); $y += 58; }
