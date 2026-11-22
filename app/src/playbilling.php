@@ -86,17 +86,18 @@ function play_status(array $g): array {
 function play_apply(array $g, int $hid, string $token): string {
     [$status, $exp, $cancelling] = play_status($g); if ($status === '') return '';
     $productId = (string)($g['lineItems'][0]['productId'] ?? ''); $planKey = play_plan_for_product($productId); if (!$planKey) throw new RuntimeException('Unknown Google plan ' . $productId);
-    $ps = $exp > 0 ? (int)(new DateTime('@' . $exp))->modify('-1 month')->getTimestamp() : time();
+    $iv = ((string)($g['lineItems'][0]['offerDetails']['basePlanId'] ?? 'monthly')) === 'yearly' ? 'year' : 'month';   // base plan ids in Play: "monthly" and "yearly"
+    $ps = $exp > 0 ? (int)(new DateTime('@' . $exp))->modify($iv === 'year' ? '-1 year' : '-1 month')->getTimestamp() : time();
     $limit = (int)(plan_for($planKey)['seats'] ?? 1); $cur = subscription_of($hid);
-    billing_tx(function () use ($hid, $token, $planKey, $status, $ps, $exp, $cancelling, $limit, $cur, $productId) {
+    billing_tx(function () use ($hid, $token, $planKey, $status, $ps, $exp, $cancelling, $limit, $cur, $productId, $iv) {
         $applyPending = ($cur['pending_plan_key'] !== '' && $cur['pending_plan_key'] === $planKey);
         if ($applyPending) household_apply_keep($hid, $limit, (array)json_decode((string)$cur['pending_keep'], true));
         db()->prepare("INSERT INTO subscriptions (household_id, stripe_subscription_id, plan_key, status, period_start, period_end, cancel_at_period_end, seat_limit, interval_key, trial_start, trial_end, source, play_token, play_product, updated_at)
-            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, 'month', ?, ?, 'play', ?, ?, ?)
+            VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'play', ?, ?, ?)
             ON CONFLICT(household_id) DO UPDATE SET stripe_subscription_id = NULL, plan_key = excluded.plan_key, status = excluded.status, period_start = excluded.period_start, period_end = excluded.period_end,
-              cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = 'month', source = 'play', play_token = excluded.play_token, play_product = excluded.play_product, updated_at = excluded.updated_at,
+              cancel_at_period_end = excluded.cancel_at_period_end, seat_limit = excluded.seat_limit, interval_key = excluded.interval_key, source = 'play', play_token = excluded.play_token, play_product = excluded.play_product, updated_at = excluded.updated_at,
               pending_plan_key = CASE WHEN ? THEN '' ELSE pending_plan_key END, pending_keep = CASE WHEN ? THEN '' ELSE pending_keep END")
-            ->execute([$hid, $planKey, $status, $ps, $exp, $cancelling, $limit, (int)$cur['trial_start'], (int)$cur['trial_end'], $token, $productId, time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
+            ->execute([$hid, $planKey, $status, $ps, $exp, $cancelling, $limit, $iv, (int)$cur['trial_start'], (int)$cur['trial_end'], $token, $productId, time(), $applyPending ? 1 : 0, $applyPending ? 1 : 0]);
         if (in_array($status, ['active', 'past_due'], true)) db()->prepare('UPDATE subscriptions SET comped = 0 WHERE household_id = ?')->execute([$hid]);
     });
     if (in_array($status, ['active', 'past_due'], true) && $exp > time()) credits_grant_period($hid, 'p' . $ps, (int)(plan_for($planKey)['credits_per_member'] ?? 2));   // each period's movies, once (keyed by the period)

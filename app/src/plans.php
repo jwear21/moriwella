@@ -13,18 +13,18 @@ function credit_packs(): array {
     ];
 }
 
-/** Subscription plans. 'annual' prices are defined for later but are not created or sold until approved. */
+/** Subscription plans. Yearly = 10 x monthly (two months free). Play base plan ids are "monthly" and "yearly". */
 function plans(): array {
     $core = ['journal', 'lists', 'experiences', 'movies', 'scrapbook'];
     return [
         'individual' => ['name' => 'Individual', 'seats' => 1, 'credits_per_member' => 2, 'rank' => 1,
-            'monthly_cents' => 499, 'annual_cents' => null, 'lookup_month' => 'moriwella_individual_monthly', 'lookup_year' => 'moriwella_individual_annual',
+            'monthly_cents' => 499, 'annual_cents' => 4990, 'lookup_month' => 'moriwella_individual_monthly', 'lookup_year' => 'moriwella_individual_annual',
             'features' => $core],
         'family' => ['name' => 'Family', 'seats' => 4, 'credits_per_member' => 2, 'rank' => 2,
-            'monthly_cents' => 799, 'annual_cents' => null, 'lookup_month' => 'moriwella_family_monthly', 'lookup_year' => 'moriwella_family_annual',
+            'monthly_cents' => 799, 'annual_cents' => 7990, 'lookup_month' => 'moriwella_family_monthly', 'lookup_year' => 'moriwella_family_annual',
             'features' => array_merge($core, ['family_sharing'])],
         'family_pro' => ['name' => 'Family Pro', 'seats' => 10, 'credits_per_member' => 2, 'rank' => 3,
-            'monthly_cents' => 1499, 'annual_cents' => null, 'lookup_month' => 'moriwella_family_pro_monthly', 'lookup_year' => 'moriwella_family_pro_annual',
+            'monthly_cents' => 1499, 'annual_cents' => 14990, 'lookup_month' => 'moriwella_family_pro_monthly', 'lookup_year' => 'moriwella_family_pro_annual',
             'features' => array_merge($core, ['family_sharing', 'extended_family'])],
     ];
 }

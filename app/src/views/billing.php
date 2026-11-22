@@ -7,7 +7,7 @@
   <h2 class="section-h"><?= t('billing.your_plan_h') ?></h2>
   <?php if ($state === 'comped'): ?><p><?= t('billing.state_comped') ?></p>
   <?php elseif ($state === 'trial'): ?><p><?= t('billing.state_trial', ['date' => ldate('F j', (int)$sub['trial_end'])]) ?></p>
-  <?php elseif ($state === 'active'): ?><p><b><?= e($plan['name']) ?></b> · <?= money($plan['monthly_cents']) ?> <?= t('billing.per_month') ?><?= $sub['status'] === 'past_due' ? ' · ' . t('billing.payment_problem') : '' ?></p>
+  <?php elseif ($state === 'active'): ?><p><b><?= e($plan['name']) ?></b> · <?= ($sub['interval_key'] ?? 'month') === 'year' && !empty($plan['annual_cents']) ? money($plan['annual_cents']) . ' ' . t('billing.per_year') : money($plan['monthly_cents']) . ' ' . t('billing.per_month') ?><?= $sub['status'] === 'past_due' ? ' · ' . t('billing.payment_problem') : '' ?></p>
     <p class="hint"><?= !empty($sub['cancel_at_period_end']) ? t('billing.ends_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) : t('billing.renews_on', ['date' => ldate('F j, Y', (int)$sub['period_end'])]) ?></p>
     <?php if ($sub['pending_plan_key']): ?><p class="hint"><?= t('billing.switching_to', ['plan' => (plan_for($sub['pending_plan_key'])['name'] ?? ''), 'date' => ldate('F j', (int)$sub['period_end'])]) ?></p><?php endif; ?>
   <?php elseif ($ctPending = card_trial_pending((int)$b['household']['id'])): ?><p><?= t('billing.card_needed', ['days' => $ctPending['days']]) ?> <a class="link" href="<?= url('/pricing') ?>"><?= t('referral.pick_plan') ?></a></p>

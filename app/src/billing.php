@@ -67,7 +67,9 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
                 redirect($s['url']);
             }
             $planKey = (string)($_POST['plan'] ?? ''); $plan = plan_for($planKey); if (!$plan) billing_back();
-            $price = stripe_price($plan['lookup_month']); if (!$price) { flash('err', tt('billing.err_not_ready')); billing_back(); }
+            /* monthly or yearly: a new subscription takes the person's choice; a plan change keeps the interval they already pay */
+            $iv = $path === '/billing/subscribe' ? (($_POST['interval'] ?? '') === 'year' && !empty($plan['annual_cents']) ? 'year' : 'month') : (($b['sub']['interval_key'] ?? 'month') === 'year' && !empty($plan['annual_cents']) ? 'year' : 'month');
+            $price = stripe_price($plan[$iv === 'year' ? 'lookup_year' : 'lookup_month']); if (!$price) { flash('err', tt('billing.err_not_ready')); billing_back(); }
             $sub = $b['sub'];
             if ($path === '/billing/subscribe') {
                 if (!empty($sub['stripe_subscription_id']) && in_array($sub['status'], ['active', 'trialing', 'past_due'], true)) billing_back();
@@ -78,7 +80,7 @@ if (strpos($path, '/billing') === 0 || $path === '/pricing' || strpos($path, '/h
                 if ($cardTrial) {
                     $data['trial_period_days'] = $cardTrial['days'];   // card on file now, first payment when the free days end (14, or a friend's 30)
                     $data['trial_settings'] = ['end_behavior' => ['missing_payment_method' => 'cancel']];
-                    $notice = tt('billing.checkout_notice', ['days' => $cardTrial['days'], 'price' => money($plan['monthly_cents'])]);
+                    $notice = $iv === 'year' ? tt('billing.checkout_notice_year', ['days' => $cardTrial['days'], 'price' => money($plan['annual_cents'])]) : tt('billing.checkout_notice', ['days' => $cardTrial['days'], 'price' => money($plan['monthly_cents'])]);
                 }
                 elseif ($b['state'] === 'trial' && (int)$sub['trial_end'] > time() + 2 * 86400 + 600) $data['trial_end'] = (int)$sub['trial_end'];
                 $s = stripe_api('POST', '/v1/checkout/sessions', ['mode' => 'subscription', 'customer' => $cus, 'client_reference_id' => $hid,

@@ -17,6 +17,11 @@ foreach (plans() as $k => $p) {
         'desc' => ['individual' => 'Moriwella for one person. 2 movie credits each month.', 'family' => 'Moriwella for a family of up to 4. 2 movie credits each month for every member.', 'family_pro' => 'Moriwella for an extended family of up to 10. 2 movie credits each month for every member.'][$k],
         'meta' => ['plan_key' => $k, 'seats' => (string)$p['seats'], 'credits_per_member' => (string)$p['credits_per_member']]];
 }
+foreach (plans() as $k => $p) {   // yearly prices sit on the same product as the monthly one (found by its monthly lookup key)
+    if (empty($p['annual_cents'])) continue;
+    $items[] = ['key' => $k . '_year', 'name' => 'Moriwella ' . $p['name'], 'lookup' => $p['lookup_year'], 'cents' => $p['annual_cents'], 'recurring' => true, 'interval' => 'year', 'same_product_as' => $p['lookup_month'],
+        'desc' => '', 'meta' => ['plan_key' => $k, 'seats' => (string)$p['seats'], 'credits_per_member' => (string)$p['credits_per_member'], 'interval' => 'year']];
+}
 foreach (credit_packs() as $k => $c) {
     $items[] = ['key' => 'credit_' . $k, 'name' => $c['name'], 'lookup' => $c['lookup'], 'cents' => $c['cents'], 'recurring' => false,
         'desc' => $c['credits'] === 1 ? 'One Moriwella movie credit. Never expires.' : 'Ten Moriwella movie credits. Never expire.',
@@ -28,6 +33,12 @@ foreach ($items as $it) {
     if (!empty($found['data'][0])) {
         $price = $found['data'][0]; $prod = $price['product'];
         echo "exists  {$it['name']}  {$price['id']}\n";
+    } elseif (!empty($it['same_product_as'])) {
+        $base = stripe_api('GET', '/v1/prices', ['lookup_keys' => [$it['same_product_as']], 'expand' => ['data.product']]);
+        $prod = $base['data'][0]['product'] ?? null; if (!$prod) { echo "skip    {$it['name']} yearly (monthly price not found)\n"; continue; }
+        $price = stripe_api('POST', '/v1/prices', ['product' => $prod['id'], 'unit_amount' => $it['cents'], 'currency' => 'usd', 'lookup_key' => $it['lookup'],
+            'recurring' => ['interval' => 'year'], 'metadata' => $it['meta'] + ['app' => 'moriwella']], 'mw-price-' . $it['lookup']);
+        echo "created {$it['name']} yearly  {$price['id']}\n";
     } else {
         $prod = stripe_api('POST', '/v1/products', ['name' => $it['name'], 'description' => $it['desc'], 'images' => [$img], 'metadata' => $it['meta'] + ['app' => 'moriwella']], 'mw-prod-' . $it['lookup']);
         $price = stripe_api('POST', '/v1/prices', ['product' => $prod['id'], 'unit_amount' => $it['cents'], 'currency' => 'usd', 'lookup_key' => $it['lookup'],
