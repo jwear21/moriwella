@@ -118,9 +118,9 @@ function lang_picker(string $class = 'lang-pick'): string {
 /** English names, shown beside each language's own name so people can recognise a script they cannot read. */
 function lang_english_name(string $code): string {
     static $n = ['en'=>'English','es'=>'Spanish','fr'=>'French','it'=>'Italian','de'=>'German','nl'=>'Dutch','ja'=>'Japanese','ko'=>'Korean',
-        'zh'=>'Chinese, Mandarin','zh-HK'=>'Chinese, Cantonese (Hong Kong)','pt'=>'Portuguese','ru'=>'Russian','uk'=>'Ukrainian','tr'=>'Turkish',
+        'zh'=>'Mandarin Chinese','zh-HK'=>'Cantonese, Hong Kong','pt'=>'Portuguese','ru'=>'Russian','uk'=>'Ukrainian','tr'=>'Turkish',
         'id'=>'Indonesian','vi'=>'Vietnamese','pl'=>'Polish','th'=>'Thai','hi'=>'Hindi','mr'=>'Marathi','bn'=>'Bengali','te'=>'Telugu','ta'=>'Tamil',
-        'ar'=>'Arabic','ur'=>'Urdu','he'=>'Hebrew','fa'=>'Persian (Farsi)'];
+        'ar'=>'Arabic','ur'=>'Urdu','he'=>'Hebrew','fa'=>'Persian, Farsi'];
     return $n[$code] ?? '';
 }
 
