@@ -599,3 +599,7 @@ label.check input { width: auto; margin-top: .3rem; }
 .credit-explain p{margin:.25rem 0}
 .credit-explain ul{margin:.3rem 0 .45rem 1.1rem;padding:0}
 .credit-explain li{margin:.15rem 0}
+
+/* Monthly / Yearly switch on the plans screen */
+.iv-tabs a.btn--ghost{background:transparent;color:var(--green,#1F4D3A);border:1.5px solid currentColor}
+.iv-tabs{display:flex;flex-wrap:wrap;gap:.5rem}

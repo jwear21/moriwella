@@ -119,5 +119,13 @@ ok('25 an account already billed on the website cannot also buy through Google',
 db()->prepare('UPDATE subscriptions SET updated_at = 1 WHERE household_id = ?')->execute([$he['id']]);
 $GLOBALS['play_resp'] = playresp('SUBSCRIPTION_STATE_EXPIRED', $tag, 'moriwella_family', -2);
 ok('26 a stale Google plan is re-checked, and an expired one limits the account', bal($e)['state'] === 'limited');
+
+/* 27-30 yearly plans: paid once, movies still arrive every month */
+$y = mkuser('yearly@x.com'); bal($y); $hy = household_of($y); $psY = time() - 86400 * 100;
+db()->prepare("UPDATE subscriptions SET status='active', plan_key='individual', interval_key='year', period_start=?, period_end=?, comped=0, seat_limit=1 WHERE household_id=?")->execute([$psY, $psY + 86400 * 365, $hy['id']]);
+ok('27 month index inside a yearly plan counts months since payment', sub_month_index(subscription_of((int)$hy['id'])) === 3);
+$by = bal($y); ok('28 a yearly subscriber gets this month\'s two movies without a new payment', $by['included'] === 2);
+ok('29 the movies reset at the next monthly step, not a year away', $by['renews'] > time() && $by['renews'] < time() + 86400 * 32);
+credits_ensure_comped($y); ok('30 asking again does not grant twice', bal($y)['included'] === 2 && sub_month_index(['interval_key' => 'month', 'period_start' => $psY]) === 0);
 if ($madeCfg) @unlink('src/config.php');
 echo "\n$pass passed, $fail failed\n"; exit($fail ? 1 : 0);

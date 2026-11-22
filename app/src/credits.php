@@ -93,8 +93,20 @@ function billing_state(array $sub): string {
 }
 function billing_period_key(array $sub): string {
     if (!empty($sub['comped'])) return 'c' . date('Y-m');
-    if (in_array($sub['status'], ['active', 'trialing', 'past_due', 'canceled'], true) && (int)$sub['period_start'] > 0) return 'p' . (int)$sub['period_start'];
+    if (in_array($sub['status'], ['active', 'trialing', 'past_due', 'canceled'], true) && (int)$sub['period_start'] > 0) { $m = sub_month_index($sub); return 'p' . (int)$sub['period_start'] . ($m > 0 ? 'm' . $m : ''); }
     return '';
+}
+/** On a yearly plan the movies still come every month: which month of the paid year are we in (0 to 11). Always 0 on a monthly plan. */
+function sub_month_index(array $sub, ?int $now = null): int {
+    if (($sub['interval_key'] ?? 'month') !== 'year' || (int)$sub['period_start'] <= 0) return 0;
+    $a = new DateTime('@' . (int)$sub['period_start']); $b = new DateTime('@' . ($now ?? time()));
+    if ($b <= $a) return 0; $d = $a->diff($b); return max(0, min(11, $d->y * 12 + $d->m));
+}
+/** When the current month's movies reset: the next monthly step inside the paid year (the renewal date when the year is nearly done). */
+function sub_next_reset(array $sub): int {
+    if (($sub['interval_key'] ?? 'month') !== 'year' || (int)$sub['period_start'] <= 0) return (int)$sub['period_end'];
+    $next = (new DateTime('@' . (int)$sub['period_start']))->modify('+' . (sub_month_index($sub) + 1) . ' months')->getTimestamp();
+    return (int)$sub['period_end'] > 0 ? min($next, (int)$sub['period_end']) : $next;
 }
 /** Everything the screens and checks need about one person's billing, in one call. */
 function billing_for(int $uid): array {
@@ -179,6 +191,9 @@ function credits_grant_period(int $hid, string $periodKey, int $perMember): int 
 function credits_ensure_comped(int $uid): void {
     $b = household_ensure($uid); $sub = subscription_of((int)$b['id']);
     if (!empty($sub['comped'])) credits_grant_included((int)$b['id'], $uid, billing_period_key($sub), comp_credits_per_member($sub));
+    /* a yearly plan is paid once, so each later month's movies are granted the first time they are needed */
+    elseif (($sub['interval_key'] ?? 'month') === 'year' && in_array($sub['status'], ['active', 'past_due', 'canceled'], true) && (int)$sub['period_end'] > time() && sub_month_index($sub) > 0)
+        credits_grant_included((int)$b['id'], $uid, billing_period_key($sub), (int)(plan_for($sub['plan_key'])['credits_per_member'] ?? 2));
 }
 /** Monthly credits per member: the administrator's number for a comped account, otherwise the plan's. */
 function comp_credits_per_member(array $sub): int {
@@ -213,7 +228,7 @@ function credits_balance(int $uid): array {
     credits_ensure_comped($uid);
     $b = billing_for($uid); $pk = $b['period_key']; $sub = $b['sub'];
     $inc = credits_kind_balance($uid, 'included', $pk); $pur = credits_kind_balance($uid, 'purchased'); $tri = credits_kind_balance($uid, 'trial');
-    $renews = !empty($sub['comped']) ? strtotime('first day of next month 00:00') : (int)$sub['period_end'];
+    $renews = !empty($sub['comped']) ? strtotime('first day of next month 00:00') : sub_next_reset($sub);
     return ['trial' => $tri, 'included' => $inc, 'purchased' => $pur,
             'available' => max(0, $tri) + max(0, $inc) + max(0, $pur), 'renews' => $renews, 'state' => $b['state']];
 }
