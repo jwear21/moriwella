@@ -67,7 +67,7 @@ return [
  'billing.sending_invite' => 'Einladung wird gesendet',
  'billing.sending_invite_detail' => 'Einen Moment. Wir senden per E-Mail einen Link zum Festlegen eines Passworts.',
  'billing.dlg_sent_h' => 'Einladung gesendet',
- 'billing.dlg_sent' => 'Wir haben {name} unter {email} geschrieben. Über den Link in der Nachricht kann ein Passwort gewählt werden. Wenn sie nicht bald im Posteingang ist, bitte {name}, im Spam nachzusehen.',
+ 'billing.dlg_sent' => 'Wir haben {name} unter {email} geschrieben. Über den Link in der Nachricht kann ein Passwort gewählt werden. Wenn sie nicht bald im Posteingang ist, bitte um einen Blick in den Spam-Ordner.',
  'billing.dlg_failed_h' => 'Einladung nicht gesendet',
  'billing.dlg_failed' => 'Wir konnten die E-Mail an {email} nicht senden. Kopiere den Link auf dieser Seite und schicke ihn selbst an {name}.',
  'billing.dlg_ok' => 'OK',
