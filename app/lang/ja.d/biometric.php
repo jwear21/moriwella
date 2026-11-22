@@ -1,4 +1,4 @@
-<？php
+<?php
 /* Fingerprint and face sign-in (Android app). */
 return [
  'bio.sign_in' => '指紋または顔でログイン',
