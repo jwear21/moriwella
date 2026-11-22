@@ -150,14 +150,14 @@ function sb_cover(array $c, $hero, string $by, string $title, string $where, str
     $M = $c['M']; $sz = 150 * $k; $lines = mv_wrap($title, $sz, $pf, $W - 2 * $M, 3);
     if (mv_is_cjk($title)) { $sz = 130 * $k; $lines = mv_wrap($title, $sz, $pf, $W - 2 * $M, 3); }
     $open = $opening !== '' ? mv_wrap($opening, 50 * $k, $li, $W - 2 * $M, 2) : [];
-    $tlh = (int)($sz * 1.14); $total = ($by !== '' ? (int)(110 * $k) : 0) + count($lines) * $tlh + (int)(40 * $k) + ($where !== '' ? (int)(84 * $k) : 0) + (int)(84 * $k) + ($open ? (int)(30 * $k) + count($open) * (int)(68 * $k) : 0);
+    $tlh = (int)($sz * 1.14 * mv_lhx($title)); $total = ($by !== '' ? (int)(110 * $k) : 0) + count($lines) * $tlh + (int)(40 * $k) + ($where !== '' ? (int)(84 * $k) : 0) + (int)(84 * $k) + ($open ? (int)(30 * $k) + count($open) * (int)(68 * $k * mv_lhx($opening)) : 0);
     $y = $H - $M - $total;
-    if ($by !== '') { $y += (int)(60 * $k); mv_text($im, 46 * $k, 0, $M, $y, $gold, $lo, $by); $y += (int)(50 * $k); }
-    foreach ($lines as $l) { $y += (int)($sz * 0.9); mv_text($im, $sz, 0, $M, $y, $cream, $pf, $l); $y += $tlh - (int)($sz * 0.9); }
+    if ($by !== '') { $y += (int)(60 * $k); mv_text($im, 46 * $k, 0, mv_ax(46 * $k, $lo, $by, $M, $W - 2 * $M), $y, $gold, $lo, $by); $y += (int)(50 * $k); }
+    foreach ($lines as $l) { $y += (int)($sz * 0.9 * mv_lhx($l)); mv_text($im, $sz, 0, mv_ax($sz, $pf, $l, $M, $W - 2 * $M), $y, $cream, $pf, $l); $y += $tlh - (int)($sz * 0.9 * mv_lhx($l)); }
     $y += (int)(40 * $k);
-    if ($where !== '') { $y += (int)(54 * $k); mv_text($im, 54 * $k, 0, $M, $y, $cream, $lo, $where); $y += (int)(30 * $k); }
-    $y += (int)(54 * $k); mv_text($im, 54 * $k, 0, $M, $y, $gold, $li, $dates); $y += (int)(30 * $k);
-    foreach ($open as $l) { $y += (int)(52 * $k); mv_text($im, 50 * $k, 0, $M, $y, $cream, $li, $l); $y += (int)(16 * $k); }
+    if ($where !== '') { $y += (int)(54 * $k); mv_text($im, 54 * $k, 0, mv_ax(54 * $k, $lo, $where, $M, $W - 2 * $M), $y, $cream, $lo, $where); $y += (int)(30 * $k); }
+    $y += (int)(54 * $k); mv_text($im, 54 * $k, 0, mv_ax(54 * $k, $li, $dates, $M, $W - 2 * $M), $y, $gold, $li, $dates); $y += (int)(30 * $k);
+    foreach ($open as $l) { $y += (int)(52 * $k * mv_lhx($l)); mv_text($im, 50 * $k, 0, mv_ax(50 * $k, $li, $l, $M, $W - 2 * $M), $y, $cream, $li, $l); $y += (int)(16 * $k); }
     return $im;
 }
 function sb_entry_page(array $c, array $it, array $photos, string $mode, int $no, int &$soft, int $uid) {
