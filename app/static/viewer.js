@@ -63,7 +63,13 @@
   });
   /* any photo marked data-pv (an <img>, or a link around one) opens the viewer with the others in the same .thumbs group */
   document.addEventListener('click', function (e) {
-    var el = e.target.closest ? e.target.closest('[data-pv]') : null; if (!el || e.defaultPrevented) return;
+    var el = e.target.closest ? e.target.closest('[data-pv]') : null;
+    /* the book stacks its pages, so another page's text can sit over a photo: look under the pointer for a photo */
+    if (!el && document.elementsFromPoint && !(e.target.closest && e.target.closest('a,button,input,textarea,label,select'))) {
+      var under = document.elementsFromPoint(e.clientX, e.clientY);
+      for (var u = 0; u < under.length && !el; u++) { var f = under[u].closest && under[u].closest('[data-pv]'); if (f) el = f; }
+    }
+    if (!el || e.defaultPrevented) return;
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
     var scope = el.closest('.thumbs'), all = scope ? Array.prototype.slice.call(scope.querySelectorAll('[data-pv]')) : [el];
     group = all.map(function (n) { var im = n.tagName === 'IMG' ? n : n.querySelector('img'); return { src: n.getAttribute('data-src') || n.getAttribute('href') || (im ? big(im.getAttribute('src')) : ''), pid: n.getAttribute('data-pid') || '' }; });
