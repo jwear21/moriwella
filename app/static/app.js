@@ -1,4 +1,4 @@
-function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
+function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA',pt:'pt-BR',ru:'ru-RU',uk:'uk-UA',tr:'tr-TR',id:'id-ID',vi:'vi-VN',pl:'pl-PL',th:'th-TH',hi:'hi-IN',mr:'mr-IN',bn:'bn-IN',te:'te-IN',ta:'ta-IN',ur:'ur-PK'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
 (function () {
   var celebOn = document.body.getAttribute('data-celebrate-on') !== '0';
   function celebrate(o) { if (celebOn && window.Moriwella) Moriwella.celebrate(o); }
