@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= e(current_lang()) ?>">
+<html lang="<?= e(current_lang()) ?>" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

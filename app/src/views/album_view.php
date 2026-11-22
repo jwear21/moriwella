@@ -1,7 +1,7 @@
 <?php /* Standalone album page: no app chrome. Used by the public link and by household members. Variables: $a, $photos, $photoUrl, $public, $owner */
 $exp = (int)$a['expires_at']; $n = count($photos); ?>
 <!DOCTYPE html>
-<html lang="<?= e(current_lang()) ?>">
+<html lang="<?= e(current_lang()) ?>" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">

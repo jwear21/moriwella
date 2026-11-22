@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="<?= e(current_lang()) ?>">
-<head>
+<html lang="<?= e(current_lang()) ?>" translate="no">
+<head><meta name="google" content="notranslate">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title><?= e(page_title($title)) ?> | Moriwella</title>
