@@ -734,6 +734,14 @@ if ($path === '/acting/stop' && $post) {
 /* ---------- administration ---------- */
 if (strpos($path, '/admin') === 0) {
     $admin = require_admin();
+    if ($path === '/admin/diag') {
+        header('Content-Type: text/plain; charset=utf-8');
+        $g = function_exists('gd_info') ? gd_info() : [];
+        echo "PHP " . PHP_VERSION . "\nGD FreeType: " . (!empty($g['FreeType Support']) ? 'yes' : 'no') . "\nGD RAQM (complex-script shaping): " . (!empty($g['RAQM']) ? 'yes' : 'NO') . "\n";
+        $ff = mv_ffmpeg(); echo "ffmpeg: " . trim((string)@shell_exec(escapeshellarg($ff) . ' -version 2>&1 | head -1')) . "\n";
+        echo "ffmpeg harfbuzz: " . (strpos((string)@shell_exec(escapeshellarg($ff) . ' -version 2>&1'), 'enable-libharfbuzz') !== false ? 'yes' : 'no') . "\n";
+        exit;
+    }
     if ($path === '/admin' && $post && isset($_POST['create'])) {
         $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
         $email = strtolower(trim((string)($_POST['email'] ?? '')));
