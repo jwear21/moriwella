@@ -1,3 +1,4 @@
+function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
 (function () {
   var celebOn = document.body.getAttribute('data-celebrate-on') !== '0';
   function celebrate(o) { if (celebOn && window.Moriwella) Moriwella.celebrate(o); }
@@ -128,7 +129,7 @@
     var stop = function () { on = false; dBtn.setAttribute('aria-pressed', 'false'); dBtn.textContent = T('js.dictate', 'Dictate'); if (rec) { try { rec.stop(); } catch (er) {} } };
     dBtn.addEventListener('click', function () {
       if (on) { stop(); return; }
-      rec = new SR(); rec.lang = navigator.language || 'en-US'; rec.continuous = true; rec.interimResults = true;
+      rec = new SR(); rec.lang = mwSpeechLang(); rec.continuous = true; rec.interimResults = true;
       base = bodyTa.value && !/\s$/.test(bodyTa.value) ? bodyTa.value + ' ' : bodyTa.value;
       var finalText = '';
       rec.onresult = function (ev) {

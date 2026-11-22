@@ -1,3 +1,4 @@
+function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
 /* The journal as an open book. Reads the person's entries, lays them out page by page by counting ruled lines,
    and turns pages with a bending-paper animation. Only the pages near the one being read exist in the document.
    Copyright (c) JSW Software Designs */
@@ -457,7 +458,7 @@
   function dictStop(){ dOn=false; dBtn.setAttribute('aria-pressed','false'); dBtn.textContent=L.w_dictate; if(dRec){ try{dRec.stop();}catch(e){} dRec=null; } }
   if(SR){ dBtn.hidden=false; dBtn.onclick=function(){
     if(dOn){ dictStop(); return; }
-    var rec=new SR(), base='', used=0, lastDict=''; rec.lang=navigator.language||'en-US'; rec.continuous=true; rec.interimResults=true;
+    var rec=new SR(), base='', used=0, lastDict=''; rec.lang=mwSpeechLang(); rec.continuous=true; rec.interimResults=true;
     function rebase(){ var v=wBody.value; base=v&&!/\s$/.test(v)?v+' ':v; used=0; lastDict=''; }
     /* Join speech segments; some engines (Android) resend the whole phrase so far, so a segment that repeats or extends the one before replaces it instead of being added twice. */
     function addSeg(segs,next){ next=(next||'').trim(); if(!next) return; var last=segs.length?segs[segs.length-1]:'', l=last.toLowerCase(), n=next.toLowerCase();
