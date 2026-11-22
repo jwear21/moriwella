@@ -3,8 +3,9 @@
 (function () {
   var md = navigator.mediaDevices;
   if (!md || !md.getUserMedia || !window.DataTransfer) return;
-  var touch = (window.matchMedia && matchMedia('(pointer:coarse)').matches) || (navigator.maxTouchPoints || 0) > 1;
-  if (touch) return;
+  /* Phones and tablets have a touch-only primary input. Touchscreen laptops still have a mouse or trackpad, so they get the webcam. */
+  var phone = window.matchMedia && matchMedia('(hover:none) and (pointer:coarse)').matches;
+  if (phone) return;
   document.addEventListener('click', function (e) {
     var lab = e.target.closest && e.target.closest('label[for=camera],label[for=wCam]');
     if (!lab) return;
