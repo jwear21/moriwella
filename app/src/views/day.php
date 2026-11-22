@@ -74,7 +74,7 @@ $todayPrompt = $prompts[(int)date('z', strtotime($day)) % count($prompts)];
     <?php foreach (body_parts($en['body'], (int)$en['created_at']) as $bp): ?><p class="entry-body"><?php if ($bp['ts']): ?><time class="stamp" data-ts="<?= (int)$bp['ts'] ?>"><?= e(stamp_time($bp['ts'])) ?></time> <?php endif; ?><?= nl2br(e($bp['text'])) ?></p><?php endforeach; ?>
     <?php if ($en['photos']): ?><div class="thumbs"><?php foreach ($en['photos'] as $p): ?>
       <div class="thumb" data-photo="<?= (int)$p['id'] ?>">
-        <a href="<?= url('/photo/' . $p['id'] . '/web') . '?v=' . (int)$p['edited_at'] ?>" target="_blank" rel="noopener"><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="<?= t('common.photo_from', ['title' => $day]) ?>" loading="lazy"></a>
+        <a href="<?= url('/photo/' . $p['id'] . '/web') . '?v=' . (int)$p['edited_at'] ?>" data-pv><img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="<?= t('common.photo_from', ['title' => $day]) ?>" loading="lazy"></a>
         <button type="button" class="thumb-edit" data-edit-photo="<?= (int)$p['id'] ?>" aria-label="<?= t('common.edit_this_photo') ?>"><?= t('common.edit') ?></button>
       </div>
     <?php endforeach; ?></div><?php endif; ?>

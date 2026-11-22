@@ -89,6 +89,8 @@
 <script type="application/json" id="mw-i18n"><?= json_encode(js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
 <script src="/kit/celebrate.js?v=<?= kit_v('celebrate.js') ?>"></script>
+<div hidden data-viewer-cfg data-close="<?= e(tt('album.close')) ?>" data-prev="<?= e(tt('album.prev')) ?>" data-next="<?= e(tt('album.next')) ?>"></div>
+<script src="/app/static/viewer.js?v=<?= asset_v('static/viewer.js') ?>" defer></script>
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
 <script src="/app/static/camera.js?v=<?= asset_v('static/camera.js') ?>"></script>
 <script src="/app/static/biometric.js?v=<?= asset_v('static/biometric.js') ?>"></script>
