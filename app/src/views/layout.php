@@ -89,6 +89,7 @@
 <script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
 <script src="/kit/celebrate.js?v=<?= kit_v('celebrate.js') ?>"></script>
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
+<script src="/app/static/camera.js?v=<?= asset_v('static/camera.js') ?>"></script>
 <?php if ($user): ?><script src="/app/static/editor.js?v=<?= asset_v('static/editor.js') ?>" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>
 </html>
