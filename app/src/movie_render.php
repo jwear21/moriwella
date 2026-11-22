@@ -37,11 +37,41 @@ function mv_cjk_region(string $t): string {
     if (in_array($l, ['zh', 'zh-cn', 'zh-hans', 'zh-sg'], true)) return 'SC';
     return preg_match('/[们这个来时会过对说学国发后么书见长门开关车东马鸟鱼风飞电话谢礼爱听让总没经现还为与产业兴师专乐医务华单参历压变员图场声处头实写应带虽乡际该战无张岁气汉龙]/u', $t) ? 'SC' : 'TC';
 }
-/* Other scripts the Latin fonts lack: one serif and one handwriting face each (Caveat means handwriting). */
+/* Other scripts the Latin fonts lack: one serif and one handwriting face each (Caveat means handwriting).
+   Third value: true when the script needs a shaping engine (joined letters, marks that reorder, right-to-left). PHP's GD cannot do that
+   on this host, so those strings are drawn by ffmpeg's drawtext (HarfBuzz) and pasted in. Thai needs no shaping. */
 function mv_script_fonts(string $t): ?array {
-    if (preg_match('/[\x{0E00}-\x{0E7F}]/u', $t)) return ['NotoSerifThai', 'Mali'];
+    static $map = [
+        ['/[\x{0E00}-\x{0E7F}]/u', 'NotoSerifThai', 'Mali', false],
+        ['/[\x{0900}-\x{097F}]/u', 'NotoSerifDevanagari', 'Kalam', true],
+    ];
+    foreach ($map as $m) if (preg_match($m[0], $t)) return [$m[1], $m[2], $m[3]];
     return null;
 }
+/* Draw one shaped string with ffmpeg into a transparent PNG, trimmed to its ink. Returns [GD image, baseline offset from the top, left bearing] or null. */
+function mv_shape(string $t, float $size, string $fontFile, array $rgba): ?array {
+    static $cache = [];
+    $key = md5($t . '|' . $size . '|' . $fontFile . '|' . implode(',', $rgba));
+    if (array_key_exists($key, $cache)) return $cache[$key];
+    $tmp = sys_get_temp_dir() . '/mvsh_' . $key; $tf = $tmp . '.txt'; $png = $tmp . '.png';
+    $px = (int)ceil($size); $H = (int)ceil($px * 2.4); $W = max(200, (int)(mb_strlen($t) * $px * 1.6 + $px * 2)); $pad = (int)($px * 0.5);
+    @file_put_contents($tf, $t);
+    $esc = function (string $p): string { return str_replace(['\\', ':', "'"], ['\\\\', '\\:', "\\'"], $p); };
+    $col = sprintf('0x%02X%02X%02X@%.3F', $rgba[0], $rgba[1], $rgba[2], max(0, min(1, $rgba[3])));
+    $vf = "format=rgba,drawtext=fontfile='" . $esc($fontFile) . "':textfile='" . $esc($tf) . "':expansion=none:fontsize={$px}:fontcolor={$col}:x={$pad}:y={$pad}";
+    $cmd = escapeshellarg(mv_ffmpeg()) . ' -v error -y -f lavfi -i ' . escapeshellarg("color=c=black@0.0:s={$W}x{$H}:d=1,format=rgba") . ' -vf ' . escapeshellarg($vf) . ' -frames:v 1 ' . escapeshellarg($png) . ' 2>&1';
+    @exec($cmd, $out, $rc);
+    @unlink($tf);
+    $im = ($rc === 0 && is_file($png)) ? @imagecreatefrompng($png) : false; @unlink($png);
+    if (!$im) return $cache[$key] = null;
+    imagesavealpha($im, true);
+    $w = imagesx($im); $h = imagesy($im); $x0 = $w; $x1 = -1; $y0 = $h; $y1 = -1;
+    for ($y = 0; $y < $h; $y++) for ($x = 0; $x < $w; $x++) { if ((imagecolorat($im, $x, $y) >> 24) < 120) { if ($x < $x0) $x0 = $x; if ($x > $x1) $x1 = $x; if ($y < $y0) $y0 = $y; if ($y > $y1) $y1 = $y; } }
+    if ($x1 < 0) return $cache[$key] = null;
+    $crop = imagecrop($im, ['x' => $x0, 'y' => 0, 'width' => $x1 - $x0 + 1, 'height' => $h]);
+    return $cache[$key] = $crop ? [$crop, $y1, $x0 - $pad] : null;
+}
+function mv_shaped_script(string $t): bool { $sf = mv_script_fonts($t); return $sf !== null && $sf[2]; }
 function mv_pick(string $font, string $t): string {
     if ($sf = mv_script_fonts($t)) return mv_font(strpos(basename($font, '.ttf'), 'Caveat') === 0 ? $sf[1] : $sf[0]);
     if (!mv_is_cjk($t)) return $font;
@@ -49,9 +79,25 @@ function mv_pick(string $font, string $t): string {
     $hand = ['JP' => 'KleeOne', 'TC' => 'Iansui', 'SC' => 'MaShanZheng', 'KR' => 'NanumPenScript']; $serif = ['JP' => 'NotoSerifJP', 'TC' => 'NotoSerifTC', 'SC' => 'NotoSerifSC', 'KR' => 'NotoSerifKR'];
     return mv_font(strpos($b, 'Caveat') === 0 ? $hand[$r] : $serif[$r]);
 }
-function mv_text($im, float $size, float $angle, int $x, int $y, int $col, string $font, string $t) { return imagettftext($im, $size, $angle, $x, $y, $col, mv_pick($font, $t), $t); }
+/* Shaped scripts: the glyph image is measured and pasted; ink width is the advance. Baseline is taken from the bottom of an "H" in the same font. */
+function mv_shaped_draw($im, float $size, int $x, int $y, int $col, string $font, string $t): bool {
+    $f = mv_pick($font, $t); $c = imagecolorsforindex($im, $col);
+    $g = mv_shape($t, $size, $f, [$c['red'], $c['green'], $c['blue'], 1 - $c['alpha'] / 127]);
+    if (!$g) return false;
+    $h = mv_shape('H', $size, $f, [255, 255, 255, 1]); $base = $h ? $h[1] + 1 : (int)round($size * 1.2);
+    imagealphablending($im, true);
+    imagecopy($im, $g[0], $x + $g[2], $y - $base, 0, 0, imagesx($g[0]), imagesy($g[0]));
+    return true;
+}
+function mv_text($im, float $size, float $angle, int $x, int $y, int $col, string $font, string $t) {
+    if (mv_shaped_script($t) && mv_shaped_draw($im, $size, $x, $y, $col, $font, $t)) return true;
+    return imagettftext($im, $size, $angle, $x, $y, $col, mv_pick($font, $t), $t);
+}
 
-function mv_w(float $size, string $font, string $t): int { $b = imagettfbbox($size, 0, mv_pick($font, $t), $t); return (int)($b[2] - $b[0]); }
+function mv_w(float $size, string $font, string $t): int {
+    if (mv_shaped_script($t) && ($g = mv_shape($t, $size, mv_pick($font, $t), [255, 255, 255, 1]))) return imagesx($g[0]);
+    $b = imagettfbbox($size, 0, mv_pick($font, $t), $t); return (int)($b[2] - $b[0]);
+}
 /* Words are split at spaces; Japanese and Chinese have none, so each character is a break point (never starting a line with closing punctuation). */
 function mv_wrap(string $t, float $size, string $font, int $maxW, int $maxLines = 6): array {
     $lines = []; $cur = ''; $noStart = '、。，．！？）」』】〉》,.!?:;)…・ー';
