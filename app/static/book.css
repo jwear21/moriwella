@@ -358,3 +358,10 @@ html[dir=rtl] .page, html[dir=rtl] .wbody, html[dir=rtl] .sheet, html[dir=rtl] .
 html[dir=rtl] .page, html[dir=rtl] .wbody { text-align: right; }
 /* The book's page geometry stays left-to-right, so the page-turn arrows must not be mirrored by the text direction. */
 html[dir=rtl] .controls, html[dir=rtl] .arrow { direction: ltr; }
+
+/* ---- long button labels (German, Finnish, Greek and the like): the Home button and the right-hand buttons share the width, wrap their text, and never overlap the book edge ---- */
+html:not(.ts-lg) .home{max-width:36vw; white-space:normal; text-align:center; line-height:1.15; padding:4px 12px}
+html:not(.ts-lg) .tools{max-width:calc(100% - 36vw - 36px)}
+html:not(.ts-lg) .tools .gear{white-space:normal; text-align:center; line-height:1.15; padding:4px 12px; flex:1 1 auto}
+html:not(.ts-lg) .tools{flex-wrap:nowrap}
+html:not(.ts-lg) .tools .gear{min-width:0; font-size:12px}
