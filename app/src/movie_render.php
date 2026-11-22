@@ -49,28 +49,41 @@ function mv_script_fonts(string $t): ?array {
     foreach ($map as $m) if (preg_match($m[0], $t)) return [$m[1], $m[2], $m[3]];
     return null;
 }
-/* Draw one shaped string with ffmpeg into a transparent PNG, trimmed to its ink. Returns [GD image, baseline offset from the top, left bearing] or null. */
+/* Draw one shaped string with pango-view (full HarfBuzz shaping: Indic conjuncts, Arabic joining, right-to-left) into a transparent PNG,
+   trimmed to its ink. Returns [GD image, bottom row of ink, left bearing] or null so the caller can fall back to plain GD. */
+const MV_FAMILY = ['NotoSerifDevanagari' => 'Noto Serif Devanagari', 'Kalam' => 'Kalam', 'NotoSerifBengali' => 'Noto Serif Bengali', 'Galada' => 'Galada'];
+function mv_fontconf(): string {
+    $f = sys_get_temp_dir() . '/mw-fonts-' . md5(dirname(__DIR__)) . '.conf';
+    if (!is_file($f)) {
+        $x = '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd"><fontconfig><dir>' . htmlspecialchars(dirname(__DIR__) . '/fonts') . '</dir><cachedir>' . htmlspecialchars(sys_get_temp_dir() . '/mw-fc-cache') . '</cachedir></fontconfig>';
+        @file_put_contents($f, $x);
+    }
+    return $f;
+}
 function mv_shape(string $t, float $size, string $fontFile, array $rgba): ?array {
     static $cache = [];
     $key = md5($t . '|' . $size . '|' . $fontFile . '|' . implode(',', $rgba));
     if (array_key_exists($key, $cache)) return $cache[$key];
-    $tmp = sys_get_temp_dir() . '/mvsh_' . $key; $tf = $tmp . '.txt'; $png = $tmp . '.png';
-    $px = (int)ceil($size); $H = (int)ceil($px * 2.4); $W = max(200, (int)(mb_strlen($t) * $px * 1.6 + $px * 2)); $pad = (int)($px * 0.5);
-    @file_put_contents($tf, $t);
-    $esc = function (string $p): string { return str_replace(['\\', ':', "'"], ['\\\\', '\\:', "\\'"], $p); };
-    $col = sprintf('0x%02X%02X%02X@%.3F', $rgba[0], $rgba[1], $rgba[2], max(0, min(1, $rgba[3])));
-    $vf = "format=rgba,drawtext=fontfile='" . $esc($fontFile) . "':textfile='" . $esc($tf) . "':expansion=none:fontsize={$px}:fontcolor={$col}:x={$pad}:y={$pad}";
-    $cmd = escapeshellarg(mv_ffmpeg()) . ' -v error -y -f lavfi -i ' . escapeshellarg("color=c=black@0.0:s={$W}x{$H}:d=1,format=rgba") . ' -vf ' . escapeshellarg($vf) . ' -frames:v 1 ' . escapeshellarg($png) . ' 2>&1';
+    $fam = MV_FAMILY[basename($fontFile, '.ttf')] ?? null;
+    if ($fam === null) return $cache[$key] = null;
+    $png = sys_get_temp_dir() . '/mvsh_' . $key . '.png'; $txt = sys_get_temp_dir() . '/mvsh_' . $key . '.txt';
+    @file_put_contents($txt, $t);
+    $col = sprintf('#%02X%02X%02X', $rgba[0], $rgba[1], $rgba[2]);
+    $cmd = 'LC_ALL=C.UTF-8 FONTCONFIG_FILE=' . escapeshellarg(mv_fontconf()) . ' pango-view --no-display --dpi=72 --margin=' . (int)ceil($size * 0.3)
+         . ' --font=' . escapeshellarg($fam . ' ' . (int)round($size)) . ' --foreground=' . escapeshellarg($col) . ' --background=transparent'
+         . ' --output=' . escapeshellarg($png) . ' ' . escapeshellarg($txt) . ' 2>&1';
     @exec($cmd, $out, $rc);
-    @unlink($tf);
+    @unlink($txt);
     $im = ($rc === 0 && is_file($png)) ? @imagecreatefrompng($png) : false; @unlink($png);
     if (!$im) return $cache[$key] = null;
     imagesavealpha($im, true);
-    $w = imagesx($im); $h = imagesy($im); $x0 = $w; $x1 = -1; $y0 = $h; $y1 = -1;
-    for ($y = 0; $y < $h; $y++) for ($x = 0; $x < $w; $x++) { if ((imagecolorat($im, $x, $y) >> 24) < 120) { if ($x < $x0) $x0 = $x; if ($x > $x1) $x1 = $x; if ($y < $y0) $y0 = $y; if ($y > $y1) $y1 = $y; } }
+    $w = imagesx($im); $h = imagesy($im); $x0 = $w; $x1 = -1; $y1 = -1;
+    for ($y = 0; $y < $h; $y++) for ($x = 0; $x < $w; $x++) { if ((imagecolorat($im, $x, $y) >> 24) < 120) { if ($x < $x0) $x0 = $x; if ($x > $x1) $x1 = $x; if ($y > $y1) $y1 = $y; } }
     if ($x1 < 0) return $cache[$key] = null;
     $crop = imagecrop($im, ['x' => $x0, 'y' => 0, 'width' => $x1 - $x0 + 1, 'height' => $h]);
-    return $cache[$key] = $crop ? [$crop, $y1, $x0 - $pad] : null;
+    $alpha = 1 - $rgba[3];
+    if ($crop && $rgba[3] < 1) { imagealphablending($crop, false); imagefilter($crop, IMG_FILTER_COLORIZE, 0, 0, 0, (int)round(127 * $alpha)); }
+    return $cache[$key] = $crop ? [$crop, $y1, 0] : null;
 }
 function mv_shaped_script(string $t): bool { $sf = mv_script_fonts($t); return $sf !== null && $sf[2]; }
 function mv_pick(string $font, string $t): string {
