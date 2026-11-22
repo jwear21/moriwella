@@ -8,7 +8,7 @@
     <button class="btn" type="submit"><?= t('login.sign_in') ?></button>
   </form>
   <?php if (!in_app()): ?>
-  <div class="bio" data-pk="login" hidden data-failed="<?= e(tt('pk.failed')) ?>">
+  <div class="bio" data-pk="login" hidden data-failed="<?= e(tt('pk.failed')) ?>" data-none="<?= e(tt('pk.none_hint')) ?>">
     <button class="btn btn--quiet" type="button" data-pk-go><?= t('pk.sign_in') ?></button>
     <p class="note note--err" data-pk-msg role="alert" hidden></p>
   </div>

@@ -26,7 +26,7 @@
       var r = c.response;
       return post('/app/passkey/login', { id: c.id, clientData: b2u(r.clientDataJSON), authData: b2u(r.authenticatorData), signature: b2u(r.signature) });
     }).then(function (j) { if (j.ok) location.href = j.next; else throw new Error('bad'); })
-      .catch(function (e) { if (!e || e.name !== 'NotAllowedError') msg(T('failed'), true); });
+      .catch(function (e) { if (e && e.name === 'NotAllowedError') msg(T('none'), false); else msg(T('failed'), true); });
   }
   function add() {
     msg('');
