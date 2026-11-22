@@ -477,6 +477,19 @@ function migrate(PDO $p): void {
         $p->exec("ALTER TABLE subscriptions ADD COLUMN source TEXT NOT NULL DEFAULT 'stripe'; ALTER TABLE subscriptions ADD COLUMN play_token TEXT NOT NULL DEFAULT ''; ALTER TABLE subscriptions ADD COLUMN play_product TEXT NOT NULL DEFAULT '';
           CREATE UNIQUE INDEX subscriptions_play_token ON subscriptions(play_token) WHERE play_token <> ''; PRAGMA user_version = 26;");
     }
+    if ($v < 27) {
+        /* Phones that may sign in with a fingerprint or face (the Android app). Only a hash of each token is kept. */
+        $p->exec("CREATE TABLE device_tokens (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash TEXT NOT NULL,
+          label TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          last_used_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX device_tokens_hash ON device_tokens(token_hash);
+        CREATE INDEX device_tokens_user ON device_tokens(user_id); PRAGMA user_version = 27;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

@@ -16,3 +16,8 @@ Before each release raise `versionCode` (and `versionName`) in `android/app/buil
 
 ## Test purchases
 Add your Google account under Play Console > Setup > License testing, install from the Internal testing link, and buy a plan. Test subscriptions renew quickly and are not charged.
+
+## Fingerprint / face sign-in (3.1.8)
+Plugin `@capgo/capacitor-native-biometric`. The website (static/biometric.js) turns it on inside the app only: Account > Fingerprint or face sign-in, plus a one-time offer after signing in.
+The phone keeps a random device token behind its biometrics (Android Keystore); unlocking it signs in through `/app/device/login`. Only a hash of the token is stored on the server
+(table `device_tokens`); changing or resetting the password revokes all of a person's tokens. After pulling this change run `npm install` then `npx cap sync android` before building.

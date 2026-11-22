@@ -45,6 +45,16 @@
     <button class="btn" type="submit"><?= t('common.save') ?></button>
   </form>
 </section>
+<?php if (in_app()): ?>
+<section class="card bio-card" data-bio="settings" hidden data-title="<?= e(tt('bio.prompt_title')) ?>" data-cancel="<?= e(tt('bio.cancel')) ?>" data-is-on="<?= e(tt('bio.is_on')) ?>" data-is-off="<?= e(tt('bio.is_off')) ?>" data-unavailable="<?= e(tt('bio.unavailable')) ?>" data-enabled-ok="<?= e(tt('bio.enabled_ok')) ?>" data-disabled-ok="<?= e(tt('bio.disabled_ok')) ?>" data-enable-err="<?= e(tt('bio.enable_err')) ?>">
+  <h2><?= t('bio.settings_h') ?></h2>
+  <p class="hint"><?= t('bio.settings_intro') ?></p>
+  <p data-bio-state></p>
+  <button class="btn" type="button" data-bio-on><?= t('bio.enable') ?></button>
+  <button class="btn btn--quiet" type="button" data-bio-off hidden><?= t('bio.disable') ?></button>
+  <p class="note" data-bio-msg role="status" hidden></p>
+</section>
+<?php endif; ?>
 <details class="card write pw">
   <summary><?= t('settings.change_password') ?></summary>
   <form method="post">

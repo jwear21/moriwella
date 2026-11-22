@@ -85,11 +85,13 @@
 <?php if ($flash && in_array($flash['type'], ['saved', 'first'], true)): ?>
   <p class="note note--ok" role="status" id="saved-note" data-celebrate="<?= e($flash['type']) ?>"><?= e($flash['msg']) ?></p>
 <?php endif; ?>
+<?php if ($user && in_app()): ?><div class="bio-offer" data-bio="offer" hidden data-title="<?= e(tt('bio.prompt_title')) ?>" data-cancel="<?= e(tt('bio.cancel')) ?>" data-csrf="<?= e(csrf_token()) ?>"><span><?= t('bio.offer') ?></span> <button class="btn" type="button" data-bio-yes><?= t('bio.enable') ?></button> <button class="textbtn" type="button" data-bio-no><?= t('bio.not_now') ?></button></div><?php endif; ?>
 <script type="application/json" id="mw-i18n"><?= json_encode(js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
 <script src="/kit/celebrate.js?v=<?= kit_v('celebrate.js') ?>"></script>
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
 <script src="/app/static/camera.js?v=<?= asset_v('static/camera.js') ?>"></script>
+<script src="/app/static/biometric.js?v=<?= asset_v('static/biometric.js') ?>"></script>
 <?php if ($user): ?><script src="/app/static/editor.js?v=<?= asset_v('static/editor.js') ?>" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>
 </html>

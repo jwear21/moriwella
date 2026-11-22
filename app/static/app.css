@@ -611,3 +611,10 @@ label.check input { width: auto; margin-top: .3rem; }
 .pw-eye:focus-visible { outline: 2px solid #DDA12F; }
 
 .acct-lang{padding:.5rem 1rem}.acct-lang label{display:flex;flex-direction:column;gap:.25rem;font-size:.9rem}.acct-lang select{width:100%;min-height:44px;font:inherit}
+
+/* Fingerprint sign-in (Android app) */
+.bio { margin: .9rem 0 0; }
+.bio-card h2 { margin-top: 0; }
+.bio-offer { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 60; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .8rem 1rem; background: #fbf7ee; border: 1px solid #e3d9bf; border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.bio-offer[hidden], .bio[hidden], .bio-card[hidden] { display: none; }
+.bio [hidden], .bio-card [hidden], .bio-offer [hidden] { display: none !important; }

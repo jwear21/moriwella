@@ -12,6 +12,7 @@ require __DIR__ . '/src/feelings.php';
 require __DIR__ . '/src/albums.php';
 require __DIR__ . '/src/scrapbooks.php';
 require __DIR__ . '/src/referrals.php';
+require __DIR__ . '/src/devices.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -72,6 +73,7 @@ if ($path === '/setup') {
 }
 
 /* ---------- sign in / out ---------- */
+device_routes($path, $post);
 if ($path === '/login') {
     if (current_user()) redirect(url('/'));
     if (user_count() === 0) redirect(url('/setup'));
@@ -150,6 +152,7 @@ if (preg_match('#^/join/([a-f0-9]{48})$#', $path, $m)) {
         if (!$err) {
             db()->prepare("UPDATE users SET password_hash = ?, status = 'active', invite_hash = NULL, invite_expires = NULL WHERE id = ?")
                 ->execute([hash_pw((string)$_POST['password']), $target['id']]);
+            device_revoke_all((int)$target['id']);
             login_user($target);
             flash('ok', tt('msg.welcome_name', ['name' => $target['name']]));
             redirect(url('/'));
@@ -715,7 +718,7 @@ if ($path === '/settings') {
             $err = check_password_rules((string)($_POST['password'] ?? ''), (string)($_POST['password2'] ?? ''));
             if (!$err && !password_verify((string)($_POST['current'] ?? ''), (string)$user['password_hash'])) $err = tt('msg.your_current_password_isn');
             if ($err) { flash('err', $err); }
-            else { db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_pw((string)$_POST['password']), $uid]); flash('ok', tt('msg.password_changed')); }
+            else { db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([hash_pw((string)$_POST['password']), $uid]); device_revoke_all($uid); flash('ok', tt('msg.password_changed')); }
             redirect(url('/settings'));
         }
     }
