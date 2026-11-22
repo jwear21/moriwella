@@ -425,3 +425,6 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function () 
   function run() { document.querySelectorAll('input[type=password]').forEach(enhance); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
 })();
+
+/* Language select in the account menu submits on change. */
+document.addEventListener('change',function(e){var s=e.target;if(s&&s.matches&&s.matches('select[data-autosubmit]')&&s.form)s.form.submit();});

@@ -111,6 +111,20 @@ function lang_picker(string $class = 'lang-pick'): string {
         . '<button class="btn btn--quiet" type="submit">' . t('lang.change') . '</button></form>';
 }
 
+/** Compact picker for the account menu: one select that submits as soon as a language is chosen. */
+function lang_menu_picker(): string {
+    $have = langs_available();
+    if (count($have) < 2) return '';
+    $cur = current_lang();
+    $back = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $o = '';
+    foreach ($have as $code => $name) $o .= '<option value="' . e($code) . '"' . ($code === $cur ? ' selected' : '') . ' lang="' . e($code) . '">' . e($name) . '</option>';
+    return '<form method="post" action="' . e(url('/lang')) . '" class="acct-lang">' . csrf_field()
+        . '<input type="hidden" name="back" value="' . e($back) . '">'
+        . '<label><span>' . t('lang.label') . '</span><select name="lang" data-autosubmit>' . $o . '</select></label>'
+        . '<noscript><button class="btn btn--quiet" type="submit">' . t('lang.change') . '</button></noscript></form>';
+}
+
 /** Plural form for a count: 'one' or 'other'. French counts 0 as singular; Japanese and Chinese have no plural. */
 function plural_form(string $lang, int $n): string {
     $base = substr($lang, 0, 2);

@@ -609,3 +609,5 @@ label.check input { width: auto; margin-top: .3rem; }
 .pw-wrap input { width: 100%; padding-right: 3rem; box-sizing: border-box; }
 .pw-eye { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #1B4D3E; cursor: pointer; border-radius: 8px; }
 .pw-eye:focus-visible { outline: 2px solid #DDA12F; }
+
+.acct-lang{padding:.5rem 1rem}.acct-lang label{display:flex;flex-direction:column;gap:.25rem;font-size:.9rem}.acct-lang select{width:100%;min-height:44px;font:inherit}
