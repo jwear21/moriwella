@@ -149,6 +149,8 @@ function ldate(string $fmt, ?int $ts = null): string {
     $own = lang_load(current_lang());
     $fmt = $own['date.fmt.' . $fmt] ?? $fmt;   // a language can reorder, e.g. 'M j' -> 'j \d\e M'
     $months = $own['date.months'] ?? null; $days = $own['date.days'] ?? null;
+    // Some languages (ru, uk, pl) inflect the month when a day number goes with it; alone it is the plain form.
+    if ($months && !empty($own['date.months_nom']) && strpbrk($fmt, 'jd') === false) $months = $own['date.months_nom'];
     if (!$months && !$days) return date($fmt, $ts);   // English: PHP's own names
     $out = '';
     $len = strlen($fmt);

@@ -15,6 +15,7 @@ return [
  'date.fmt.M Y' => 'M Y \р.',
  'date.fmt.D, M j' => 'D, j M',
  'date.fmt.l, F j, Y' => 'l, j F Y \р.',
+ 'date.months_nom' => ['січень','лютий','березень','квітень','травень','червень','липень','серпень','вересень','жовтень','листопад','грудень'],
  'achievements.earned_once' => 'Отримано {date}',
  'achievements.earned_times' => 'Отримано разів: {n}, востаннє {date}',
  'achievements.not_yet' => 'Ще ні',
