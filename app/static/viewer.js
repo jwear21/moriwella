@@ -13,15 +13,15 @@
   function show(i) {
     cur = (i + group.length) % group.length; reset();
     img.src = group[cur].src; cnt.textContent = group.length > 1 ? (cur + 1) + ' / ' + group.length : '';
-    lb.classList.toggle('pv-one', group.length < 2);
+    lb.classList.toggle('pv-one', group.length < 2); lb.querySelector('.pv-e').hidden = !(group[cur].pid && cfg.hasAttribute('data-can-edit'));
     if (group.length > 1) { var p = new Image(); p.src = group[(cur + 1) % group.length].src; }
   }
   function build() {
     lb = mk('div', 'pv'); lb.hidden = true; lb.setAttribute('role', 'dialog'); lb.setAttribute('aria-modal', 'true');
     img = document.createElement('img'); img.alt = ''; img.draggable = false;
     cnt = mk('div', 'pv-c');
-    var x = mk('button', 'pv-x', '×', L('close')), p = mk('button', 'pv-p', rtl ? '›' : '‹', L('prev')), n = mk('button', 'pv-n', rtl ? '‹' : '›', L('next'));
-    lb.appendChild(img); lb.appendChild(cnt); lb.appendChild(p); lb.appendChild(n); lb.appendChild(x); document.body.appendChild(lb);
+    var ed = mk('button', 'pv-e', L('edit')); ed.onclick = function () { var id = group[cur].pid; close(); if (id && window.mwEditPhoto) window.mwEditPhoto(id, opener); }; var x = mk('button', 'pv-x', '×', L('close')), p = mk('button', 'pv-p', rtl ? '›' : '‹', L('prev')), n = mk('button', 'pv-n', rtl ? '‹' : '›', L('next'));
+    lb.appendChild(img); lb.appendChild(cnt); lb.appendChild(p); lb.appendChild(n); lb.appendChild(x); lb.appendChild(ed); document.body.appendChild(lb);
     x.onclick = close; p.onclick = function () { go(-1); }; n.onclick = function () { go(1); };
     lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
     lb.addEventListener('wheel', function (e) { e.preventDefault(); zoomAt(scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); }, { passive: false });
@@ -65,8 +65,8 @@
   document.addEventListener('click', function (e) {
     var el = e.target.closest ? e.target.closest('[data-pv]') : null; if (!el || e.defaultPrevented) return;
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return;
-    var scope = el.closest('.thumbs') || document, all = Array.prototype.slice.call(scope.querySelectorAll('[data-pv]'));
-    group = all.map(function (n) { var im = n.tagName === 'IMG' ? n : n.querySelector('img'); return { src: n.getAttribute('href') || big(im.getAttribute('src')) }; });
+    var scope = el.closest('.thumbs'), all = scope ? Array.prototype.slice.call(scope.querySelectorAll('[data-pv]')) : [el];
+    group = all.map(function (n) { var im = n.tagName === 'IMG' ? n : n.querySelector('img'); return { src: n.getAttribute('data-src') || n.getAttribute('href') || (im ? big(im.getAttribute('src')) : ''), pid: n.getAttribute('data-pid') || '' }; });
     e.preventDefault(); opener = el; open(all.indexOf(el));
   });
 })();

@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/kit/kit.css?v=<?= kit_v('kit.css') ?>">
 <link rel="stylesheet" href="/app/static/app.css?v=<?= asset_v('static/app.css') ?>">
+<link rel="stylesheet" href="/app/static/viewer.css?v=<?= asset_v('static/viewer.css') ?>">
 <link rel="stylesheet" href="/app/static/editor.css?v=<?= asset_v('static/editor.css') ?>">
 <link rel="stylesheet" href="/app/static/textscale.css?v=<?= asset_v('static/textscale.css') ?>">
 <?php if (text_dir() === 'rtl'): ?><link rel="stylesheet" href="/app/static/rtl.css?v=<?= asset_v('static/rtl.css') ?>">
@@ -89,7 +90,7 @@
 <script type="application/json" id="mw-i18n"><?= json_encode(js_strings(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?></script>
 <script src="/app/static/i18n.js?v=<?= asset_v('static/i18n.js') ?>"></script>
 <script src="/kit/celebrate.js?v=<?= kit_v('celebrate.js') ?>"></script>
-<div hidden data-viewer-cfg data-close="<?= e(tt('album.close')) ?>" data-prev="<?= e(tt('album.prev')) ?>" data-next="<?= e(tt('album.next')) ?>"></div>
+<div hidden data-viewer-cfg data-close="<?= e(tt('album.close')) ?>" data-prev="<?= e(tt('album.prev')) ?>" data-next="<?= e(tt('album.next')) ?>" data-edit="<?= e(tt('common.edit')) ?>"<?= $user ? ' data-can-edit' : '' ?>></div>
 <script src="/app/static/viewer.js?v=<?= asset_v('static/viewer.js') ?>" defer></script>
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
 <script src="/app/static/camera.js?v=<?= asset_v('static/camera.js') ?>"></script>

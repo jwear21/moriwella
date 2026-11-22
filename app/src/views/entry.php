@@ -26,9 +26,8 @@
     <?php foreach ($entry['photos'] as $p): ?>
       <form method="post" action="<?= url('/photos/' . $p['id'] . '/delete') ?>" class="thumb-del" data-confirm="<?= t('entry.remove_this_photo') ?>">
         <?= csrf_field() ?>
-        <img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="<?= t('entry.entry_photo') ?>" loading="lazy" data-pv data-photo-img="<?= (int)$p['id'] ?>">
+        <img src="<?= url('/photo/' . $p['id'] . '/thumb') . '?v=' . (int)$p['edited_at'] ?>" alt="<?= t('entry.entry_photo') ?>" loading="lazy" data-pv data-pid="<?= (int)$p['id'] ?>" data-photo-img="<?= (int)$p['id'] ?>">
         <span class="thumb-actions">
-          <button type="button" class="btn btn--quiet" data-edit-photo="<?= (int)$p['id'] ?>"><?= t('common.edit') ?></button>
           <button class="btn btn--quiet" type="submit"><?= t('common.remove') ?></button>
         </span>
       </form>

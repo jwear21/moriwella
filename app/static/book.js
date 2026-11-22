@@ -87,7 +87,7 @@ function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(
     var e=pg.e;
     return '<div class="page"><div class="head"><div class="date">'+esc(e.md)+'<small>'+esc(e.dow)+(pg.first?'':' &middot; '+esc(L.continued))+'</small></div><div class="mood">'+(pg.first?esc(e.mood):'')+(pg.first?'<button type="button" class="pedit" data-e="'+e.id+'" aria-label="'+esc(L.w_edit)+'">&#9998;</button>':'')+'</div></div>'+
       (pg.first?'<h2 class="etitle">'+esc(e.title||e.trip||'')+'</h2>':'')+
-      (pg.photo?'<div class="pslot"><div class="photo"><i data-bg="'+esc(C.photo+pg.photo.id+'/thumb?v='+pg.photo.v)+'"></i></div></div>':'')+
+      (pg.photo?'<div class="pslot"><div class="photo" data-pv data-pid="'+pg.photo.id+'" data-src="'+esc(C.photo+pg.photo.id+'/web?v='+pg.photo.v)+'"><i data-bg="'+esc(C.photo+pg.photo.id+'/thumb?v='+pg.photo.v)+'"></i></div></div>':'')+
       '<p class="ptext">'+esc(pg.text)+'</p>'+no+'</div>';
   }
   function makeBox(idx,side){
