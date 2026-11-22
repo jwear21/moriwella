@@ -11,7 +11,7 @@
         echo e(['water' => tl($t['hint'] ?? ''), 'check' => tt('track.hint_check'), 'count' => tt('track.hint_count', ['unit' => tl($t['unit'] ?? '')]), 'number' => tt('track.hint_number', ['unit' => tl($t['unit'] ?? '')]), 'scale' => tt('track.hint_scale', ['low' => tl($t['low'] ?? ''), 'high' => tl($t['high'] ?? '')]), 'note' => tt('track.hint_note')][$t['type']]);
       ?></small></span>
       <form method="post" action="<?= url('/track/toggle') ?>"><?= csrf_field() ?><input type="hidden" name="key" value="<?= e($k) ?>">
-        <button type="submit" class="trk-btn<?= $isOn ? ' on' : '' ?>" aria-pressed="<?= $isOn ? 'true' : 'false' ?>"><?= $isOn ? 'On' : 'Add' ?></button>
+        <button type="submit" class="trk-btn<?= $isOn ? ' on' : '' ?>" aria-pressed="<?= $isOn ? 'true' : 'false' ?>"><?= $isOn ? t('album.state_on') : t('common.add') ?></button>
       </form>
       <?php if ($isOn && in_array($t['type'], ['water', 'count', 'number'], true)): $gg = $goalsT[$k] ?? null; $unit = $k === 'water' ? 'oz' : tl($t['unit'] ?? ''); ?>
       <details class="goal-set"<?= isset($_GET['g']) && $_GET['g'] === $k ? ' open' : '' ?>>

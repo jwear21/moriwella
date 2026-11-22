@@ -356,3 +356,5 @@ html.ts-lg .home,html.ts-lg .gear{min-height:44px; padding:6px 16px}
 html[dir=rtl] .bk, html[dir=rtl] .stage, html[dir=rtl] .book { direction: ltr; }
 html[dir=rtl] .page, html[dir=rtl] .wbody, html[dir=rtl] .sheet, html[dir=rtl] .tools, html[dir=rtl] .gear, html[dir=rtl] .home, html[dir=rtl] .cvr .label { direction: rtl; }
 html[dir=rtl] .page, html[dir=rtl] .wbody { text-align: right; }
+/* The book's page geometry stays left-to-right, so the page-turn arrows must not be mirrored by the text direction. */
+html[dir=rtl] .controls, html[dir=rtl] .arrow { direction: ltr; }

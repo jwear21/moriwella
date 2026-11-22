@@ -39,6 +39,10 @@ function lang_load(string $code): array {
 /** Picks the language: the signed-in person's choice, else this browser session's choice, else the phone's language, else English. */
 function lang_force(?string $code): void { $GLOBALS['mw_lang_force'] = $code; }
 
+/** Back and forward arrows that point the right way in right-to-left languages. */
+function arrow_back(): string { return text_dir() === 'rtl' ? '&rarr;' : '&larr;'; }
+function arrow_fwd(): string { return text_dir() === 'rtl' ? '&larr;' : '&rarr;'; }
+
 /** Languages written right to left. */
 function text_dir(): string { return in_array(current_lang(), ['ar','ur','he','fa'], true) ? 'rtl' : 'ltr'; }
 

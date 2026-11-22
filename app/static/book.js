@@ -1,3 +1,4 @@
+function mwLoc(){var l=document.documentElement.lang||'en';return l+'-u-nu-latn';}
 function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA',pt:'pt-BR',ru:'ru-RU',uk:'uk-UA',tr:'tr-TR',id:'id-ID',vi:'vi-VN',pl:'pl-PL',th:'th-TH',hi:'hi-IN',mr:'mr-IN',bn:'bn-IN',te:'te-IN',ta:'ta-IN',ur:'ur-PK',he:'he-IL',fa:'fa-IR'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
 /* The journal as an open book. Reads the person's entries, lays them out page by page by counting ruled lines,
    and turns pages with a bending-paper animation. Only the pages near the one being read exist in the document.
@@ -339,7 +340,7 @@ function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(
       wSave=document.getElementById('wSave'), wDel=document.getElementById('wDel'), wThumbs=document.getElementById('wThumbs'), wTrip=document.getElementById('wTrip');
   function $w(id){return document.getElementById(id);}
   function fmt(t,o){ return String(t||'').replace(/\{(\w+)\}/g,function(_,k){return o[k]!=null?o[k]:'';}); }
-  function ymdLong(d){ try{ var p=d.split('-'); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}); }catch(e){ return d; } }
+  function ymdLong(d){ try{ var p=d.split('-'); return new Date(+p[0],+p[1]-1,+p[2]).toLocaleDateString(mwLoc(),{weekday:'long',month:'long',day:'numeric'}); }catch(e){ return d; } }
   function setMsg(t,bad){ wMsg.textContent=t||''; wMsg.className='wmsg'+(bad?' bad':''); }
 
   /* A small outbox: anything written is kept on the phone first, then sent. If the connection drops it waits and is sent later. */

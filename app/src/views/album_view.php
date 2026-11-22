@@ -21,7 +21,7 @@ $exp = (int)$a['expires_at']; $n = count($photos); ?>
   <h1><?= e($a['title']) ?></h1>
   <p class="alb-sub"><?= $owner !== '' ? e(tt('album.shared_by', ['name' => $owner])) . ' · ' : '' ?><?= e(tn('album.photo_count', $n)) ?><?php if ($exp > 0): ?> · <?= e(tt('album.open_until', ['date' => ldate('F j, Y', $exp)])) ?><?php endif; ?></p>
   <?php if ($a['note'] !== ''): ?><p class="alb-note"><?= nl2br(e($a['note'])) ?></p><?php endif; ?>
-  <?php if (!$public): ?><p class="alb-back"><a href="<?= url('/albums') ?>">&larr; <?= e(tt('album.all_albums')) ?></a></p><?php endif; ?>
+  <?php if (!$public): ?><p class="alb-back"><a href="<?= url('/albums') ?>"><?= arrow_back() ?> <?= e(tt('album.all_albums')) ?></a></p><?php endif; ?>
   <div class="alb-grid" id="alb-grid" data-dl="<?= (int)$a['allow_download'] || !$public ? 1 : 0 ?>" data-close="<?= e(tt('album.close')) ?>" data-prev="<?= e(tt('album.prev')) ?>" data-next="<?= e(tt('album.next')) ?>" data-save="<?= e(tt('album.save_photo')) ?>">
     <?php foreach ($photos as $i => $p): ?>
     <a class="alb-ph" href="<?= e($photoUrl($p, 'web')) ?>" data-full="<?= e($photoUrl($p, 'orig')) ?>" data-i="<?= $i ?>">

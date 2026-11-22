@@ -3,9 +3,9 @@ $days = (int)date('t', $first); $lead = (int)date('w', $first);
 $todayStr = date('Y-m-d');
 ?>
 <h1 class="page-title"><?= e(ldate('F Y', $first)) ?></h1>
-<p class="daynav"><a class="link" href="<?= url('/calendar?m=' . $prev) ?>">&larr; <?= e(ldate('M', strtotime($prev . '-01'))) ?></a>
+<p class="daynav"><a class="link" href="<?= url('/calendar?m=' . $prev) ?>"><?= arrow_back() ?> <?= e(ldate('M', strtotime($prev . '-01'))) ?></a>
   <a class="link" href="<?= url('/calendar') ?>"><?= t('calendar.this_month') ?></a>
-  <a class="link" href="<?= url('/calendar?m=' . $next) ?>"><?= e(ldate('M', strtotime($next . '-01'))) ?> &rarr;</a></p>
+  <a class="link" href="<?= url('/calendar?m=' . $next) ?>"><?= e(ldate('M', strtotime($next . '-01'))) ?> <?= arrow_fwd() ?></a></p>
 <div class="cal" role="grid" aria-label="<?= e(ldate('F Y', $first)) ?>">
   <?php foreach (['sun','mon','tue','wed','thu','fri','sat'] as $dn): ?><div class="cal-h" role="columnheader"><?= t('date.wd.' . $dn) ?></div><?php endforeach; ?>
   <?php for ($i = 0; $i < $lead; $i++): ?><div class="cal-c cal-c--empty" aria-hidden="true"></div><?php endfor; ?>

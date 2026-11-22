@@ -1,3 +1,4 @@
+function mwLoc(){var l=document.documentElement.lang||'en';return l+'-u-nu-latn';}
 function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(),b=l.split('-')[0],nav=navigator.language||'',m={en:'en-US',es:'es-ES',fr:'fr-FR',it:'it-IT',de:'de-DE',nl:'nl-NL',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN','zh-hk':'yue-Hant-HK',ar:'ar-SA',pt:'pt-BR',ru:'ru-RU',uk:'uk-UA',tr:'tr-TR',id:'id-ID',vi:'vi-VN',pl:'pl-PL',th:'th-TH',hi:'hi-IN',mr:'mr-IN',bn:'bn-IN',te:'te-IN',ta:'ta-IN',ur:'ur-PK',he:'he-IL',fa:'fa-IR'};if(l.indexOf('-')<0&&nav.toLowerCase().indexOf(b)===0)return nav;return m[l]||m[b]||nav||'en-US';}
 (function () {
   var celebOn = document.body.getAttribute('data-celebrate-on') !== '0';
@@ -57,7 +58,7 @@ function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(
     var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
     dateIn.value = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
     var lbl = document.getElementById('today-label');
-    if (lbl) lbl.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    if (lbl) lbl.textContent = d.toLocaleDateString(mwLoc(), { weekday: 'long', month: 'long', day: 'numeric' });
   }
   var ta = document.querySelector('textarea[data-draft]');
   if (ta) {
@@ -208,7 +209,7 @@ function mwSpeechLang(){var l=(document.documentElement.lang||'en').toLowerCase(
 })();
 /* show paragraph times in the device's own local time */
 document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
-  try { t.textContent = new Date(Number(t.dataset.ts) * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); } catch (e) {}
+  try { t.textContent = new Date(Number(t.dataset.ts) * 1000).toLocaleTimeString(mwLoc(), { hour: 'numeric', minute: '2-digit' }); } catch (e) {}
 });
 /* little things (Track) */
 (function () {
@@ -274,7 +275,7 @@ document.querySelectorAll('time.stamp[data-ts]').forEach(function (t) {
     moods.forEach(function (m) {
       var li = el('li'); li.appendChild(el('span', 'ml-e', faces[m.v][0])).setAttribute('aria-hidden', 'true'); li.appendChild(el('span', 'ml-l', faces[m.v][1]));
       if (m.ts) {
-        var d = new Date(m.ts * 1000), t = el('time', 'stamp', d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })); t.dataset.ts = m.ts;
+        var d = new Date(m.ts * 1000), t = el('time', 'stamp', d.toLocaleTimeString(mwLoc(), { hour: 'numeric', minute: '2-digit' })); t.dataset.ts = m.ts;
         li.appendChild(t); li.appendChild(document.createTextNode(' ')); li.appendChild(el('span', 'ml-part', part(d)));
       }
       var x = el('button', 'ml-x', '\u00D7'); x.type = 'button'; x.setAttribute('data-id', m.id); x.setAttribute('aria-label', T('js.remove_this_mood', 'Remove this mood')); li.appendChild(x); ul.appendChild(li);
