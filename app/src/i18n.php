@@ -130,7 +130,7 @@ function lang_menu_picker(): string {
     $cur = current_lang();
     $back = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $o = '';
-    foreach ($have as $code => $name) $o .= '<option value="' . e($code) . '"' . ($code === $cur ? ' selected' : '') . ' lang="' . e($code) . '">' . e($name) . '</option>';
+    foreach ($have as $code => $name) $o .= '<option value="' . e($code) . '"' . ($code === $cur ? ' selected' : '') . ' lang="' . e($code) . '">' . e($name) . (($en = lang_english_name($code)) !== '' && $en !== $name ? ' (' . e($en) . ')' : '') . '</option>';
     return '<form method="post" action="' . e(url('/lang')) . '" class="acct-lang">' . csrf_field()
         . '<input type="hidden" name="back" value="' . e($back) . '">'
         . '<label><span>' . t('lang.label') . '</span><select name="lang" data-autosubmit>' . $o . '</select></label>'
