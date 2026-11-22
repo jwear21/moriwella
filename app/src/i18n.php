@@ -67,6 +67,9 @@ function lang_accepted(): array {
         if (isset($bits[1]) && preg_match('/q=([0-9.]+)/', $bits[1], $m)) $q = (float)$m[1];
         $parts = explode('-', $code);
         $norm = $parts[0] . (isset($parts[1]) ? '-' . strtoupper($parts[1]) : '');
+        // Chinese: Traditional (Hong Kong, Taiwan, Macau, Hant) and Cantonese use the zh-HK file; the rest use zh.
+        if ($parts[0] === 'yue') $norm = 'zh-HK';
+        elseif ($parts[0] === 'zh') $norm = (in_array('hant', $parts, true) || array_intersect(['hk', 'tw', 'mo'], $parts)) ? 'zh-HK' : 'zh';
         $out[] = [$norm, $q];
     }
     usort($out, fn($a, $b) => $b[1] <=> $a[1]);
