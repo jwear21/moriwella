@@ -490,6 +490,21 @@ function migrate(PDO $p): void {
         CREATE UNIQUE INDEX device_tokens_hash ON device_tokens(token_hash);
         CREATE INDEX device_tokens_user ON device_tokens(user_id); PRAGMA user_version = 27;");
     }
+    if ($v < 28) {
+        /* Passkeys (Windows Hello, Touch ID, laptop fingerprint readers). Only the public key is kept. */
+        $p->exec("CREATE TABLE passkeys (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          cred_id TEXT NOT NULL,
+          public_key TEXT NOT NULL,
+          sign_count INTEGER NOT NULL DEFAULT 0,
+          label TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          last_used_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX passkeys_cred ON passkeys(cred_id);
+        CREATE INDEX passkeys_user ON passkeys(user_id); PRAGMA user_version = 28;");
+    }
 }
 
 /** File's last-change time, so browsers fetch a fresh copy after every deploy. */

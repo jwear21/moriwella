@@ -13,6 +13,7 @@ require __DIR__ . '/src/albums.php';
 require __DIR__ . '/src/scrapbooks.php';
 require __DIR__ . '/src/referrals.php';
 require __DIR__ . '/src/devices.php';
+require __DIR__ . '/src/passkeys.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -74,6 +75,7 @@ if ($path === '/setup') {
 
 /* ---------- sign in / out ---------- */
 device_routes($path, $post);
+passkey_routes($path, $post);
 if ($path === '/login') {
     if (current_user()) redirect(url('/'));
     if (user_count() === 0) redirect(url('/setup'));

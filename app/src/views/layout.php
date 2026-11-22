@@ -92,6 +92,7 @@
 <script src="/app/static/app.js?v=<?= asset_v('static/app.js') ?>"></script>
 <script src="/app/static/camera.js?v=<?= asset_v('static/camera.js') ?>"></script>
 <script src="/app/static/biometric.js?v=<?= asset_v('static/biometric.js') ?>"></script>
+<script src="/app/static/passkey.js?v=<?= asset_v('static/passkey.js') ?>"></script>
 <?php if ($user): ?><script src="/app/static/editor.js?v=<?= asset_v('static/editor.js') ?>" data-base="<?= e(url("")) ?>" data-csrf="<?= e(csrf_token()) ?>"></script><?php endif; ?>
 </body>
 </html>

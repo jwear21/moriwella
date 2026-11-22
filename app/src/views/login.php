@@ -7,6 +7,12 @@
     <label><?= t('login.password') ?><input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn" type="submit"><?= t('login.sign_in') ?></button>
   </form>
+  <?php if (!in_app()): ?>
+  <div class="bio" data-pk="login" hidden data-failed="<?= e(tt('pk.failed')) ?>">
+    <button class="btn btn--quiet" type="button" data-pk-go><?= t('pk.sign_in') ?></button>
+    <p class="note note--err" data-pk-msg role="alert" hidden></p>
+  </div>
+  <?php endif; ?>
   <?php if (in_app()): ?>
   <div class="bio" data-bio="login" hidden data-title="<?= e(tt('bio.prompt_title')) ?>" data-reason="<?= e(tt('bio.prompt_reason')) ?>" data-cancel="<?= e(tt('bio.cancel')) ?>" data-failed="<?= e(tt('bio.failed')) ?>">
     <button class="btn btn--quiet" type="button" data-bio-go><?= t('bio.sign_in') ?></button>

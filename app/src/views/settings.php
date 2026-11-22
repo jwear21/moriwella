@@ -45,6 +45,17 @@
     <button class="btn" type="submit"><?= t('common.save') ?></button>
   </form>
 </section>
+<?php if (!in_app()): ?>
+<section class="card bio-card" data-pk="settings" hidden data-enable-err="<?= e(tt('pk.enable_err')) ?>">
+  <h2><?= t('pk.settings_h') ?></h2>
+  <p class="hint"><?= t('pk.settings_intro') ?></p>
+  <?php foreach (passkey_list((int)$user['id']) as $pk): ?>
+  <p><?= e($pk['label'] !== '' ? $pk['label'] : t('pk.this_device')) ?> &middot; <?= e(date('Y-m-d', (int)$pk['created_at'])) ?> <button class="textbtn" type="button" data-pk-del="<?= (int)$pk['id'] ?>"><?= t('pk.remove') ?></button></p>
+  <?php endforeach; ?>
+  <button class="btn" type="button" data-pk-add><?= t('pk.add') ?></button>
+  <p class="note" data-pk-msg role="status" hidden></p>
+</section>
+<?php endif; ?>
 <?php if (in_app()): ?>
 <section class="card bio-card" data-bio="settings" hidden data-title="<?= e(tt('bio.prompt_title')) ?>" data-cancel="<?= e(tt('bio.cancel')) ?>" data-is-on="<?= e(tt('bio.is_on')) ?>" data-is-off="<?= e(tt('bio.is_off')) ?>" data-unavailable="<?= e(tt('bio.unavailable')) ?>" data-enabled-ok="<?= e(tt('bio.enabled_ok')) ?>" data-disabled-ok="<?= e(tt('bio.disabled_ok')) ?>" data-enable-err="<?= e(tt('bio.enable_err')) ?>">
   <h2><?= t('bio.settings_h') ?></h2>

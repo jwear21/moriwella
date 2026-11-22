@@ -21,3 +21,5 @@ Add your Google account under Play Console > Setup > License testing, install fr
 Plugin `@capgo/capacitor-native-biometric`. The website (static/biometric.js) turns it on inside the app only: Account > Fingerprint or face sign-in, plus a one-time offer after signing in.
 The phone keeps a random device token behind its biometrics (Android Keystore); unlocking it signs in through `/app/device/login`. Only a hash of the token is stored on the server
 (table `device_tokens`); changing or resetting the password revokes all of a person's tokens. After pulling this change run `npm install` then `npx cap sync android` before building.
+
+Laptops, tablets and phone browsers use passkeys instead (static/passkey.js, table `passkeys`): fingerprint reader, face unlock or PIN through WebAuthn. The app itself keeps using the biometric plugin.
