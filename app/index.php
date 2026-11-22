@@ -740,6 +740,8 @@ if (strpos($path, '/admin') === 0) {
         echo "PHP " . PHP_VERSION . "\nGD FreeType: " . (!empty($g['FreeType Support']) ? 'yes' : 'no') . "\nGD RAQM (complex-script shaping): " . (!empty($g['RAQM']) ? 'yes' : 'NO') . "\n";
         $ff = mv_ffmpeg(); echo "ffmpeg: " . trim((string)@shell_exec(escapeshellarg($ff) . ' -version 2>&1 | head -1')) . "\n";
         echo "ffmpeg harfbuzz: " . (strpos((string)@shell_exec(escapeshellarg($ff) . ' -version 2>&1'), 'enable-libharfbuzz') !== false ? 'yes' : 'no') . "\n";
+        foreach (['python3 -c "from PIL import features;print(\'PIL raqm\',features.check(\'raqm\'))"', 'python3 --version', 'convert -version | head -3', 'magick -version | head -3', 'pango-view --version', 'hb-view --version', 'rsvg-convert --version', 'inkscape --version', 'chromium --version', 'google-chrome --version', 'node --version', 'fc-list | head -2', 'which gs'] as $c) echo "\n$ " . $c . "\n" . trim((string)@shell_exec($c . ' 2>&1')) . "\n";
+        echo "\nImagick ext: " . (extension_loaded('imagick') ? 'yes' : 'no') . "\n";
         exit;
     }
     if ($path === '/admin' && $post && isset($_POST['create'])) {

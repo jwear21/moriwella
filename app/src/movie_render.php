@@ -44,6 +44,7 @@ function mv_script_fonts(string $t): ?array {
     static $map = [
         ['/[\x{0E00}-\x{0E7F}]/u', 'NotoSerifThai', 'Mali', false],
         ['/[\x{0900}-\x{097F}]/u', 'NotoSerifDevanagari', 'Kalam', true],
+        ['/[\x{0980}-\x{09FF}]/u', 'NotoSerifBengali', 'Galada', true],
     ];
     foreach ($map as $m) if (preg_match($m[0], $t)) return [$m[1], $m[2], $m[3]];
     return null;
