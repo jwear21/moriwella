@@ -1,9 +1,9 @@
-<?php $yr = ($_GET['iv'] ?? '') === 'year'; $cur = $b['sub']['plan_key']; $paid = $b['state'] === 'active'; $ref = referral_pending_start((int)$b['household']['id']); $ct = card_trial_pending((int)$b['household']['id']); ?>
+<?php $yrOk = in_app() || ($ready && stripe_price(plans()['individual']['lookup_year']) && stripe_price(plans()['family']['lookup_year']) && stripe_price(plans()['family_pro']['lookup_year'])); $yr = $yrOk && ($_GET['iv'] ?? '') === 'year'; $cur = $b['sub']['plan_key']; $paid = $b['state'] === 'active'; $ref = referral_pending_start((int)$b['household']['id']); $ct = card_trial_pending((int)$b['household']['id']); ?>
 <h1 class="page-title"><?= t('billing.plans_title') ?></h1>
 <p class="subtle"><?= $ref ? t('referral.friend_intro') : ($ct ? t('billing.card_intro', ['days' => $ct['days']]) : t('billing.plans_intro')) ?></p>
 <?php if ($ref): ?><p class="notice"><?= t('referral.friend_note', ['name' => $ref['referrer_name']]) ?></p><?php endif; ?>
 <?php if ($b['state'] === 'trial'): ?><p class="notice"><?= t('billing.trial_note', ['date' => ldate('F j', (int)$b['sub']['trial_end'])]) ?></p><?php endif; ?>
-<p class="actions iv-tabs" role="tablist"><a class="btn<?= $yr ? ' btn--ghost' : '' ?>" role="tab" aria-selected="<?= $yr ? 'false' : 'true' ?>" href="<?= url('/pricing') ?>"><?= t('billing.tab_month') ?></a> <a class="btn<?= $yr ? '' : ' btn--ghost' ?>" role="tab" aria-selected="<?= $yr ? 'true' : 'false' ?>" href="<?= url('/pricing?iv=year') ?>"><?= t('billing.tab_year') ?></a></p>
+<?php if ($yrOk): ?><p class="actions iv-tabs" role="tablist"><a class="btn<?= $yr ? ' btn--ghost' : '' ?>" role="tab" aria-selected="<?= $yr ? 'false' : 'true' ?>" href="<?= url('/pricing') ?>"><?= t('billing.tab_month') ?></a> <a class="btn<?= $yr ? '' : ' btn--ghost' ?>" role="tab" aria-selected="<?= $yr ? 'true' : 'false' ?>" href="<?= url('/pricing?iv=year') ?>"><?= t('billing.tab_year') ?></a></p><?php endif; ?>
 <div class="plans">
 <?php foreach (plans() as $k => $p): ?>
   <section class="card plan<?= $paid && $cur === $k ? ' plan--current' : '' ?>">
@@ -11,7 +11,7 @@
     <?php if ($yr): ?><p class="plan-price"><b><?= money($p['annual_cents']) ?></b> <?= t('billing.per_year') ?></p>
     <p class="hint"><?= t('billing.year_save') ?></p>
     <?php else: ?><p class="plan-price"><b><?= money($p['monthly_cents']) ?></b> <?= t('billing.per_month') ?></p>
-    <p class="hint"><?= t('billing.or_year', ['price' => money($p['annual_cents'])]) ?></p><?php endif; ?>
+    <?php if ($yrOk): ?><p class="hint"><?= t('billing.or_year', ['price' => money($p['annual_cents'])]) ?></p><?php endif; ?><?php endif; ?>
     <ul>
       <li><?= $p['seats'] === 1 ? t('billing.one_person') : t('billing.up_to_people', ['n' => $p['seats']]) ?></li>
       <li><?= t('billing.two_each', ['n' => $p['credits_per_member']]) ?></li>
