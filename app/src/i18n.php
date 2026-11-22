@@ -29,7 +29,8 @@ function lang_load(string $code): array {
     static $cache = [];
     if (!isset($cache[$code])) {
         $f = lang_dir() . '/' . $code . '.php';
-        $cache[$code] = is_file($f) ? (array)(require $f) : [];
+        $cache[$code] = function_exists('tr_auto_load') ? tr_auto_load($code) : [];
+        if (is_file($f)) $cache[$code] = array_merge($cache[$code], (array)(require $f));
         /* feature areas add their phrases in lang/<code>.d/*.php so the main file stays stable */
         foreach (glob(lang_dir() . '/' . $code . '.d/*.php') ?: [] as $part) $cache[$code] = array_merge($cache[$code], (array)(require $part));
     }

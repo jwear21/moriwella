@@ -14,6 +14,7 @@ require __DIR__ . '/src/scrapbooks.php';
 require __DIR__ . '/src/referrals.php';
 require __DIR__ . '/src/devices.php';
 require __DIR__ . '/src/passkeys.php';
+require __DIR__ . '/src/translate.php';
 
 set_exception_handler(function (Throwable $t) {
     @file_put_contents(data_dir() . '/error.log', date('c') . ' ' . $t . "\n", FILE_APPEND);
@@ -752,6 +753,13 @@ if (strpos($path, '/admin') === 0) {
         echo "\nImagick ext: " . (extension_loaded('imagick') ? 'yes' : 'no') . "\n";
         exit;
     }
+    if ($path === '/admin/translate' && $post) {
+        header('Content-Type: application/json; charset=utf-8'); $c = (string)($_POST['lang'] ?? '');
+        if (!in_array($c, tr_codes(), true)) { echo json_encode(['ok' => false, 'error' => 'Unknown language.']); exit; }
+        try { $r = tr_run($c, 120); echo json_encode(['ok' => true, 'lang' => $c, 'done' => $r['done'], 'left' => $r['left'], 'spent' => tr_spent()['cost']]); }
+        catch (Throwable $e) { echo json_encode(['ok' => false, 'error' => $e->getMessage()]); }
+        exit;
+    }
     if ($path === '/admin' && $post && isset($_POST['create'])) {
         $name = mb_substr(trim((string)($_POST['name'] ?? '')), 0, 100);
         $email = strtolower(trim((string)($_POST['email'] ?? '')));
@@ -828,7 +836,7 @@ if (strpos($path, '/admin') === 0) {
             $sub = $h ? subscription_of((int)$h['id']) : null;
             $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
         }
-        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb], 'Administration');
+        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => tr_overview(), 'trSpent' => tr_spent(), 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
         exit;
     }
 }

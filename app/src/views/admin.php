@@ -82,6 +82,23 @@
 </nav>
 <?php endif; ?>
 
+<h2 class="section-h" id="languages">Languages</h2>
+<section class="card" id="tr-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/translate') ?>">
+  <?php if ($tr['total'] === 0): ?>
+    <p>Every phrase is translated in all <?= count($tr['rows']) + 1 ?> languages.</p>
+  <?php else: ?>
+    <p><b><?= (int)$tr['total'] ?></b> new phrases are missing across <?= count(array_filter($tr['rows'], fn($r) => $r['n'] > 0)) ?> languages. Translating them with Claude costs about <b>$<?= number_format($tr['cost'], 2) ?></b>.</p>
+    <?php if (!$trKey): ?><p class="note note--err">Add <code>'anthropic_api_key' =&gt; 'sk-ant-...'</code> to <code>app/src/config.php</code> on the server first (that file is never in git).</p><?php endif; ?>
+    <p><button class="btn" type="button" id="tr-go"<?= $trKey ? '' : ' disabled' ?>>Translate new phrases</button> <span id="tr-status" role="status"></span></p>
+    <details><summary>Which languages</summary><ul>
+      <?php foreach ($tr['rows'] as $c => $r): if (!$r['n']) continue; ?><li><code><?= e($c) ?></code> (<?= e(lang_english_name($c)) ?>): <span data-tr-n="<?= e($c) ?>"><?= (int)$r['n'] ?></span> missing, e.g. <?= e(implode(', ', $r['sample'])) ?></li><?php endforeach; ?>
+    </ul></details>
+  <?php endif; ?>
+  <p class="hint">Spent so far: $<?= number_format($trSpent['cost'], 2) ?> over <?= (int)$trSpent['calls'] ?> requests. Only missing phrases are sent, and translations are kept in the private data folder, so a hand-written translation always wins and deploys never erase them.
+  To do this automatically, add a weekly cron job: <code>/usr/local/bin/php /home/coyotejo/moriwella.com/app/bin/translate.php</code>. To only check, add <code>--check</code>.</p>
+</section>
+<script src="/app/static/admin-translate.js?v=<?= asset_v('static/admin-translate.js') ?>"></script>
+
 <h2 class="section-h">Movie credits</h2>
 <p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
 <form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
