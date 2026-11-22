@@ -351,3 +351,8 @@ html.ts-lg .home,html.ts-lg .gear{min-height:44px; padding:6px 16px}
 .scrubtip::after{content:""; position:absolute; left:50%; bottom:-5px; width:10px; height:10px; background:#F3EAD2; transform:translateX(-50%) rotate(45deg); border-radius:2px}
 .scrubtip[hidden]{display:none}
 .scrub{touch-action:none}
+
+/* Right-to-left languages: the book object itself keeps its geometry, only the writing reads right to left. */
+html[dir=rtl] .bk, html[dir=rtl] .stage, html[dir=rtl] .book { direction: ltr; }
+html[dir=rtl] .page, html[dir=rtl] .wbody, html[dir=rtl] .sheet, html[dir=rtl] .tools, html[dir=rtl] .gear, html[dir=rtl] .home, html[dir=rtl] .cvr .label { direction: rtl; }
+html[dir=rtl] .page, html[dir=rtl] .wbody { text-align: right; }

@@ -39,6 +39,9 @@ function lang_load(string $code): array {
 /** Picks the language: the signed-in person's choice, else this browser session's choice, else the phone's language, else English. */
 function lang_force(?string $code): void { $GLOBALS['mw_lang_force'] = $code; }
 
+/** Languages written right to left. */
+function text_dir(): string { return in_array(current_lang(), ['ar','ur','he','fa'], true) ? 'rtl' : 'ltr'; }
+
 function current_lang(): string {
     static $c = null;
     if (!empty($GLOBALS['mw_lang_force'])) return (string)$GLOBALS['mw_lang_force'];

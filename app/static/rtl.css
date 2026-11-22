@@ -1,0 +1,35 @@
+/* Right-to-left mirroring for Arabic, Urdu, Hebrew and Persian. Loaded only when html[dir=rtl]. Copyright (c) JSW Software Designs */
+html[dir=rtl] body { text-align: start; }
+html[dir=rtl] .linkbox { border-left: 0; border-right: 5px solid var(--sun); }
+html[dir=rtl] .users th, html[dir=rtl] .users td { text-align: right; }
+html[dir=rtl] .item.done .check::after { left: auto; right: 8px; }
+html[dir=rtl] .welcome-list, html[dir=rtl] .plan ul, html[dir=rtl] .invite-steps { padding-left: 0; padding-right: 1.2rem; }
+html[dir=rtl] .cal-mood { right: auto; left: .25rem; }
+html[dir=rtl] .ml-x { margin-left: 0; margin-right: auto; }
+html[dir=rtl] .entry-mood { margin-left: 0; margin-right: .35rem; }
+html[dir=rtl] .fb-n { text-align: left; }
+html[dir=rtl] .chip small { margin-left: 0; margin-right: .35rem; }
+html[dir=rtl] .avatar--sm { margin-right: 0; margin-left: .7rem; }
+html[dir=rtl] .acct { margin-left: 0; margin-right: .5rem; }
+html[dir=rtl] .acct-count { right: auto; left: -6px; }
+html[dir=rtl] .acct-panel { right: auto; left: 0; }
+html[dir=rtl] .acct-panel a, html[dir=rtl] .acct-out { text-align: right; }
+html[dir=rtl] .lt-goalcount { margin-left: 0; margin-right: auto; }
+html[dir=rtl] .goal-acts .textbtn { text-align: right; }
+html[dir=rtl] .pick input { left: auto; right: 6px; }
+html[dir=rtl] .pw-wrap input { padding-right: .75rem; padding-left: 3rem; }
+html[dir=rtl] .pw-eye { right: auto; left: .35rem; }
+html[dir=rtl] .ps-side { border-left: 0; border-right: 1px solid #E9D8B6; }
+html[dir=rtl] .thumb-edit { right: auto; left: 6px; }
+html[dir=rtl] .acct-chip { margin-left: 0; margin-right: .25rem; }
+@media (max-width: 720px) {
+  html[dir=rtl] .acct { margin-right: auto; margin-left: 0; }
+  html[dir=rtl] .acct-panel { left: .75rem; right: .75rem; }
+}
+/* Arrows written as &larr; / &rarr; in text read backwards in RTL, so flip them. */
+html[dir=rtl] .flip-rtl { display: inline-block; transform: scaleX(-1); }
+/* Album viewer */
+html[dir=rtl] .lb .lb-x { right: auto; left: 14px; }
+html[dir=rtl] .lb .lb-c { left: auto; right: 18px; }
+/* Numbers, emails, URLs and codes stay left to right inside RTL text. */
+html[dir=rtl] input[type=email], html[dir=rtl] input[type=url], html[dir=rtl] input[type=number], html[dir=rtl] .linkbox code, html[dir=rtl] .linkbox input { direction: ltr; text-align: left; }

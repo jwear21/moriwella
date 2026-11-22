@@ -1,7 +1,7 @@
 <?php /* Standalone album page: no app chrome. Used by the public link and by household members. Variables: $a, $photos, $photoUrl, $public, $owner */
 $exp = (int)$a['expires_at']; $n = count($photos); ?>
 <!DOCTYPE html>
-<html lang="<?= e(current_lang()) ?>" translate="no">
+<html lang="<?= e(current_lang()) ?>" dir="<?= text_dir() ?>" translate="no">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -11,6 +11,7 @@ $exp = (int)$a['expires_at']; $n = count($photos); ?>
 <title><?= e($a['title']) ?> | Moriwella</title>
 <link rel="icon" href="/assets/favicon.ico" sizes="any">
 <link rel="stylesheet" href="/app/static/album.css?v=<?= asset_v('static/album.css') ?>">
+<?php if (text_dir() === 'rtl'): ?><link rel="stylesheet" href="/app/static/rtl.css?v=<?= asset_v('static/rtl.css') ?>"><?php endif; ?>
 </head>
 <body>
 <header class="alb-top">

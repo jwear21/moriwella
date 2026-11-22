@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= e(current_lang()) ?>" translate="no">
+<html lang="<?= e(current_lang()) ?>" dir="<?= text_dir() ?>" translate="no">
 <head><meta name="google" content="notranslate">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="/app/static/app.css?v=<?= asset_v('static/app.css') ?>">
 <link rel="stylesheet" href="/app/static/editor.css?v=<?= asset_v('static/editor.css') ?>">
 <link rel="stylesheet" href="/app/static/textscale.css?v=<?= asset_v('static/textscale.css') ?>">
+<?php if (text_dir() === 'rtl'): ?><link rel="stylesheet" href="/app/static/rtl.css?v=<?= asset_v('static/rtl.css') ?>">
+<?php endif; ?>
 <script src="/app/static/textscale.js?v=<?= asset_v('static/textscale.js') ?>"></script>
 </head>
 <body class="app<?= $bare ? ' app--bare' : '' ?>" data-celebrate-on="<?= ($user && !celebrations_on((int)$user['id'])) ? '0' : '1' ?>" data-celebrate-size="<?= $user ? celebrate_size((int)$user['id']) : 'big' ?>" data-celebrate-style="<?= $user ? celebrate_style((int)$user['id']) : 'fireworks' ?>"<?php if ($user && ($un = take_unlocked())): ?> data-unlocked="<?= e(json_encode($un)) ?>"<?php endif; ?>>

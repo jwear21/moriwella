@@ -47,13 +47,14 @@ function mv_script_fonts(string $t): ?array {
         ['/[\x{0980}-\x{09FF}]/u', 'NotoSerifBengali', 'Galada', true],
         ['/[\x{0C00}-\x{0C7F}]/u', 'NotoSerifTelugu', 'Gidugu', true],
         ['/[\x{0B80}-\x{0BFF}]/u', 'NotoSerifTamil', 'Kavivanar', true],
+        ['/[\x{0600}-\x{06FF}\x{0750}-\x{077F}\x{FB50}-\x{FDFF}\x{FE70}-\x{FEFF}]/u', 'NotoNaskhArabic', 'ArefRuqaa', true],
     ];
     foreach ($map as $m) if (preg_match($m[0], $t)) return [$m[1], $m[2], $m[3]];
     return null;
 }
 /* Draw one shaped string with pango-view (full HarfBuzz shaping: Indic conjuncts, Arabic joining, right-to-left) into a transparent PNG,
    trimmed to its ink. Returns [GD image, bottom row of ink, left bearing] or null so the caller can fall back to plain GD. */
-const MV_FAMILY = ['NotoSerifDevanagari' => 'Noto Serif Devanagari', 'Kalam' => 'Kalam', 'NotoSerifBengali' => 'Noto Serif Bengali', 'Galada' => 'Galada', 'NotoSerifTelugu' => 'Noto Serif Telugu', 'Gidugu' => 'Gidugu', 'NotoSerifTamil' => 'Noto Serif Tamil', 'Kavivanar' => 'Kavivanar'];
+const MV_FAMILY = ['NotoSerifDevanagari' => 'Noto Serif Devanagari', 'Kalam' => 'Kalam', 'NotoSerifBengali' => 'Noto Serif Bengali', 'Galada' => 'Galada', 'NotoSerifTelugu' => 'Noto Serif Telugu', 'Gidugu' => 'Gidugu', 'NotoSerifTamil' => 'Noto Serif Tamil', 'Kavivanar' => 'Kavivanar', 'NotoNaskhArabic' => 'Noto Naskh Arabic', 'ArefRuqaa' => 'Aref Ruqaa'];
 function mv_fontconf(): string {
     $f = sys_get_temp_dir() . '/mw-fonts-' . md5(dirname(__DIR__)) . '.conf';
     if (!is_file($f)) {
