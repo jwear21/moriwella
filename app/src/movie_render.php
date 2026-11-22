@@ -24,12 +24,14 @@ function mv_ffmpeg(): string { return (string)cfg('ffmpeg_path', 'ffmpeg'); }
 
 /* ---------- GD helpers ---------- */
 function mv_col($im, array $c, int $alpha = 0): int { return imagecolorallocatealpha($im, $c[0], $c[1], $c[2], $alpha); }
-/* Japanese and Chinese text: Latin-only fonts have no such glyphs, so each string is drawn with a CJK font chosen by script.
+/* Japanese, Korean and Chinese text: Latin-only fonts have no such glyphs, so each string is drawn with a CJK font chosen by script.
    Kana means Japanese. Chinese is Simplified or Traditional by the person's language, else by telling the two apart. */
-function mv_is_cjk(string $t): bool { return (bool)preg_match('/[\x{3040}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}]/u', $t); }
+function mv_is_cjk(string $t): bool { return (bool)preg_match('/[\x{1100}-\x{11FF}\x{3040}-\x{30FF}\x{3130}-\x{318F}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}\x{F900}-\x{FAFF}]/u', $t); }
 function mv_cjk_region(string $t): string {
+    if (preg_match('/[\x{1100}-\x{11FF}\x{3130}-\x{318F}\x{AC00}-\x{D7AF}]/u', $t)) return 'KR';
     if (preg_match('/[\x{3040}-\x{30FF}]/u', $t)) return 'JP';
     $l = strtolower(current_lang());
+    if (strpos($l, 'ko') === 0) return 'KR';
     if (strpos($l, 'ja') === 0) return 'JP';
     if (in_array($l, ['zh-hk', 'zh-tw', 'zh-hant', 'zh-mo'], true)) return 'TC';
     if (in_array($l, ['zh', 'zh-cn', 'zh-hans', 'zh-sg'], true)) return 'SC';
@@ -38,7 +40,7 @@ function mv_cjk_region(string $t): string {
 function mv_pick(string $font, string $t): string {
     if (!mv_is_cjk($t)) return $font;
     $r = mv_cjk_region($t); $b = basename($font, '.ttf');
-    $hand = ['JP' => 'KleeOne', 'TC' => 'Iansui', 'SC' => 'MaShanZheng']; $serif = ['JP' => 'NotoSerifJP', 'TC' => 'NotoSerifTC', 'SC' => 'NotoSerifSC'];
+    $hand = ['JP' => 'KleeOne', 'TC' => 'Iansui', 'SC' => 'MaShanZheng', 'KR' => 'NanumPenScript']; $serif = ['JP' => 'NotoSerifJP', 'TC' => 'NotoSerifTC', 'SC' => 'NotoSerifSC', 'KR' => 'NotoSerifKR'];
     return mv_font(strpos($b, 'Caveat') === 0 ? $hand[$r] : $serif[$r]);
 }
 function mv_text($im, float $size, float $angle, int $x, int $y, int $col, string $font, string $t) { return imagettftext($im, $size, $angle, $x, $y, $col, mv_pick($font, $t), $t); }
