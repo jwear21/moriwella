@@ -603,3 +603,9 @@ label.check input { width: auto; margin-top: .3rem; }
 /* Monthly / Yearly switch on the plans screen */
 .iv-tabs a.btn--ghost{background:transparent;color:var(--green,#1F4D3A);border:1.5px solid currentColor}
 .iv-tabs{display:flex;flex-wrap:wrap;gap:.5rem}
+
+/* password eye */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { width: 100%; padding-right: 3rem; box-sizing: border-box; }
+.pw-eye { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); width: 2.5rem; height: 2.5rem; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: #1B4D3E; cursor: pointer; border-radius: 8px; }
+.pw-eye:focus-visible { outline: 2px solid #DDA12F; }

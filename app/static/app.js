@@ -402,3 +402,25 @@ if ('serviceWorker' in navigator) { window.addEventListener('load', function () 
     if (window.Moriwella) Moriwella.celebrate({ level: 'milestone', style: r ? r.value : 'fireworks', title: T('js.goal_reached', 'Goal reached'), sub: T('js.goal_reached_sub', 'You hit {what}.').replace('{what}', '8 glasses of water') });
   });
 })();
+
+/* Show/hide eye on every password field */
+(function () {
+  function T(k, d) { return (window.MW_T && window.MW_T[k]) || d; }
+  function enhance(inp) {
+    if (inp.dataset.eye) return; inp.dataset.eye = '1';
+    var wrap = document.createElement('span'); wrap.className = 'pw-wrap';
+    inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'pw-eye';
+    b.setAttribute('aria-label', T('js.show_password', 'Show password')); b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12s3.8-7 10.5-7 10.5 7 10.5 7-3.8 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/><path class="pw-slash" d="M3 3l18 18" style="display:none"/></svg>';
+    b.addEventListener('click', function () {
+      var show = inp.type === 'password'; inp.type = show ? 'text' : 'password';
+      b.setAttribute('aria-pressed', show ? 'true' : 'false');
+      b.setAttribute('aria-label', show ? T('js.hide_password', 'Hide password') : T('js.show_password', 'Show password'));
+      b.querySelector('.pw-slash').style.display = show ? '' : 'none';
+    });
+    wrap.appendChild(b);
+  }
+  function run() { document.querySelectorAll('input[type=password]').forEach(enhance); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();

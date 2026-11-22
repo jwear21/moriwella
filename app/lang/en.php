@@ -832,6 +832,8 @@ return [
  'js.your_first_entry' => 'Your first entry',
  'lang.change' => 'Change',
  'lang.label' => 'Language',
+ 'js.show_password' => 'Show password',
+ 'js.hide_password' => 'Hide password',
  'layout.acting_as' => 'Acting as {name}',
  'layout.experiences' => 'Experiences',
  'layout.journal' => 'Journal',
