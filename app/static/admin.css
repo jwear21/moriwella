@@ -78,3 +78,10 @@
   .adm-table td.adm-acts { justify-content: flex-start; padding-top: .5rem; }
   .adm-table td.adm-acts::before { content: none; }
 }
+
+.person-del { margin-top: .4rem; border-top: 1px solid rgba(0,0,0,.08); padding-top: .6rem; }
+.person-del > summary { cursor: pointer; color: #8a2f1f; font-size: .9rem; list-style: none; }
+.person-del > summary::-webkit-details-marker { display: none; }
+.person-del form { display: grid; gap: .5rem; max-width: 28rem; margin-top: .5rem; }
+.btn-danger { background: #8a2f1f; color: #fff; }
+.btn-danger:hover { background: #6f2417; }

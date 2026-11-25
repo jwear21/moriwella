@@ -57,7 +57,7 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
       <span class="person-plan"><?= e($label) ?></span>
     </summary>
     <div class="person-body">
-      <p class="person-meta"><?= e($type) ?> · Last sign-in <?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'never' ?><?= isset($a['used']) ? ' · ' . (int)$a['used'] . ' in household' : '' ?></p>
+      <p class="person-meta"><?= e($type) ?><?php if (!empty($a['stats'])): ?> · <?= (int)$a['stats']['entries'] ?> entries, <?= (int)$a['stats']['photos'] ?> photos, <?= (int)$a['stats']['movies'] ?> movies<?php endif; ?> · Last sign-in <?= $u['last_login_at'] ? e(date('M j, g:i a', (int)$u['last_login_at'])) : 'never' ?><?= isset($a['used']) ? ' · ' . (int)$a['used'] . ' in household' : '' ?></p>
       <?php if (!isset($a['member_of'])): ?>
       <form method="post" action="<?= url('/admin/users/' . $u['id'] . '/access') ?>" class="access-form" id="acc-<?= (int)$u['id'] ?>">
         <?= csrf_field() ?>
@@ -83,6 +83,17 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
         <button class="btn btn-quiet" type="submit" form="lnk-<?= $id ?>"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button>
         <?php if (!$isMe): ?><button class="btn btn-quiet" type="submit" form="tog-<?= $id ?>"><?= $u['status'] === 'disabled' ? 'Enable account' : 'Disable account' ?></button><?php endif; ?>
       </div>
+      <?php if (!$isMe && !$isAdmin): ?>
+      <details class="person-del">
+        <summary>Delete this account…</summary>
+        <form method="post" action="<?= url('/admin/users/' . $id . '/delete') ?>">
+          <?= $hidden ?>
+          <p class="subtle">This permanently deletes <?= e($u['name']) ?> and everything they own: entries, photos, movies and settings. It cannot be undone. Type their email to confirm.</p>
+          <input type="text" name="confirm" required autocomplete="off" placeholder="<?= e($u['email']) ?>" aria-label="Type the email to confirm">
+          <button class="btn btn-danger" type="submit">Delete permanently</button>
+        </form>
+      </details>
+      <?php endif; ?>
     </div>
   </details>
 <?php endforeach; ?>
@@ -100,9 +111,11 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
 <p class="adm-sub">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
 <form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
   <?= csrf_field() ?>
-  <label>Who gets them (email)
-    <input type="email" name="email" required value="<?= e($user['email']) ?>" autocomplete="off">
+  <label>Who gets them (pick from the list or type a name or email)
+    <input type="text" name="email" required value="<?= e($user['email']) ?>" list="credit-people" autocomplete="off" inputmode="email" spellcheck="false" placeholder="Start typing a name or email">
+    <datalist id="credit-people"><?php foreach (($allUsers ?? []) as $p): ?><option value="<?= e($p['email']) ?>"><?= e($p['name']) ?></option><?php endforeach; ?></datalist>
   </label>
+  <small class="subtle">Click the box and clear it to see everyone, or type to narrow the list.</small>
   <label>How many <input type="number" name="amount" min="1" max="500" value="5" required></label>
   <label>Reason (optional) <input type="text" name="reason" maxlength="120" placeholder="Testing, thank-you, support"></label>
   <button class="btn" type="submit">Give credits</button>

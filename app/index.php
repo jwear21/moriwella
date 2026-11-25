@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require __DIR__ . '/src/lib.php';
 require __DIR__ . '/src/credits.php';
+require __DIR__ . '/src/users_admin.php';
 require __DIR__ . '/src/i18n.php';
 require __DIR__ . '/src/photos.php';
 require __DIR__ . '/src/avatar.php';
@@ -819,10 +820,21 @@ if (strpos($path, '/admin') === 0) {
         flash('ok', $t['name'] . ($make === 'admin' ? ' is now an administrator.' : ' is no longer an administrator.'));
         redirect(url('/admin?' . http_build_query(array_filter(['q' => (string)($_POST['q'] ?? ''), 'page' => (int)($_POST['page'] ?? 0) ?: null]))));
     }
+    if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $post) {
+        $s = db()->prepare('SELECT id, name, email FROM users WHERE id = ?'); $s->execute([(int)$m[1]]); $t = $s->fetch();
+        $back = url('/admin?' . http_build_query(array_filter(['q' => (string)($_POST['q'] ?? ''), 'page' => (int)($_POST['page'] ?? 0) ?: null])));
+        if (!$t) { flash('err', 'That account no longer exists.'); redirect($back); }
+        if (strtolower(trim((string)($_POST['confirm'] ?? ''))) !== strtolower((string)$t['email'])) { flash('err', 'Type the account email exactly to delete it. Nothing was deleted.'); redirect($back); }
+        $err = admin_delete_user((int)$admin['id'], (int)$t['id']);
+        if ($err) flash('err', $err); else flash('ok', $t['name'] . ' (' . $t['email'] . ') and all their data were deleted.');
+        redirect($back);
+    }
     if ($path === '/admin/credits' && $post) {
         $em = strtolower(trim((string)($_POST['email'] ?? '')));
-        $ok = db()->prepare('SELECT id, name FROM users WHERE email = ?'); $ok->execute([$em]); $t = $ok->fetch(); $uid = (int)($t['id'] ?? 0);
-        if (!$t) { flash('err', 'No account has that email address.'); redirect(url('/admin?tab=credits')); }
+        $ok = db()->prepare('SELECT id, name FROM users WHERE email = ?'); $ok->execute([$em]); $t = $ok->fetch();
+        if (!$t) { $nm = db()->prepare('SELECT id, name FROM users WHERE name = ? COLLATE NOCASE LIMIT 2'); $nm->execute([trim((string)($_POST['email'] ?? ''))]); $rows = $nm->fetchAll(); if (count($rows) === 1) $t = $rows[0]; }
+        $uid = (int)($t['id'] ?? 0);
+        if (!$t) { flash('err', 'No single account matches that. Pick someone from the list or type their email.'); redirect(url('/admin?tab=credits')); }
         $n = (int)($_POST['amount'] ?? 0);
         if (credits_admin_grant((int)$admin['id'], $uid, $n, trim((string)($_POST['reason'] ?? ''))) !== null) flash('err', 'Enter a number from 1 to 500.');
         else flash('ok', $n . ($n === 1 ? ' movie credit' : ' movie credits') . ' given to ' . $t['name'] . '.');
@@ -865,14 +877,15 @@ if (strpos($path, '/admin') === 0) {
         $access = [];
         foreach ($lst->fetchAll() as $u) {
             $h = household_of((int)$u['id']);
-            if ($h && (int)$h['owner_user_id'] !== (int)$u['id']) { $o = db()->prepare('SELECT name FROM users WHERE id = ?'); $o->execute([$h['owner_user_id']]); $access[] = ['u' => $u, 'member_of' => (string)$o->fetchColumn()]; continue; }
+            if ($h && (int)$h['owner_user_id'] !== (int)$u['id']) { $o = db()->prepare('SELECT name FROM users WHERE id = ?'); $o->execute([$h['owner_user_id']]); $access[] = ['u' => $u, 'stats' => admin_user_stats((int)$u['id']), 'member_of' => (string)$o->fetchColumn()]; continue; }
             $sub = $h ? subscription_of((int)$h['id']) : null;
-            $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
+            $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1, 'stats' => admin_user_stats((int)$u['id'])];
         }
         require_once __DIR__ . '/src/backup.php';
         $counts = ['people' => (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'feedback' => count($fb)];
         $backup = ['status' => backup_status(), 'list' => $tab === 'backups' ? backup_list() : [], 'dir' => backup_dir()];
-        render('admin', ['tab' => $tab, 'counts' => $counts, 'backup' => $backup, 'access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => $tab === 'languages' ? tr_overview() : ['total' => 0, 'rows' => [], 'cost' => 0], 'trSpent' => $tab === 'languages' ? tr_spent() : ['cost' => 0, 'calls' => 0], 'legal' => $tab === 'legal' ? legal_overview() : ['todo' => 0, 'rows' => [], 'pieces' => []], 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
+        $allUsers = $tab === 'credits' ? db()->query("SELECT name, email FROM users WHERE status <> 'invited' ORDER BY name COLLATE NOCASE LIMIT 500")->fetchAll() : [];
+        render('admin', ['allUsers' => $allUsers, 'tab' => $tab, 'counts' => $counts, 'backup' => $backup, 'access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => $tab === 'languages' ? tr_overview() : ['total' => 0, 'rows' => [], 'cost' => 0], 'trSpent' => $tab === 'languages' ? tr_spent() : ['cost' => 0, 'calls' => 0], 'legal' => $tab === 'legal' ? legal_overview() : ['todo' => 0, 'rows' => [], 'pieces' => []], 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
         exit;
     }
 }
