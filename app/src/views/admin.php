@@ -193,8 +193,7 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
   <?php endforeach; ?>
   </tbody></table></div>
 <?php endif; ?>
-<p class="hint">Saved in the private folder <code><?= e($backup['dir']) ?></code>, which cannot be opened from the web. The newest <?= (int)BACKUP_KEEP ?> are kept.</p>
-<p class="hint">For a nightly automatic backup, add this cron job in cPanel: <code>/usr/local/bin/php <?= e(dirname(__DIR__, 2)) ?>/bin/backup.php</code></p>
+<p class="hint">Saved in the private folder <code><?= e($backup['dir']) ?></code>, which cannot be opened from the web. Only the newest <?= (int)BACKUP_KEEP ?> are kept; each new backup replaces the oldest.</p>
 <script src="/app/static/admin-backup.js?v=<?= asset_v('static/admin-backup.js') ?>"></script>
 <?php endif; ?>
 </div>

@@ -3,7 +3,7 @@ declare(strict_types=1);
 /* Full site backup: the whole private data folder (database, photos, avatars, movies, translations, passwords, keys and settings)
    plus every website file including its config. One archive per backup, kept in the private data folder (outside the website), newest 10 only.   Copyright (c) JSW Software Designs */
 
-const BACKUP_KEEP = 10;
+const BACKUP_KEEP = 5;
 
 function backup_dir(): string {
     $d = data_dir() . '/backups';
@@ -46,7 +46,7 @@ function backup_prune(): void {
 function backup_start(): ?string {
     $st = backup_status();
     if (($st['state'] ?? '') === 'running') return 'A backup is already running.';
-    if (!function_exists('exec')) return 'This server does not allow background jobs. Use the cron command below instead.';
+    if (!function_exists('exec')) return 'This server does not allow background jobs. Ask your host to allow it.';
     $php = is_executable('/usr/local/bin/php') ? '/usr/local/bin/php' : 'php';
     backup_set(['state' => 'running', 'started' => time(), 'message' => 'Starting']);
     $cmd = 'nohup ' . escapeshellarg($php) . ' ' . escapeshellarg(dirname(__DIR__) . '/bin/backup.php') . ' >/dev/null 2>&1 &';
