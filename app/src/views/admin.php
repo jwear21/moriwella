@@ -129,18 +129,21 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
 
 <?php if ($tab === 'languages'): ?>
 <section class="card" id="tr-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/translate') ?>">
+  <?php $nLang = count(array_filter($tr['rows'], fn($r) => $r['n'] > 0)); ?>
   <?php if ($tr['total'] === 0): ?>
-    <p>Every phrase is translated in all <?= count($tr['rows']) + 1 ?> languages.</p>
+    <p>Every phrase is translated in all <?= count($tr['rows']) + 1 ?> languages. Nothing is waiting.</p>
   <?php else: ?>
-    <p><b><?= (int)$tr['total'] ?></b> new phrases are missing across <?= count(array_filter($tr['rows'], fn($r) => $r['n'] > 0)) ?> languages. Translating them with Claude costs about <b>$<?= number_format($tr['cost'], 2) ?></b>.</p>
-    <?php if (!$trKey): ?><p class="note note--err">Add <code>'anthropic_api_key' =&gt; 'sk-ant-...'</code> to <code>app/src/config.php</code> on the server first (that file is never in git).</p><?php endif; ?>
-    <p><button class="btn" type="button" id="tr-go"<?= $trKey ? '' : ' disabled' ?>>Translate new phrases</button> <span id="tr-status" role="status"></span></p>
+    <p><b><?= (int)$tr['total'] ?></b> new phrases are missing across <?= (int)$nLang ?> languages. Translating them with Claude costs about <b>$<?= number_format($tr['cost'], 2) ?></b>.</p>
+  <?php endif; ?>
+  <?php if (!$trKey): ?><p class="note note--err">Add <code>'anthropic_api_key' =&gt; 'sk-ant-...'</code> to <code>app/src/config.php</code> on the server first (that file is never in git).</p><?php endif; ?>
+  <p><button class="btn" type="button" id="tr-go" data-langs='<?= e(json_encode(array_keys($tr['rows']))) ?>'<?= $trKey ? '' : ' disabled' ?>>Run language sweep now</button> <span id="tr-status" role="status"></span></p>
+  <p class="hint">The sweep checks every language against the English phrases and translates anything missing, one language at a time. Run it after each deploy that adds new text. It only spends money on phrases that are missing, and it never replaces a translation you wrote by hand. Legal pages are swept from the Legal pages tab.</p>
+  <?php if ($tr['total'] > 0): ?>
     <details><summary>Which languages</summary><ul>
       <?php foreach ($tr['rows'] as $c => $r): if (!$r['n']) continue; ?><li><code><?= e($c) ?></code> (<?= e(lang_english_name($c)) ?>): <span data-tr-n="<?= e($c) ?>"><?= (int)$r['n'] ?></span> missing, e.g. <?= e(implode(', ', $r['sample'])) ?></li><?php endforeach; ?>
     </ul></details>
   <?php endif; ?>
-  <p class="hint">Spent so far: $<?= number_format($trSpent['cost'], 2) ?> over <?= (int)$trSpent['calls'] ?> requests. Only missing phrases are sent, and translations are kept in the private data folder, so a hand-written translation always wins and deploys never erase them.
-  To do this automatically, add a weekly cron job: <code>/usr/local/bin/php /home/coyotejo/moriwella.com/app/bin/translate.php</code>. To only check, add <code>--check</code>.</p>
+  <p class="hint">Spent so far: $<?= number_format($trSpent['cost'], 2) ?> over <?= (int)$trSpent['calls'] ?> requests. Translations are kept in the private data folder, so a hand-written translation always wins and deploys never erase them.</p>
 </section>
 <script src="/app/static/admin-translate.js?v=<?= asset_v('static/admin-translate.js') ?>"></script>
 <?php endif; ?>

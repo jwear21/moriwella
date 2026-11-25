@@ -2,9 +2,9 @@
 (function () {
   var box = document.getElementById('tr-box'), go = document.getElementById('tr-go'); if (!box || !go) return;
   var st = document.getElementById('tr-status'), csrf = box.getAttribute('data-csrf'), url = box.getAttribute('data-url');
-  var langs = Array.prototype.map.call(box.querySelectorAll('[data-tr-n]'), function (n) { return n.getAttribute('data-tr-n'); }), total = 0;
+  var langs = []; try { langs = JSON.parse(go.getAttribute('data-langs') || '[]'); } catch (e) {} var total = 0;
   function one(i) {
-    if (i >= langs.length) { st.textContent = 'Done: ' + total + ' phrases translated. Reloading…'; setTimeout(function () { location.reload(); }, 1200); return; }
+    if (i >= langs.length) { st.textContent = total ? 'Done: ' + total + ' phrases translated. Reloading…' : 'All ' + langs.length + ' languages checked. Nothing was missing. Reloading…'; setTimeout(function () { location.reload(); }, 1200); return; }
     var c = langs[i]; st.textContent = 'Translating ' + c + ' (' + (i + 1) + ' of ' + langs.length + ')…';
     (function pass() {
       var b = new URLSearchParams(); b.set('_csrf', csrf); b.set('lang', c);
