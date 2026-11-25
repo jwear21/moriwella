@@ -88,3 +88,5 @@
 .btn-del { color: #8a2f1f; border-color: #d9b3ab; }
 .btn-del:hover { background: #f7e6e2; }
 .person-del[open] > summary { font-weight: 600; }
+.lg-langs { display: flex; flex-wrap: wrap; gap: .3rem .9rem; margin: .4rem 0 0; font-size: .9rem; }
+#lg-box .adm-table { margin-bottom: 1rem; }

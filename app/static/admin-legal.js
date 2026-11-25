@@ -20,5 +20,5 @@
       }).catch(function () { st.textContent = 'Stopped at ' + d + ' / ' + c + ': the request failed. Press the button to continue.'; go.disabled = false; });
     })(0);
   }
-  go.addEventListener('click', function () { go.disabled = true; job(0); });
+  go.addEventListener('click', function () { if (!jobs.length) { st.textContent = 'Everything is current. Nothing to translate.'; return; } go.disabled = true; job(0); });
 })();
