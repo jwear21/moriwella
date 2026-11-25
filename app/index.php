@@ -822,13 +822,37 @@ if (strpos($path, '/admin') === 0) {
     if ($path === '/admin/credits' && $post) {
         $em = strtolower(trim((string)($_POST['email'] ?? '')));
         $ok = db()->prepare('SELECT id, name FROM users WHERE email = ?'); $ok->execute([$em]); $t = $ok->fetch(); $uid = (int)($t['id'] ?? 0);
-        if (!$t) { flash('err', 'No account has that email address.'); redirect(url('/admin')); }
+        if (!$t) { flash('err', 'No account has that email address.'); redirect(url('/admin?tab=credits')); }
         $n = (int)($_POST['amount'] ?? 0);
         if (credits_admin_grant((int)$admin['id'], $uid, $n, trim((string)($_POST['reason'] ?? ''))) !== null) flash('err', 'Enter a number from 1 to 500.');
         else flash('ok', $n . ($n === 1 ? ' movie credit' : ' movie credits') . ' given to ' . $t['name'] . '.');
-        redirect(url('/admin'));
+        redirect(url('/admin?tab=credits'));
+    }
+    if (strpos($path, '/admin/backup/') === 0) {
+        require_once __DIR__ . '/src/backup.php';
+        if ($path === '/admin/backup/status') { header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store'); echo json_encode(backup_status()); exit; }
+        if ($path === '/admin/backup/start' && $post) {
+            $err = backup_start();
+            if (($_SERVER['HTTP_ACCEPT'] ?? '') === 'application/json') { header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => $err === null, 'error' => $err]); exit; }
+            if ($err) flash('err', $err);
+            redirect(url('/admin?tab=backups'));
+        }
+        if ($path === '/admin/backup/reset' && $post) { backup_set(['state' => 'idle']); flash('ok', 'The backup status was reset.'); redirect(url('/admin?tab=backups')); }
+        if ($path === '/admin/backup/delete' && $post) {
+            $n = (string)($_POST['name'] ?? '');
+            if (backup_name_ok($n) && is_file(backup_dir() . '/' . $n)) { @unlink(backup_dir() . '/' . $n); flash('ok', 'Backup deleted.'); }
+            redirect(url('/admin?tab=backups'));
+        }
+        if ($path === '/admin/backup/download' && $post) {
+            $n = (string)($_POST['name'] ?? ''); $f = backup_dir() . '/' . $n;
+            if (!backup_name_ok($n) || !is_file($f)) { flash('err', 'That backup was not found.'); redirect(url('/admin?tab=backups')); }
+            header('Content-Type: application/zip'); header('Content-Disposition: attachment; filename="' . $n . '"'); header('Content-Length: ' . filesize($f)); header('Cache-Control: no-store');
+            while (ob_get_level()) ob_end_clean();
+            readfile($f); exit;
+        }
     }
     if ($path === '/admin') {
+        $tab = (string)($_GET['tab'] ?? 'people'); if (!in_array($tab, ['people', 'credits', 'languages', 'legal', 'feedback', 'backups'], true)) $tab = 'people';
         $grants = db()->query("SELECT l.*, u.name FROM credit_ledger l JOIN users u ON u.id = l.user_id WHERE l.stripe_ref LIKE 'admin:%' ORDER BY l.id DESC LIMIT 15")->fetchAll();
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
         $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
@@ -845,7 +869,10 @@ if (strpos($path, '/admin') === 0) {
             $sub = $h ? subscription_of((int)$h['id']) : null;
             $access[] = ['u' => $u, 'sub' => $sub, 'used' => $h ? household_active_count((int)$h['id']) : 1];
         }
-        render('admin', ['access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => tr_overview(), 'trSpent' => tr_spent(), 'legal' => legal_overview(), 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
+        require_once __DIR__ . '/src/backup.php';
+        $counts = ['people' => (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'feedback' => count($fb)];
+        $backup = ['status' => backup_status(), 'list' => $tab === 'backups' ? backup_list() : [], 'dir' => backup_dir()];
+        render('admin', ['tab' => $tab, 'counts' => $counts, 'backup' => $backup, 'access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => $tab === 'languages' ? tr_overview() : ['total' => 0, 'rows' => [], 'cost' => 0], 'trSpent' => $tab === 'languages' ? tr_spent() : ['cost' => 0, 'calls' => 0], 'legal' => $tab === 'legal' ? legal_overview() : ['todo' => 0, 'rows' => [], 'pieces' => []], 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
         exit;
     }
 }

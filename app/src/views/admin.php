@@ -1,6 +1,19 @@
-<h1 class="page-title">Administration</h1>
-<p class="subtle">Create free beta accounts for testers, and manage everyone below.</p>
+<?php $tab = $tab ?? 'people';
+$sections = ['people' => 'People', 'credits' => 'Credits', 'languages' => 'Languages', 'legal' => 'Legal pages', 'feedback' => 'Feedback', 'backups' => 'Backups'];
+$badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts['feedback'] ?? 0)]; ?>
+<link rel="stylesheet" href="/app/static/admin.css?v=<?= asset_v('static/admin.css') ?>">
+<div class="adm">
+<header class="adm-top">
+  <h1 class="adm-title">Administration</h1>
+  <p class="adm-lead">Accounts, credits, translations, feedback and backups for Moriwella.</p>
+</header>
+<nav class="adm-tabs" aria-label="Administration sections">
+<?php foreach ($sections as $k => $label): ?>
+  <a href="<?= url('/admin?tab=' . $k) ?>"<?= $tab === $k ? ' aria-current="page"' : '' ?>><?= e($label) ?><?php if (!empty($badge[$k])): ?><span class="adm-n"><?= (int)$badge[$k] ?></span><?php endif; ?></a>
+<?php endforeach; ?>
+</nav>
 
+<?php if ($tab === 'people'): ?>
 <?php if ($newLink): ?>
 <section class="card linkbox" role="status">
   <h2>Sign-in link for <?= e($newLink['name']) ?></h2>
@@ -9,18 +22,18 @@
 </section>
 <?php endif; ?>
 
-<section class="card">
-  <h2>Add a beta tester</h2>
+<details class="adm-add card"<?= $newLink ? " open" : "" ?>>
+  <summary>Add a beta tester</summary>
   <form method="post" class="inline-form">
     <?= csrf_field() ?><input type="hidden" name="create" value="1">
     <label>Name<input name="name" required maxlength="100"></label>
     <label>Email<input type="email" name="email" required></label>
     <button class="btn" type="submit">Create free account</button>
   </form>
-</section>
+</details>
 
-<h2 class="section-h" id="access">People</h2>
-<p class="subtle"><?= (int)$total ?> <?= $total === 1 ? 'account' : 'accounts' ?><?= $q !== '' ? ' matching "' . e($q) . '"' : '' ?>. Click a person to manage their plan, role and sign-in.</p>
+<span id="access"></span>
+<p class="adm-count"><?= (int)$total ?> <?= $total === 1 ? 'account' : 'accounts' ?><?= $q !== '' ? ' matching "' . e($q) . '"' : '' ?>. Click a person to manage their plan, role and sign-in.</p>
 <form method="get" action="<?= url('/admin') ?>" class="people-search" role="search">
   <input type="search" name="q" value="<?= e($q) ?>" placeholder="Search by name or email" aria-label="Search people" autocomplete="off">
   <button class="btn" type="submit">Search</button>
@@ -81,8 +94,27 @@
   <?php if ($page < $pages): ?><a class="btn btn-quiet" href="<?= e($qs($page + 1)) ?>">Next</a><?php endif; ?>
 </nav>
 <?php endif; ?>
+<?php endif; ?>
 
-<h2 class="section-h" id="languages">Languages</h2>
+<?php if ($tab === 'credits'): ?>
+<p class="adm-sub">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
+<form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
+  <?= csrf_field() ?>
+  <label>Who gets them (email)
+    <input type="email" name="email" required value="<?= e($user['email']) ?>" autocomplete="off">
+  </label>
+  <label>How many <input type="number" name="amount" min="1" max="500" value="5" required></label>
+  <label>Reason (optional) <input type="text" name="reason" maxlength="120" placeholder="Testing, thank-you, support"></label>
+  <button class="btn" type="submit">Give credits</button>
+</form>
+<?php if (!empty($grants)): ?>
+<div class="tablewrap"><table class="users"><thead><tr><th>When</th><th>Who</th><th>Credits</th><th>Note</th></tr></thead><tbody>
+<?php foreach ($grants as $g): ?><tr><td data-l="When"><?= e(date('M j, g:i a', (int)$g['created_at'])) ?></td><td data-l="Who"><?= e($g['name']) ?></td><td data-l="Credits"><?= (int)$g['delta'] ?></td><td data-l="Note"><?= e($g['note']) ?></td></tr><?php endforeach; ?>
+</tbody></table></div>
+<?php endif; ?>
+<?php endif; ?>
+
+<?php if ($tab === 'languages'): ?>
 <section class="card" id="tr-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/translate') ?>">
   <?php if ($tr['total'] === 0): ?>
     <p>Every phrase is translated in all <?= count($tr['rows']) + 1 ?> languages.</p>
@@ -98,7 +130,9 @@
   To do this automatically, add a weekly cron job: <code>/usr/local/bin/php /home/coyotejo/moriwella.com/app/bin/translate.php</code>. To only check, add <code>--check</code>.</p>
 </section>
 <script src="/app/static/admin-translate.js?v=<?= asset_v('static/admin-translate.js') ?>"></script>
-<h2 class="section-h" id="legal">Legal pages in other languages</h2>
+<?php endif; ?>
+
+<?php if ($tab === 'legal'): ?>
 <section class="card" id="lg-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/legal') ?>" data-pieces='<?= e(json_encode(array_combine(array_keys(legal_docs()), $legal['pieces']))) ?>'>
   <p>The English privacy policy, terms and delete-account pages stay the official text. Translations are courtesy copies shown at <code>/app/legal/privacy?lang=es</code> with a notice that the English governs. They are checked to keep the page structure exactly, and a page is re-translated only when its English changes.</p>
   <?php if ($legal['todo'] === 0): ?>
@@ -110,29 +144,57 @@
   <?php endif; ?>
 </section>
 <script src="/app/static/admin-legal.js?v=<?= asset_v('static/admin-legal.js') ?>"></script>
-
-<h2 class="section-h">Movie credits</h2>
-<p class="subtle">Give movie credits to anyone, including yourself. They never expire and are recorded with your name.</p>
-<form method="post" action="<?= url('/admin/credits') ?>" class="card" style="display:grid;gap:.6rem;max-width:30rem">
-  <?= csrf_field() ?>
-  <label>Who gets them (email)
-    <input type="email" name="email" required value="<?= e($user['email']) ?>" autocomplete="off">
-  </label>
-  <label>How many <input type="number" name="amount" min="1" max="500" value="5" required></label>
-  <label>Reason (optional) <input type="text" name="reason" maxlength="120" placeholder="Testing, thank-you, support"></label>
-  <button class="btn" type="submit">Give credits</button>
-</form>
-<?php if (!empty($grants)): ?>
-<div class="tablewrap"><table class="users"><thead><tr><th>When</th><th>Who</th><th>Credits</th><th>Note</th></tr></thead><tbody>
-<?php foreach ($grants as $g): ?><tr><td data-l="When"><?= e(date('M j, g:i a', (int)$g['created_at'])) ?></td><td data-l="Who"><?= e($g['name']) ?></td><td data-l="Credits"><?= (int)$g['delta'] ?></td><td data-l="Note"><?= e($g['note']) ?></td></tr><?php endforeach; ?>
-</tbody></table></div>
 <?php endif; ?>
 
-<h2 class="section-h">Feedback from testers</h2>
-<?php if (empty($feedback)): ?><p class="subtle">Nothing yet. Testers can send feedback from Me.</p><?php endif; ?>
+<?php if ($tab === 'feedback'): ?>
+<?php if (empty($feedback)): ?><p class="adm-sub">Nothing yet. Testers can send feedback from Me.</p><?php endif; ?>
 <?php foreach ($feedback as $f): ?>
   <article class="card">
     <small class="due"><?= e($f['name']) ?> · <?= e(date('M j, g:i a', (int)$f['created_at'])) ?><?= $f['page'] !== '' ? ' · ' . e($f['page']) : '' ?></small>
     <p class="entry-body"><?= nl2br(e($f['message'])) ?></p>
   </article>
 <?php endforeach; ?>
+<?php endif; ?>
+
+<?php if ($tab === 'backups'): $bst = $backup['status']; $running = ($bst['state'] ?? '') === 'running'; ?>
+<p class="adm-sub">One archive holds the whole site: the database, every photo, avatar and movie, all website files, and the passwords, keys and settings. Download a copy now and then so it also lives somewhere other than this server.</p>
+<section class="card adm-bk" id="bk-box" data-status="<?= url('/admin/backup/status') ?>" data-running="<?= $running ? '1' : '0' ?>">
+  <div class="adm-bk-state">
+    <?php if ($running): ?><p><b>A backup is running.</b> This page will update when it finishes.</p>
+    <?php elseif (($bst['state'] ?? '') === 'error'): ?><p class="note note--err"><?= e((string)($bst['message'] ?? 'The backup failed.')) ?></p>
+    <?php elseif (($bst['state'] ?? '') === 'done'): ?><p class="note note--ok">Last backup finished <?= e(date('M j, g:i a', (int)$bst['finished'])) ?>: <?= e(backup_size((int)$bst['size'])) ?>, <?= (int)($bst['files'] ?? 0) ?> files.</p>
+    <?php else: ?><p>No backups yet.</p><?php endif; ?>
+  </div>
+  <form method="post" action="<?= url('/admin/backup/start') ?>" id="bk-start" class="adm-bk-form">
+    <?= csrf_field() ?>
+    <p class="adm-warn">Archives contain passwords and keys. Keep downloads private.</p>
+    <button class="btn" type="submit"<?= $running ? ' disabled' : '' ?>>Back up now</button>
+  </form>
+  <?php if ($running || ($bst['state'] ?? '') === 'error'): ?>
+  <form method="post" action="<?= url('/admin/backup/reset') ?>" class="adm-reset"><?= csrf_field() ?><button class="btn btn-quiet" type="submit">Backup stuck? Reset it</button></form>
+  <?php endif; ?>
+</section>
+
+<h2 class="adm-h">Saved backups</h2>
+<?php if (!$backup['list']): ?><p class="adm-sub">Nothing saved yet.</p><?php else: ?>
+<div class="adm-table"><table>
+  <thead><tr><th>Backup</th><th>Made</th><th class="num">Size</th><th></th></tr></thead>
+  <tbody>
+  <?php foreach ($backup['list'] as $b): ?>
+    <tr>
+      <td data-l="Backup"><?= e($b['name']) ?></td>
+      <td data-l="Made"><?= e(date('M j, Y g:i a', $b['time'])) ?></td>
+      <td class="num" data-l="Size"><?= e(backup_size($b['size'])) ?></td>
+      <td class="adm-acts">
+        <form method="post" action="<?= url('/admin/backup/download') ?>"><?= csrf_field() ?><input type="hidden" name="name" value="<?= e($b['name']) ?>"><button class="btn btn-quiet" type="submit">Download</button></form>
+        <form method="post" action="<?= url('/admin/backup/delete') ?>" onsubmit="return confirm('Delete this backup?')"><?= csrf_field() ?><input type="hidden" name="name" value="<?= e($b['name']) ?>"><button class="btn btn-quiet" type="submit">Delete</button></form>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody></table></div>
+<?php endif; ?>
+<p class="hint">Saved in the private folder <code><?= e($backup['dir']) ?></code>, which cannot be opened from the web. The newest <?= (int)BACKUP_KEEP ?> are kept.</p>
+<p class="hint">For a nightly automatic backup, add this cron job in cPanel: <code>/usr/local/bin/php <?= e(dirname(__DIR__, 2)) ?>/bin/backup.php</code></p>
+<script src="/app/static/admin-backup.js?v=<?= asset_v('static/admin-backup.js') ?>"></script>
+<?php endif; ?>
+</div>
