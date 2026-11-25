@@ -864,7 +864,7 @@ if (strpos($path, '/admin') === 0) {
         }
     }
     if ($path === '/admin') {
-        $tab = (string)($_GET['tab'] ?? 'people'); if (!in_array($tab, ['people', 'credits', 'languages', 'legal', 'feedback', 'backups'], true)) $tab = 'people';
+        $tab = (string)($_GET['tab'] ?? 'people'); if ($tab === 'legal') $tab = 'languages'; if (!in_array($tab, ['people', 'credits', 'languages', 'feedback', 'backups'], true)) $tab = 'people';
         $grants = db()->query("SELECT l.*, u.name FROM credit_ledger l JOIN users u ON u.id = l.user_id WHERE l.stripe_ref LIKE 'admin:%' ORDER BY l.id DESC LIMIT 15")->fetchAll();
         $newLink = $_SESSION['new_link'] ?? null; unset($_SESSION['new_link']);
         $fb = db()->query('SELECT f.*, u.name FROM feedback f JOIN users u ON u.id = f.user_id ORDER BY f.id DESC LIMIT 50')->fetchAll();
@@ -885,7 +885,7 @@ if (strpos($path, '/admin') === 0) {
         $counts = ['people' => (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn(), 'feedback' => count($fb)];
         $backup = ['status' => backup_status(), 'list' => $tab === 'backups' ? backup_list() : [], 'dir' => backup_dir()];
         $allUsers = $tab === 'credits' ? db()->query("SELECT name, email FROM users WHERE status <> 'invited' ORDER BY name COLLATE NOCASE LIMIT 500")->fetchAll() : [];
-        render('admin', ['allUsers' => $allUsers, 'tab' => $tab, 'counts' => $counts, 'backup' => $backup, 'access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => $tab === 'languages' ? tr_overview() : ['total' => 0, 'rows' => [], 'cost' => 0], 'trSpent' => $tab === 'languages' ? tr_spent() : ['cost' => 0, 'calls' => 0], 'legal' => $tab === 'legal' ? legal_overview() : ['todo' => 0, 'rows' => [], 'pieces' => []], 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
+        render('admin', ['allUsers' => $allUsers, 'tab' => $tab, 'counts' => $counts, 'backup' => $backup, 'access' => $access, 'q' => $q, 'page' => $page, 'pages' => $pages, 'total' => $total, 'grants' => $grants, 'newLink' => $newLink, 'feedback' => $fb, 'tr' => $tab === 'languages' ? tr_overview() : ['total' => 0, 'rows' => [], 'cost' => 0], 'trSpent' => $tab === 'languages' ? tr_spent() : ['cost' => 0, 'calls' => 0], 'legal' => $tab === 'languages' ? legal_overview() : ['todo' => 0, 'rows' => [], 'pieces' => []], 'trKey' => (string)cfg('anthropic_api_key', '') !== ''], 'Administration');
         exit;
     }
 }

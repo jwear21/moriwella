@@ -1,5 +1,5 @@
 <?php $tab = $tab ?? 'people';
-$sections = ['people' => 'People', 'credits' => 'Credits', 'languages' => 'Languages', 'legal' => 'Legal pages', 'feedback' => 'Feedback', 'backups' => 'Backups'];
+$sections = ['people' => 'People', 'credits' => 'Credits', 'languages' => 'Languages', 'feedback' => 'Feedback', 'backups' => 'Backups'];
 $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts['feedback'] ?? 0)]; ?>
 <link rel="stylesheet" href="/app/static/admin.css?v=<?= asset_v('static/admin.css') ?>">
 <div class="adm">
@@ -136,55 +136,36 @@ document.addEventListener('click', function (e) {
 <?php endif; ?>
 
 <?php if ($tab === 'languages'): ?>
-<section class="card" id="tr-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/translate') ?>">
-  <?php $nLang = count(array_filter($tr['rows'], fn($r) => $r['n'] > 0)); ?>
-  <?php if ($tr['total'] === 0): ?>
-    <p>Every phrase is translated in all <?= count($tr['rows']) + 1 ?> languages. Nothing is waiting.</p>
+<?php $lgTitles = ['privacy' => 'Privacy policy', 'terms' => 'Terms of service', 'delete-account' => 'Delete account page']; $nCodes = count(tr_codes());
+  $nLang = count(array_filter($tr['rows'], fn($r) => $r['n'] > 0)); ?>
+<section class="card" id="tr-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/translate') ?>" data-legal-url="<?= url('/admin/legal') ?>" data-pieces='<?= e(json_encode(array_combine(array_keys(legal_docs()), $legal['pieces']))) ?>'>
+  <?php if ($tr['total'] === 0 && $legal['todo'] === 0): ?>
+    <p>Everything is translated: all phrases and all three legal pages, in all <?= (int)$nCodes + 1 ?> languages. Nothing is waiting.</p>
   <?php else: ?>
-    <p><b><?= (int)$tr['total'] ?></b> new phrases are missing across <?= (int)$nLang ?> languages. Translating them with Claude costs about <b>$<?= number_format($tr['cost'], 2) ?></b>.</p>
+    <p>Waiting to translate: <b><?= (int)$tr['total'] ?></b> new phrases across <?= (int)$nLang ?> languages and <b><?= (int)$legal['todo'] ?></b> legal page translations. Roughly <b>$<?= number_format($tr['cost'] + ($legal['todo'] ? 2 : 0), 2) ?></b> with Claude.</p>
   <?php endif; ?>
   <?php if (!$trKey): ?><p class="note note--err">Add <code>'anthropic_api_key' =&gt; 'sk-ant-...'</code> to <code>app/src/config.php</code> on the server first (that file is never in git).</p><?php endif; ?>
   <p><button class="btn" type="button" id="tr-go" data-langs='<?= e(json_encode(array_keys($tr['rows']))) ?>'<?= $trKey ? '' : ' disabled' ?>>Run language sweep now</button> <span id="tr-status" role="status"></span></p>
-  <p class="hint">The sweep checks every language against the English phrases and translates anything missing, one language at a time. Run it after each deploy that adds new text. It only spends money on phrases that are missing, and it never replaces a translation you wrote by hand. Legal pages are swept from the Legal pages tab.</p>
+  <p class="hint">One button does everything. It checks every language against the English phrases, then checks the privacy policy, terms and delete-account pages, and translates only what is missing or changed. It never replaces a translation you wrote by hand. Run it after each deploy that adds new text.</p>
   <?php if ($tr['total'] > 0): ?>
-    <details><summary>Which languages</summary><ul>
+    <details><summary>Which phrases are missing</summary><ul>
       <?php foreach ($tr['rows'] as $c => $r): if (!$r['n']) continue; ?><li><code><?= e($c) ?></code> (<?= e(lang_english_name($c)) ?>): <span data-tr-n="<?= e($c) ?>"><?= (int)$r['n'] ?></span> missing, e.g. <?= e(implode(', ', $r['sample'])) ?></li><?php endforeach; ?>
     </ul></details>
   <?php endif; ?>
+  <details><summary>Legal pages (<?= $legal['todo'] === 0 ? 'all current' : (int)$legal['todo'] . ' to translate' ?>)</summary>
+    <table class="adm-table">
+      <thead><tr><th>Page</th><th>Official English</th><th>Translations</th></tr></thead>
+      <tbody>
+      <?php foreach (legal_docs() as $d => $file): $ok = count(array_filter($legal['rows'][$d] ?? [])); ?>
+        <tr><td><b><?= e($lgTitles[$d] ?? $d) ?></b></td><td><a href="<?= e('/' . $file) ?>" target="_blank" rel="noopener">Open</a></td><td><?= (int)$ok ?> of <?= (int)$nCodes ?> current</td></tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </details>
+  <script type="application/json" id="lg-todo"><?= json_encode(array_map(fn($r) => array_keys(array_filter($r, fn($ok) => !$ok)), $legal['rows'])) ?></script>
   <p class="hint">Spent so far: $<?= number_format($trSpent['cost'], 2) ?> over <?= (int)$trSpent['calls'] ?> requests. Translations are kept in the private data folder, so a hand-written translation always wins and deploys never erase them.</p>
 </section>
 <script src="/app/static/admin-translate.js?v=<?= asset_v('static/admin-translate.js') ?>"></script>
-<?php endif; ?>
-
-<?php if ($tab === 'legal'): ?>
-<?php $lgTitles = ['privacy' => 'Privacy policy', 'terms' => 'Terms of service', 'delete-account' => 'Delete account page']; $nCodes = count(tr_codes()); ?>
-<p class="adm-sub">These are the three legal pages shown to the public. The English text is official. Translations are courtesy copies that say the English governs.</p>
-<section class="card" id="lg-box" data-csrf="<?= e(csrf_token()) ?>" data-url="<?= url('/admin/legal') ?>" data-pieces='<?= e(json_encode(array_combine(array_keys(legal_docs()), $legal['pieces']))) ?>'>
-  <table class="adm-table">
-    <thead><tr><th>Page</th><th>Official English</th><th>Translations</th><th>File updated</th></tr></thead>
-    <tbody>
-    <?php foreach (legal_docs() as $d => $file): $ok = count(array_filter($legal['rows'][$d] ?? [])); $f = legal_root() . '/' . $file; ?>
-      <tr>
-        <td><b><?= e($lgTitles[$d] ?? $d) ?></b></td>
-        <td><a href="<?= e('/' . $file) ?>" target="_blank" rel="noopener">Open <?= e($file) ?></a></td>
-        <td><?= (int)$ok ?> of <?= (int)$nCodes ?> current
-          <details><summary>Open a translation</summary><p class="lg-langs"><?php foreach (tr_codes() as $c): if (empty($legal['rows'][$d][$c])) continue; ?><a href="<?= e(url('/legal/' . $d) . '?lang=' . $c) ?>" target="_blank" rel="noopener"><?= e(lang_english_name($c)) ?></a> <?php endforeach; ?></p></details></td>
-        <td><?= is_file($f) ? e(date('M j, Y g:i a', (int)filemtime($f))) : 'missing' ?></td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table>
-  <?php if ($legal['todo'] === 0): ?>
-    <p>All three pages are translated and current in all <?= (int)$nCodes ?> other languages.</p>
-  <?php else: ?>
-    <p><b><?= (int)$legal['todo'] ?></b> translations are missing or out of date (3 pages x <?= (int)$nCodes ?> languages). Translating all of them costs roughly <b>$2</b>.</p>
-  <?php endif; ?>
-  <?php if (!$trKey): ?><p class="note note--err">Add <code>'anthropic_api_key' =&gt; 'sk-ant-...'</code> to <code>app/src/config.php</code> on the server first (that file is never in git).</p><?php endif; ?>
-  <p><button class="btn" type="button" id="lg-go"<?= $trKey ? '' : ' disabled' ?>>Run legal pages sweep now</button> <span id="lg-status" role="status"></span></p>
-  <p class="hint">The sweep re-translates only the pages whose English text changed since they were last translated.</p>
-  <script type="application/json" id="lg-todo"><?= json_encode(array_map(fn($r) => array_keys(array_filter($r, fn($ok) => !$ok)), $legal['rows'])) ?></script>
-</section>
-<script src="/app/static/admin-legal.js?v=<?= asset_v('static/admin-legal.js') ?>"></script>
 <?php endif; ?>
 
 <?php if ($tab === 'feedback'): ?>
