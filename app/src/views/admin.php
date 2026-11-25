@@ -82,10 +82,11 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
         <?php if (!$isMe && $u['status'] === 'active'): ?><button class="btn btn-quiet" type="submit" form="act-<?= $id ?>">Act as <?= e(strtok((string)$u['name'], ' ')) ?></button><?php endif; ?>
         <button class="btn btn-quiet" type="submit" form="lnk-<?= $id ?>"><?= $u['status'] === 'invited' ? 'New sign-in link' : 'Reset password' ?></button>
         <?php if (!$isMe): ?><button class="btn btn-quiet" type="submit" form="tog-<?= $id ?>"><?= $u['status'] === 'disabled' ? 'Enable account' : 'Disable account' ?></button><?php endif; ?>
+        <?php if (!$isMe && !$isAdmin): ?><button class="btn btn-quiet btn-del" type="button" data-del="<?= $id ?>">Delete…</button><?php endif; ?>
       </div>
       <?php if (!$isMe && !$isAdmin): ?>
-      <details class="person-del">
-        <summary>Delete this account…</summary>
+      <details class="person-del" id="del-<?= $id ?>">
+        <summary>Delete this account</summary>
         <form method="post" action="<?= url('/admin/users/' . $id . '/delete') ?>">
           <?= $hidden ?>
           <p class="subtle">This permanently deletes <?= e($u['name']) ?> and everything they own: entries, photos, movies and settings. It cannot be undone. Type their email to confirm.</p>
@@ -98,6 +99,13 @@ $badge = ['people' => (int)($counts['people'] ?? 0), 'feedback' => (int)($counts
   </details>
 <?php endforeach; ?>
 </div>
+<script>
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-del]'); if (!b) return;
+  var d = document.getElementById('del-' + b.getAttribute('data-del')); if (!d) return;
+  d.open = true; var i = d.querySelector('input[name=confirm]'); d.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (i) i.focus();
+});
+</script>
 <?php if ($pages > 1): $qs = fn($n) => url('/admin?' . http_build_query(array_filter(['q' => $q, 'page' => $n > 1 ? $n : null]))); ?>
 <nav class="pager" aria-label="Pages">
   <?php if ($page > 1): ?><a class="btn btn-quiet" href="<?= e($qs($page - 1)) ?>">Previous</a><?php endif; ?>

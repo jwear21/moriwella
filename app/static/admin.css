@@ -85,3 +85,6 @@
 .person-del form { display: grid; gap: .5rem; max-width: 28rem; margin-top: .5rem; }
 .btn-danger { background: #8a2f1f; color: #fff; }
 .btn-danger:hover { background: #6f2417; }
+.btn-del { color: #8a2f1f; border-color: #d9b3ab; }
+.btn-del:hover { background: #f7e6e2; }
+.person-del[open] > summary { font-weight: 600; }
